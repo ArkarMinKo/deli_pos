@@ -150,7 +150,7 @@ function createShops(req, res) {
               res.statusCode = 500;
               return res.end(JSON.stringify({ error: err.message }));
             }
-            sendMail(fields.email, fields.fullname, "pending");
+            sendMail(fields.email, fields.shopkeeper_name, "pending");
             res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
             res.end(JSON.stringify({ message: "ဆိုင်အကောင့် ဖန်တီးပြီးပါပြီ" }));
           }
