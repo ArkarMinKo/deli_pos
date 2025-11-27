@@ -33,8 +33,6 @@ const server = http.createServer(async (req, res) => {
     const pathName = parsedUrl.pathname;
     const method = req.method;
 
-    console.log("Path:", pathName, "Method:", req.method);
-
     // --- Serve user uploads ---
     if (pathName.startsWith("/user-uploads/")) {
         const safePath = path.normalize(path.join(__dirname, pathName));
@@ -85,7 +83,6 @@ const server = http.createServer(async (req, res) => {
     // -- email confrimation ---
 
     else if(pathName === "/request-email-confirmation" && method === "POST"){
-        console.log("Hi")
         emails.requestEmailConfirmation(req, res);
     }
 
