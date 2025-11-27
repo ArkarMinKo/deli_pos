@@ -4,6 +4,7 @@ const db = require("../db");
 const fs = require("fs");
 const path = require("path");
 const {generateId} = require('../utils/idShopGenerator')
+const sendMail = require("../utils/mailer");
 
 const UPLOAD_DIR = path.join(__dirname, "../shop_uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
