@@ -6,6 +6,7 @@ const { saveCode, verifyCode } = require("../utils/codeStore");
 function requestEmailConfirmation(req, res) {
   const form = new formidable.IncomingForm();
   form.parse(req, (err, fields) => {
+    console.log("fields:", fields); // ဒီနေရာ
     if (err) {
       res.statusCode = 500;
       return res.end(JSON.stringify({ error: err.message }));
