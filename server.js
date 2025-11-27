@@ -85,6 +85,7 @@ const server = http.createServer(async (req, res) => {
     // -- email confrimation ---
 
     else if(pathName === "/request-email-confirmation" && method === "POST"){
+        console.log("Hi")
         emails.requestEmailConfirmation(req, res);
     }
 
