@@ -5,7 +5,7 @@ const path = require("path");
 const db = require("./db");
 
 // Upload folders
-const USER_UPLOAD_DIR = path.join(__dirname, "users_uploads");
+const USER_UPLOAD_DIR = path.join(__dirname, "user_uploads");
 const SHOP_UPLOAD_DIR = path.join(__dirname, "shop_uploads");
 
 // Routes
@@ -33,8 +33,10 @@ const server = http.createServer(async (req, res) => {
     const pathName = parsedUrl.pathname;
     const method = req.method;
 
+    console.log("Path:", pathName, "Method:", req.method);
+
     // --- Serve user uploads ---
-    if (pathName.startsWith("/users-uploads/")) {
+    if (pathName.startsWith("/user-uploads/")) {
         const safePath = path.normalize(path.join(__dirname, pathName));
         if (!safePath.startsWith(USER_UPLOAD_DIR)) {
             res.writeHead(403);
