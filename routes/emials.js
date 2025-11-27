@@ -4,13 +4,16 @@ const { generateEmailCode, getExpiryTime } = require("../utils/emailCodeGenerato
 const { saveCode, verifyCode } = require("../utils/codeStore");
 
 function requestEmailConfirmation(req, res) {
-  const form = new formidable.IncomingForm({ multiples: true });
-  form.parse(req, (err, fields) => {
-    console.log("err:", err);
-    console.log("fields:", fields); // ဒီနေရာ
-    if (err) {
-      res.statusCode = 500;
-      return res.end(JSON.stringify({ error: err.message }));
+  let body = "";
+  req.on("data", chunk => body += chunk);
+  req.on("end", () => {
+    let fields = {};
+
+    try {
+      fields = JSON.parse(body || "{}");
+    } catch (e) {
+      res.statusCode = 400;
+      return res.end(JSON.stringify({ message: "Invalid JSON" }));
     }
 
     const { email } = fields;
@@ -27,7 +30,7 @@ function requestEmailConfirmation(req, res) {
       email,
       "Customer",
       "confirmation",
-      { code: `${code}`}
+      { code: `${code}` }
     );
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ message: "email အတည်ပြုကုဒ် ပို့ပေးလိုက်ပါပြီ ၃ မိနစ်အတွင်း ရိုက်ထည့်ပေးပါ", email }));
