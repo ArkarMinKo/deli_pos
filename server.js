@@ -94,7 +94,7 @@ const server = http.createServer(async (req, res) => {
     else if (pathName === "/login-shop" && method === "POST") {
         let body = '';
         req.on('data', chunk => body += chunk);
-        req.on('end', () => users.loginUser(req, res, body));
+        req.on('end', () => shops.loginShop(req, res, body));
         return;
     }
     else if (pathName === "/shops" && method === "POST") shops.createShops(req, res);
