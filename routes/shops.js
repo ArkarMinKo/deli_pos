@@ -131,7 +131,7 @@ function createShops(req, res) {
             fields.phone,
             hashedPassword,
             photoFile || null,
-            fields.items,
+            parseInt(fields.items),
             fields.address
           ],
           (err) => {
