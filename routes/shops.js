@@ -1,6 +1,7 @@
 const formidable = require("formidable");
 const bcrypt = require("bcrypt");
 const db = require("../db");
+const path = require("path");
 const {generateId} = require('../utils/idShopGenerator')
 
 const UPLOAD_DIR = path.join(__dirname, "../shop_uploads");
