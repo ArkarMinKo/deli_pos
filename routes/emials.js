@@ -6,20 +6,28 @@ const { saveCode, verifyCode } = require("../utils/codeStore");
 function requestEmailConfirmation(req, res) {
   let body = "";
   req.on("data", chunk => body += chunk);
+
   req.on("end", () => {
     let fields = {};
 
     try {
       fields = JSON.parse(body || "{}");
     } catch (e) {
-      res.statusCode = 400;
-      return res.end(JSON.stringify({ message: "Invalid JSON" }));
+      if (!res.writableEnded) {
+        res.statusCode = 400;
+        return res.end(JSON.stringify({ message: "Invalid JSON" }));
+      }
+      return;
     }
 
     const { email } = fields;
+
     if (!email) {
-      res.statusCode = 400;
-      return res.end(JSON.stringify({ message: "Email is required" }));
+      if (!res.writableEnded) {
+        res.statusCode = 400;
+        return res.end(JSON.stringify({ message: "Email is required" }));
+      }
+      return;
     }
 
     const code = generateEmailCode();
@@ -32,8 +40,14 @@ function requestEmailConfirmation(req, res) {
       "confirmation",
       { code: `${code}` }
     );
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ message: "email အတည်ပြုကုဒ် ပို့ပေးလိုက်ပါပြီ ၃ မိနစ်အတွင်း ရိုက်ထည့်ပေးပါ", email }));
+
+    if (!res.writableEnded) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        message: "email အတည်ပြုကုဒ် ပို့ပေးလိုက်ပါပြီ ၃ မိနစ်အတွင်း ရိုက်ထည့်ပေးပါ",
+        email
+      }));
+    }
   });
 }
 
