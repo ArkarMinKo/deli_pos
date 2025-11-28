@@ -183,9 +183,46 @@ function changeStatus(req, res, id) {
     });
 }
 
+function deleteUser(req, res, id) {
+    const userId = id;
+
+    if (!userId) {
+        return res.writeHead(400, { "Content-Type": "application/json" })
+        .end(JSON.stringify({ error: "Missing user id" }));
+    }
+
+    // Check if user exists
+    db.query("SELECT id FROM users WHERE id = ?", [userId], (err, result) => {
+        if (err) {
+            return res.writeHead(500, { "Content-Type": "application/json" })
+            .end(JSON.stringify({ error: "DB error" }));
+        }
+
+        if (result.length === 0) {
+            return res.writeHead(404, { "Content-Type": "application/json" })
+            .end(JSON.stringify({ error: "User not found" }));
+        }
+
+        // If exists → delete
+        db.query("DELETE FROM users WHERE id = ?", [userId], (deleteErr) => {
+            if (deleteErr) {
+                return res.writeHead(500, { "Content-Type": "application/json" })
+                .end(JSON.stringify({ error: "Delete failed" }));
+            }
+
+            return res.writeHead(200, { "Content-Type": "application/json" })
+            .end(JSON.stringify({
+                message: "User အကောင့်ကို အောင်မြင်စွာ ဖျက်ပြီးပါပြီ",
+                deletedId: userId
+            }));
+        });
+    });
+}
+
 module.exports = {
     loginUser,
     createUsers,
     getUsers,
-    changeStatus
+    changeStatus,
+    deleteUser
 };

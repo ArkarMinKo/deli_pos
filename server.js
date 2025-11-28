@@ -81,6 +81,11 @@ const server = http.createServer(async (req, res) => {
     else if (pathName === "/users" && method === "POST") users.createUsers(req, res);
     else if (pathName === "/users" && method === "GET") users.getUsers(req, res);
 
+    else if (pathName.startsWith("/users/") && method === "DELETE") {
+        const id = pathName.split("/")[2];
+        users.deleteUser(req, res, id);
+    }
+
     else if (pathName.startsWith("/users/status/") && method === "PATCH") {
         const id = pathName.split("/")[3];
         users.changeStatus(req, res, id);
@@ -106,6 +111,11 @@ const server = http.createServer(async (req, res) => {
     else if (pathName === "/shops" && method === "POST") shops.createShops(req, res);
     else if (pathName === "/shops" && method === "GET") shops.getShops(req, res);
     else if (pathName === "/shops-pending" && method === "GET") shops.getShopsPending(req, res);
+
+    else if (pathName.startsWith("/shops/") && method === "DELETE") {
+        const id = pathName.split("/")[2];
+        shops.deleteShop(req, res, id);
+    }
 
     else if (pathName.startsWith("/shops/approve/") && method === "PATCH") {
         const id = pathName.split("/")[3];

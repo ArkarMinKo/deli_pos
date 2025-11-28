@@ -311,6 +311,42 @@ function changeStatus(req, res, id) {
     });
 }
 
+function deleteShop(req, res, id) {
+    const shopId = id;
+
+    if (!shopId) {
+        return res.writeHead(400, { "Content-Type": "application/json" })
+        .end(JSON.stringify({ error: "Missing shop id" }));
+    }
+
+    // Check if shop exists
+    db.query("SELECT id FROM shops WHERE id = ?", [shopId], (err, result) => {
+        if (err) {
+            return res.writeHead(500, { "Content-Type": "application/json" })
+            .end(JSON.stringify({ error: "DB error" }));
+        }
+
+        if (result.length === 0) {
+            return res.writeHead(404, { "Content-Type": "application/json" })
+            .end(JSON.stringify({ error: "Shop not found" }));
+        }
+
+        // If exists → delete
+        db.query("DELETE FROM shops WHERE id = ?", [shopId], (deleteErr) => {
+            if (deleteErr) {
+                return res.writeHead(500, { "Content-Type": "application/json" })
+                .end(JSON.stringify({ error: "Delete failed" }));
+            }
+
+            return res.writeHead(200, { "Content-Type": "application/json" })
+            .end(JSON.stringify({
+                message: "ဆိုင် အကောင့်ကို အောင်မြင်စွာ ဖျက်ပြီးပါပြီ",
+                deletedId: shopId
+            }));
+        });
+    });
+}
+
 module.exports = {
     loginShop,
     createShops,
@@ -318,5 +354,6 @@ module.exports = {
     getShopsPending,
     approveShop,
     rejectShop,
-    changeStatus
+    changeStatus,
+    deleteShop
 };
