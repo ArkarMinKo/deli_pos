@@ -165,7 +165,39 @@ function createShops(req, res) {
   });
 }
 
+function getShopsPending(req, res) {
+  const sql = `
+    SELECT 
+      id, 
+      shopkeeper_name, 
+      shop_name, 
+      email, 
+      phone, 
+      photo, 
+      items, 
+      address, 
+      location, 
+      status, 
+      permission, 
+      created_at
+    FROM shops
+    WHERE permission = 'pending'
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Database error", details: err }));
+      return;
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(results));
+  });
+}
+
 module.exports = {
     loginShop,
-    createShops
+    createShops,
+    getShopsPending
 };

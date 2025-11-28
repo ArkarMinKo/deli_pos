@@ -99,6 +99,7 @@ const server = http.createServer(async (req, res) => {
         return;
     }
     else if (pathName === "/shops" && method === "POST") shops.createShops(req, res);
+    else if (pathName === "/shops-pending" && method === "GET") shops.getShopsPending(req, res);
 
     // --- 404 fallback ---
     else {
