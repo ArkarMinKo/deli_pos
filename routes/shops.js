@@ -235,7 +235,7 @@ function approveShop(req, res, idParam) {
 
     const { shopkeeper_name, email } = rows[0];
 
-    db.query("UPDATE shops SET permession='approved' WHERE id=?", [id], (err) => {
+    db.query("UPDATE shops SET permission='approved' WHERE id=?", [id], (err) => {
       if (err) return res.end(JSON.stringify({ error: err.message }));
 
       sendMail(
@@ -257,7 +257,7 @@ function rejectShop(req, res, idParam) {
 
     const { shopkeeper_name, email } = rows[0];
 
-    db.query("UPDATE shops SET permession='rejected' WHERE id=?", [id], (err) => {
+    db.query("UPDATE shops SET permission='rejected' WHERE id=?", [id], (err) => {
       if (err) return res.end(JSON.stringify({ error: err.message }));
 
       sendMail(
