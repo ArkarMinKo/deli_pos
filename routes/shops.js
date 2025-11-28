@@ -227,9 +227,55 @@ function getShops(req, res) {
   });
 }
 
+function approveShop(req, res, idParam) {
+  const id = idParam || req.url.split("/")[3];
+  db.query("SELECT shopkeeper_name, email FROM shops WHERE id=?", [id], (err, rows) => {
+    if (err || rows.length === 0)
+      return res.end(JSON.stringify({ error: err ? err.message : "Shop not found" }));
+
+    const { shopkeeper_name, email } = rows[0];
+
+    db.query("UPDATE shops SET permession='approved' WHERE id=?", [id], (err) => {
+      if (err) return res.end(JSON.stringify({ error: err.message }));
+
+      sendMail(
+        email,
+        shopkeeper_name,
+        "approved"
+      );
+
+      res.end(JSON.stringify({ message: "ဆိုင် ကို အောင်မြင်စွာ approve လိုက်ပါပြီ" }));
+    });
+  });
+}
+
+function rejectShop(req, res, idParam) {
+  const id = idParam || req.url.split("/")[3];
+  db.query("SELECT shopkeeper_name, email FROM shops WHERE id=?", [id], (err, rows) => {
+    if (err || rows.length === 0)
+      return res.end(JSON.stringify({ error: err ? err.message : "Shop not found" }));
+
+    const { shopkeeper_name, email } = rows[0];
+
+    db.query("UPDATE shops SET permession='rejected' WHERE id=?", [id], (err) => {
+      if (err) return res.end(JSON.stringify({ error: err.message }));
+
+      sendMail(
+        email,
+        shopkeeper_name,
+        "rejected"
+      );
+
+      res.end(JSON.stringify({ message: "ဆိုင် ကို အောင်မြင်စွာ rejected လိုက်ပါပြီ" }));
+    });
+  });
+}
+
 module.exports = {
     loginShop,
     createShops,
     getShops,
-    getShopsPending
+    getShopsPending,
+    approveShop,
+    rejectShop
 };

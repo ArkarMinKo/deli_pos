@@ -102,6 +102,15 @@ const server = http.createServer(async (req, res) => {
     else if (pathName === "/shops" && method === "GET") shops.getShops(req, res);
     else if (pathName === "/shops-pending" && method === "GET") shops.getShopsPending(req, res);
 
+    else if (pathName.startsWith("/shops/approve/") && method === "PATCH") {
+        const id = pathName.split("/")[3];
+        shops.approveShop(req, res, id);
+    }
+    else if (pathName.startsWith("/shops/reject/") && method === "PATCH") {
+        const id = pathName.split("/")[3];
+        shops.rejectShop(req, res, id);
+    }
+
     // --- 404 fallback ---
     else {
         res.writeHead(404, { "Content-Type": "application/json" });
