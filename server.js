@@ -81,6 +81,11 @@ const server = http.createServer(async (req, res) => {
     else if (pathName === "/users" && method === "POST") users.createUsers(req, res);
     else if (pathName === "/users" && method === "GET") users.getUsers(req, res);
 
+    else if (pathName.startsWith("/users/status/") && method === "PATCH") {
+        const id = pathName.split("/")[3];
+        users.changeStatus(req, res, id);
+    }
+
     // -- email confrimation ---
 
     else if(pathName === "/request-email-confirmation" && method === "POST"){
@@ -109,6 +114,10 @@ const server = http.createServer(async (req, res) => {
     else if (pathName.startsWith("/shops/reject/") && method === "PATCH") {
         const id = pathName.split("/")[3];
         shops.rejectShop(req, res, id);
+    }
+    else if (pathName.startsWith("/shops/status/") && method === "PATCH") {
+        const id = pathName.split("/")[3];
+        shops.changeStatus(req, res, id);
     }
 
     // --- 404 fallback ---

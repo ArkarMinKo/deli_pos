@@ -271,11 +271,52 @@ function rejectShop(req, res, idParam) {
   });
 }
 
+function changeStatus(req, res, id) {
+    const shopId = id;
+
+    if (!shopId) {
+        return res.writeHead(400, { "Content-Type": "application/json" })
+        .end(JSON.stringify({ error: "Missing shop id" }));
+    }
+
+    // 1. Get current status
+    db.query("SELECT status FROM shops WHERE id = ?", [shopId], (err, result) => {
+        if (err) {
+            return res.writeHead(500, { "Content-Type": "application/json" })
+            .end(JSON.stringify({ error: "DB error" }));
+        }
+
+        if (result.length === 0) {
+            return res.writeHead(404, { "Content-Type": "application/json" })
+            .end(JSON.stringify({ error: "Shop not found" }));
+        }
+
+        const currentStatus = result[0].status;
+
+        // 2. Toggle status
+        const newStatus = currentStatus === "active" ? "warning" : "active";
+
+        // 3. Update status
+        db.query("UPDATE shops SET status = ? WHERE id = ?", [newStatus, shopId], (updateErr) => {
+            if (updateErr) {
+                return res.writeHead(500, { "Content-Type": "application/json" })
+                .end(JSON.stringify({ error: "Update failed" }));
+            }
+
+            return res.writeHead(200, { "Content-Type": "application/json" })
+            .end(JSON.stringify({
+                message: `Status ကို ${newStatus} အဖြစ် သတ်မှတ်လိုက်ပါပြီ`,
+            }));
+        });
+    });
+}
+
 module.exports = {
     loginShop,
     createShops,
     getShops,
     getShopsPending,
     approveShop,
-    rejectShop
+    rejectShop,
+    changeStatus
 };
