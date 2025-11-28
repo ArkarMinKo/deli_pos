@@ -128,7 +128,23 @@ function createUsers(req, res) {
     });
 }
 
+function getUsers(req, res) {
+  const sql = "SELECT id, name, email, phone, photo, location, status, created_at FROM users";
+
+  db.query(sql, (err, results) => {
+    if (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Database error", details: err }));
+      return;
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(results));
+  });
+}
+
 module.exports = {
     loginUser,
-    createUsers
+    createUsers,
+    getUsers
 };

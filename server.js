@@ -79,6 +79,7 @@ const server = http.createServer(async (req, res) => {
     // Users CRUD
     if (pathName === "/login-user" && method === "POST") users.loginUser(req, res);
     else if (pathName === "/users" && method === "POST") users.createUsers(req, res);
+    else if (pathName === "/users" && method === "GET") users.getUsers(req, res);
 
     // -- email confrimation ---
 
