@@ -8,7 +8,7 @@ const { generateId } = require("../POS_utils/idAccountsGenerator");
 const { generatePhotoName } = require("../POS_utils/photoNameGenerator");
 
 function createAccounts(req, res) {
-    const form = new formidable.IncomingForm();
+    const form = formidable({ multiples: false });
     form.uploadDir = path.join(__dirname, "../account_uploads");
     form.keepExtensions = true;
 
