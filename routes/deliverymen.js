@@ -120,7 +120,7 @@ function createDeliverymen(req, res) {
     });
 }
 
-function putDeliverymen(req, res) {
+function putDeliverymen(req, res, id) {
     const form = new formidable.IncomingForm({
         multiples: false,
         uploadDir: path.join(__dirname, "../deliverymen_uploads"),
@@ -133,8 +133,7 @@ function putDeliverymen(req, res) {
             res.writeHead(400, { "Content-Type": "application/json" });
             return res.end(JSON.stringify({ error: "Form parse error" }));
         }
-
-        const id = fields.id; // Deliveryman ID to update
+        
         const name = fields.name;
         const email = fields.email;
         const phone = fields.phone;
