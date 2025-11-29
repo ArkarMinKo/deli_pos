@@ -155,6 +155,7 @@ const server = http.createServer(async (req, res) => {
 
     // deliveryMen CRUD
     else if (pathName === "/deliverymen" && method === "POST") deliverymen.createDeliverymen(req, res);
+    else if (pathName === "/deliverymen" && method === "GET") deliverymen.getAllDeliverymen(req, res);
 
     // --- 404 fallback ---
     else {

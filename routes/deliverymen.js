@@ -116,6 +116,27 @@ function createDeliverymen(req, res) {
     });
 }
 
+function getAllDeliverymen(req, res) {
+    const sql = `
+        SELECT 
+        id, name, email, phone, photo, location, status,
+        work_type, rating, total_order, assign_order, created_at
+        FROM deliverymen
+        ORDER BY created_at DESC
+    `;
+
+    db.query(sql, (err, results) => {
+        if (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Database error" }));
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(results));
+    });
+}
+
 module.exports = { 
-    createDeliverymen
+    createDeliverymen,
+    getAllDeliverymen
 };
