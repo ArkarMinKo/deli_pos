@@ -6,7 +6,7 @@ const fs = require("fs");
 
 function createDeliverymen(req, res) {
     const form = new formidable.IncomingForm();
-    form.uploadDir = path.join(__dirname, "../deliverymen-uploads");
+    form.uploadDir = path.join(__dirname, "../deliverymen_uploads");
     form.keepExtensions = true;
 
     form.parse(req, async (err, fields, files) => {
@@ -60,7 +60,7 @@ function createDeliverymen(req, res) {
 
                             const newPath = path.join(
                                 __dirname,
-                                "../deliverymen-uploads",
+                                "../deliverymen_uploads",
                                 photoName
                             );
 
