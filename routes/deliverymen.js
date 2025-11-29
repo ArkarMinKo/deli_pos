@@ -120,6 +120,106 @@ function createDeliverymen(req, res) {
     });
 }
 
+function putDeliverymen(req, res) {
+    const form = new formidable.IncomingForm({
+        multiples: false,
+        uploadDir: path.join(__dirname, "../deliverymen_uploads"),
+        keepExtensions: true,
+        encoding: "utf-8",
+    });
+
+    form.parse(req, async (err, fields, files) => {
+        if (err) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Form parse error" }));
+        }
+
+        const id = fields.id; // Deliveryman ID to update
+        const name = fields.name;
+        const email = fields.email;
+        const phone = fields.phone;
+        const password = fields.password ? String(fields.password) : null; // Optional
+        const work_type = fields.work_type;
+
+        const photoFile = files.photo;
+
+        if (!id || !name || !email || !phone) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Required fields are missing" }));
+        }
+
+        // Check if email is already used by another deliveryman
+        db.query(
+            "SELECT id FROM deliverymen WHERE email = ? AND id != ?",
+            [email, id],
+            async (err, rows) => {
+                if (err) {
+                    res.writeHead(500, { "Content-Type": "application/json" });
+                    return res.end(JSON.stringify({ error: "Database error" }));
+                }
+
+                if (rows.length > 0) {
+                    res.writeHead(400, { "Content-Type": "application/json" });
+                    return res.end(JSON.stringify({ error: "This email is already in use" }));
+                }
+
+                try {
+                    let photoName = null;
+
+                    // SAVE PHOTO IF NEW ONE UPLOADED
+                    if (photoFile && photoFile.originalFilename) {
+                        photoName = generatePhotoName(id, photoFile.originalFilename);
+
+                        const newPath = path.join(
+                            __dirname,
+                            "../deliverymen_uploads",
+                            photoName
+                        );
+
+                        fs.rename(photoFile.filepath, newPath, (renameErr) => {
+                            if (renameErr) console.log("Photo save error:", renameErr);
+                        });
+                    }
+
+                    // HASH PASSWORD IF PROVIDED
+                    let hashedPassword = null;
+                    if (password) {
+                        hashedPassword = await bcrypt.hash(password, 10);
+                    }
+
+                    // Build SQL dynamically
+                    const fieldsToUpdate = [];
+                    const values = [];
+
+                    if (name) { fieldsToUpdate.push("name = ?"); values.push(name); }
+                    if (email) { fieldsToUpdate.push("email = ?"); values.push(email); }
+                    if (phone) { fieldsToUpdate.push("phone = ?"); values.push(phone); }
+                    if (hashedPassword) { fieldsToUpdate.push("password = ?"); values.push(hashedPassword); }
+                    if (photoName) { fieldsToUpdate.push("photo = ?"); values.push(photoName); }
+                    if (work_type) { fieldsToUpdate.push("work_type = ?"); values.push(work_type); }
+
+                    values.push(id); // for WHERE clause
+
+                    const sql = `UPDATE deliverymen SET ${fieldsToUpdate.join(", ")} WHERE id = ?`;
+
+                    db.query(sql, values, (err, result) => {
+                        if (err) {
+                            res.statusCode = 500;
+                            return res.end(JSON.stringify({ error: err.message }));
+                        }
+
+                        res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+                        res.end(JSON.stringify({ message: "Deliveryman updated successfully" }));
+                    });
+                } catch (error) {
+                    res.statusCode = 500;
+                    res.end(JSON.stringify({ error: "Internal Server Error" }));
+                }
+            }
+        );
+    });
+}
+
 function getAllDeliverymen(req, res) {
     const sql = `
         SELECT 
@@ -220,5 +320,6 @@ module.exports = {
     createDeliverymen,
     getAllDeliverymen,
     changeStatus,
-    deleteDeliverymen
+    deleteDeliverymen,
+    putDeliverymen
 };
