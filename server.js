@@ -157,6 +157,11 @@ const server = http.createServer(async (req, res) => {
     else if (pathName === "/deliverymen" && method === "POST") deliverymen.createDeliverymen(req, res);
     else if (pathName === "/deliverymen" && method === "GET") deliverymen.getAllDeliverymen(req, res);
 
+    else if (pathName.startsWith("/deliverymen/status/") && method === "PATCH") {
+        const id = pathName.split("/")[3];
+        deliverymen.changeStatus(req, res, id);
+    }
+
     // --- 404 fallback ---
     else {
         res.writeHead(404, { "Content-Type": "application/json" });
