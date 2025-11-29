@@ -50,9 +50,7 @@ function loginUser(req, res) {
             res.end(
                 JSON.stringify({
                     message: "Login အောင်မြင်ပါသည်",
-                    userId: user.id,
-                    name: user.name,
-                    email: user.email,
+                    userId: user.id
                 })
             );
         });

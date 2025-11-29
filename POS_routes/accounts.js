@@ -7,6 +7,61 @@ const db = require("../dbForPOS")
 const { generateId } = require("../POS_utils/idAccountsGenerator");
 const { generatePhotoName } = require("../POS_utils/photoNameGenerator");
 
+function loginAccount(req, res) {
+    const form = new formidable.IncomingForm();
+
+    form.parse(req, async (err, fields) => {
+        if (err) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Form parse error" }));
+        }
+
+        const email = fields.email;
+        const password = fields.password;
+
+        // Required fields check
+        if (!email || !password) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(
+                JSON.stringify({ error: "Email နှင့် Password ကို ထည့်သွင်းပေးပါ" })
+            );
+        }
+
+        // Check email exists
+        db.query("SELECT * FROM accounts WHERE email = ?", [email], async (err, rows) => {
+            if (err) {
+                res.writeHead(500, { "Content-Type": "application/json" });
+                return res.end(JSON.stringify({ error: "Database error" }));
+            }
+
+            if (rows.length === 0) {
+                res.writeHead(400, { "Content-Type": "application/json" });
+                return res.end(JSON.stringify({ error: "Email မမှန်ကန်ပါ" }));
+            }
+
+            const account = rows[0];
+
+            // Compare hashed password
+            const isMatch = await bcrypt.compare(password, account.password);
+
+            if (!isMatch) {
+                res.writeHead(400, { "Content-Type": "application/json" });
+                return res.end(JSON.stringify({ error: "Password မမှန်ကန်ပါ" }));
+            }
+
+            // Login Success
+            res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+            res.end(
+                JSON.stringify({
+                    message: "Login အောင်မြင်ပါသည်",
+                    accountId: account.id,
+                    accountRole: account.role
+                })
+            );
+        });
+    });
+}
+
 function createAccounts(req, res) {
     const form = new formidable.IncomingForm();
     form.uploadDir = path.join(__dirname, "../account_uploads");
@@ -128,6 +183,7 @@ function getAccountsById(req, res, id) {
 }
 
 module.exports = {
+    loginAccount,
     createAccounts,
     getAccountsById
 };
