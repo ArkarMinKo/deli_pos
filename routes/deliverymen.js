@@ -28,7 +28,6 @@ function createDeliverymen(req, res) {
         const email = fields.email;
         const phone = fields.phone;
         const password = fields.password;
-        const location = fields.location;
         const work_type = fields.work_type;
 
         const photoFile = files.photo;
@@ -82,8 +81,8 @@ function createDeliverymen(req, res) {
 
                         const sql = `
                             INSERT INTO deliverymen
-                            (id, name, email, phone, password, photo, location, work_type)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                            (id, name, email, phone, password, photo, work_type)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
                         `;
 
                         db.query(
@@ -95,7 +94,6 @@ function createDeliverymen(req, res) {
                                 phone,
                                 password,
                                 photoName,
-                                location || null,
                                 work_type || "Full time"
                             ],
                             (err, result) => {
