@@ -26,7 +26,6 @@ function createAccounts(req, res) {
         const email = String(fields.email || "");
         const password = String(fields.password || "");
         const phone = String(fields.phone || "");
-        const role = String(fields.role || "");
 
         if (!username || !email || !password || !phone) {
             res.writeHead(400, { "Content-Type": "application/json" });
@@ -71,19 +70,18 @@ function createAccounts(req, res) {
 
                 // 5️⃣ Insert into DB
                 const sql = `
-                INSERT INTO accounts
-                (id, username, email, password, photos, phone, role)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO accounts
+                    (id, username, email, password, photos, phone)
+                    VALUES (?, ?, ?, ?, ?, ?)
                 `;
 
                 const values = [
-                newId,
-                username,
-                email,
-                hashedPassword,
-                photoName,
-                phone,
-                role
+                    newId,
+                    username,
+                    email,
+                    hashedPassword,
+                    photoName,
+                    phone
                 ];
 
                 db.query(sql, values, (err, result) => {
@@ -105,4 +103,31 @@ function createAccounts(req, res) {
     });
 }
 
-module.exports = { createAccounts };
+function getAccountsById(req, res, id) {
+    const accountId = id;
+
+    const sql = `
+        SELECT id, username, email, phone, photos, role, created_at
+        FROM accounts
+        WHERE id = ?
+        LIMIT 1
+    `;
+
+    db.query(sql, [accountId], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: "Database error", details: err });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ error: "Account not found" });
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(results));
+    });
+}
+
+module.exports = {
+    createAccounts,
+    getAccountsById
+};

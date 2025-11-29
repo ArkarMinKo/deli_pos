@@ -29,6 +29,11 @@ const server = http.createServer(async (req, res) => {
 
     // Accounts CRUD
     if (pathName === "/accounts" && method === "POST") accounts.createAccounts(req, res);
+    
+    else if (pathName.startsWith("/‌accounts/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        accounts.getAccountsById(req, res, id);
+    }
 
     // --- 404 fallback ---
     else {
