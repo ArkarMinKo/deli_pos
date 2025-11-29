@@ -137,7 +137,7 @@ function getAllDeliverymen(req, res) {
 }
 
 function changeStatus(req, res, id) {
-    condeliverymenId = id;
+    const deliverymenId = id;
 
     if (!deliverymenId) {
         return res.writeHead(400, { "Content-Type": "application/json" })
