@@ -4,6 +4,7 @@ const { generatePhotoName } = require("../utils/photoNameGenerator");
 const path = require("path");
 const fs = require("fs");
 const db = require("../db");
+const bcrypt = require("bcrypt");
 
 const UPLOAD_DIR = path.join(__dirname, "../deliverymen_uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
@@ -56,7 +57,7 @@ function createDeliverymen(req, res) {
                 }
 
                 try {
-                    generateId(db, (err, newId) => {
+                    generateId(db, async (err, newId) => { // Mark async to use await
                         if (err) {
                             res.writeHead(500, { "Content-Type": "application/json" });
                             return res.end(JSON.stringify({ error: "ID creation failed" }));
@@ -79,6 +80,9 @@ function createDeliverymen(req, res) {
                             });
                         }
 
+                        // HASH PASSWORD
+                        const hashedPassword = await bcrypt.hash(password, 10);
+
                         const sql = `
                             INSERT INTO deliverymen
                             (id, name, email, phone, password, photo, work_type)
@@ -92,7 +96,7 @@ function createDeliverymen(req, res) {
                                 name,
                                 email,
                                 phone,
-                                password,
+                                hashedPassword, // use hashed password
                                 photoName,
                                 work_type || "Full time"
                             ],
