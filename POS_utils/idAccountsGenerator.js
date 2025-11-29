@@ -1,5 +1,5 @@
 function generateId(db, callback) {
-  db.query("SELECT id FROM users ORDER BY id DESC LIMIT 1", (err, results) => {
+  db.query("SELECT id FROM accounts ORDER BY id DESC LIMIT 1", (err, results) => {
     if (err) return callback(err);
 
     let newId;

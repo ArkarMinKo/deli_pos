@@ -17,7 +17,7 @@ db.getConnection((err, connection) => {
   if (err) {
     console.error("DB connection failed:", err);
   } else {
-    console.log("MySQL Pool Connected!");
+    console.log("MySQL Pool For POS Connected!");
     connection.release(); // return connection to pool
   }
 });
