@@ -176,8 +176,45 @@ function changeStatus(req, res, id) {
     });
 }
 
+function deleteDeliverymen(req, res, id) {
+    const deliverymenId = id;
+
+    if (!deliverymenId) {
+        return res.writeHead(400, { "Content-Type": "application/json" })
+        .end(JSON.stringify({ error: "Missing deliverymen id" }));
+    }
+
+    // Check if deliverymen exists
+    db.query("SELECT id FROM deliverymen WHERE id = ?", [deliverymenId], (err, result) => {
+        if (err) {
+            return res.writeHead(500, { "Content-Type": "application/json" })
+            .end(JSON.stringify({ error: "DB error" }));
+        }
+
+        if (result.length === 0) {
+            return res.writeHead(404, { "Content-Type": "application/json" })
+            .end(JSON.stringify({ error: "Deliverymen not found" }));
+        }
+
+        // If exists → delete
+        db.query("DELETE FROM deliverymen WHERE id = ?", [deliverymenId], (deleteErr) => {
+            if (deleteErr) {
+                return res.writeHead(500, { "Content-Type": "application/json" })
+                .end(JSON.stringify({ error: "Delete failed" }));
+            }
+
+            return res.writeHead(200, { "Content-Type": "application/json" })
+            .end(JSON.stringify({
+                message: "Deliverymen အကောင့်ကို အောင်မြင်စွာ ဖျက်ပြီးပါပြီ",
+                deletedId: deliverymenId
+            }));
+        });
+    });
+}
+
 module.exports = { 
     createDeliverymen,
     getAllDeliverymen,
-    changeStatus
+    changeStatus,
+    deleteDeliverymen
 };
