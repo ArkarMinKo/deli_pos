@@ -10,8 +10,10 @@ function createDeliverymen(req, res) {
     form.keepExtensions = true;
 
     form.parse(req, async (err, fields, files) => {
-        if (err)
-            return res.status(400).json({ error: "Form parse error" });
+        if (err) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Form parse error" }));
+        }
 
         const name = fields.name;
         const email = fields.email;
