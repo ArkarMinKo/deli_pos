@@ -28,7 +28,7 @@ function createDeliverymen(req, res) {
         const name = fields.name;
         const email = fields.email;
         const phone = fields.phone;
-        const password = String(fields.password);
+        const password = String(fields.password || "");
         const work_type = fields.work_type;
 
         const photoFile = files.photo;
