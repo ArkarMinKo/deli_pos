@@ -60,6 +60,10 @@ const server = http.createServer(async (req, res) => {
     // Shops CRUD
     else if (pathName === "/shops" && method === "POST") shops.createShops(req, res);
     
+    else if (pathName.startsWith("/shops/") && method === "PUT") {
+        const id = pathName.split("/")[2];
+        shops.putShops(req, res, id);
+    }
 
     // --- 404 fallback ---
     else {

@@ -74,9 +74,9 @@ function createProducts(req, res) {
 
 function getAllProducts(req, res) {
     const sql = `
-        SELECT id, name, quantity, price, alert_date, exp_date, remark
+        SELECT *
         FROM products
-        ORDER BY id DESC
+        ORDER BY created_at DESC
     `;
 
     db.query(sql, (err, results) => {
@@ -92,7 +92,7 @@ function getAllProducts(req, res) {
 
 function getProductsById(req, res, id) {
     const sql = `
-        SELECT id, name, quantity, price, alert_date, exp_date, remark
+        SELECT *
         FROM products
         WHERE id = ?
         LIMIT 1

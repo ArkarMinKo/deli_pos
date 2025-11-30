@@ -99,6 +99,109 @@ function createShops(req, res) {
     });
 }
 
+function putShops(req, res, id) {
+    const form = new formidable.IncomingForm({
+        multiples: false,
+        uploadDir: UPLOAD_DIR,
+        keepExtensions: true
+    });
+
+    form.parse(req, async (err, fields, files) => {
+        if (err) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Form parse error" }));
+        }
+
+        let { name, phone, address } = fields;
+        let photo = files.photo;
+
+        // --------------------------
+        //   Required: ID
+        // --------------------------
+        if (!id) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "ID is required" }));
+        }
+
+        // --------------------------
+        //   Check if shop exists
+        // --------------------------
+        db.query("SELECT * FROM shops WHERE id = ?", [id], (err, results) => {
+            if (err) {
+                res.writeHead(500, { "Content-Type": "application/json" });
+                return res.end(JSON.stringify({ error: "Database error" }));
+            }
+
+            if (results.length === 0) {
+                res.writeHead(404, { "Content-Type": "application/json" });
+                return res.end(JSON.stringify({ error: "Shop ကိုရှာမတွေ့ပါ" }));
+            }
+
+            const oldPhoto = results[0].photo;
+
+            // --------------------------
+            //    Process new photo
+            // --------------------------
+            let newPhotoName = oldPhoto;
+
+            if (photo && photo.originalFilename) {
+                newPhotoName = generatePhotoName(id, photo.originalFilename);
+                const newPhotoPath = path.join(UPLOAD_DIR, newPhotoName);
+
+                // Replace old photo
+                if (oldPhoto) {
+                    const oldPath = path.join(UPLOAD_DIR, oldPhoto);
+                    if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+                }
+
+                fs.rename(photo.filepath, newPhotoPath, (err) => {
+                    if (err) {
+                        res.writeHead(500, { "Content-Type": "application/json" });
+                        return res.end(JSON.stringify({ error: "Photo save error" }));
+                    }
+                    updateShop();
+                });
+            } else {
+                updateShop();
+            }
+
+            // --------------------------
+            //    Update DB values
+            // --------------------------
+            function updateShop() {
+                const sql = `
+                    UPDATE shops
+                    SET name = ?, phone = ?, address = ?, photo = ?
+                    WHERE id = ?
+                `;
+
+                const values = [
+                    name || results[0].name,
+                    phone || results[0].phone,
+                    address || results[0].address,
+                    newPhotoName,
+                    id
+                ];
+
+                db.query(sql, values, (err) => {
+                    if (err) {
+                        res.writeHead(500, { "Content-Type": "application/json" });
+                        return res.end(JSON.stringify({ error: "Update failed" }));
+                    }
+
+                    res.writeHead(200, { "Content-Type": "application/json" });
+                    return res.end(
+                        JSON.stringify({
+                            message: "Shop ကို အောင်မြင်စွာ ပြင်ဆင်ပြီးပါပြီ"
+                        })
+                    );
+                });
+            }
+        });
+    });
+}
+
 module.exports = { 
-    createShops
+    createShops,
+    putShops
 };
