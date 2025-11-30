@@ -141,6 +141,30 @@ function getUsers(req, res) {
   });
 }
 
+function getUsersById(req, res, id) {
+    const sql = `
+        SELECT *
+        FROM users
+        WHERE id = ?
+        LIMIT 1
+    `;
+
+    db.query(sql, [id], (err, results) => {
+        if (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Database error" }));
+        }
+
+        if (results.length === 0) {
+            res.writeHead(404, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ message: "User ရှာမတွေ့ပါ" }));
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(results));
+    });
+}
+
 function changeStatus(req, res, id) {
     const userId = id;
 
@@ -222,5 +246,6 @@ module.exports = {
     createUsers,
     getUsers,
     changeStatus,
-    deleteUser
+    deleteUser,
+    getUsersById
 };

@@ -104,6 +104,11 @@ const server = http.createServer(async (req, res) => {
     else if (pathName === "/users" && method === "POST") users.createUsers(req, res);
     else if (pathName === "/users" && method === "GET") users.getUsers(req, res);
 
+    else if (pathName.startsWith("/get-users-by-id/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        users.getUsersById(req, res, id);
+    }
+
     else if (pathName.startsWith("/users/") && method === "DELETE") {
         const id = pathName.split("/")[2];
         users.deleteUser(req, res, id);
