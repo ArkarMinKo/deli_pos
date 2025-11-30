@@ -66,9 +66,7 @@ function loginShop(req, res, body) {
         res.end(
           JSON.stringify({
             message: "ဝင်ရောက်မှုအောင်မြင်ပါပြီ ကြိုဆိုပါသည်",
-            id: shop.id,
-            shopkeeper_name: shop.shopkeeper_name,
-            shop_name: shop.shop_name,
+            id: shop.id
           })
         );
       }
