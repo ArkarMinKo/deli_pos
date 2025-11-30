@@ -72,6 +72,51 @@ function createProducts(req, res) {
     });
 }
 
+function getAllProducts(req, res) {
+    const sql = `
+        SELECT id, name, quantity, price, alert_date, exp_date, remark
+        FROM products
+        ORDER BY id DESC
+    `;
+
+    db.query(sql, (err, results) => {
+        if (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Database error" }));
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(results));
+    });
+}
+
+function getProductsById(req, res, id) {
+    const sql = `
+        SELECT id, name, quantity, price, alert_date, exp_date, remark
+        FROM products
+        WHERE id = ?
+        LIMIT 1
+    `;
+
+    db.query(sql, [id], (err, results) => {
+        if (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Database error" }));
+        }
+
+        if (results.length === 0) {
+            res.writeHead(404, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ message: "Product not found" }));
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(results));
+    });
+}
+
+
 module.exports = { 
-    createProducts
+    createProducts,
+    getAllProducts,
+    getProductsById
 };

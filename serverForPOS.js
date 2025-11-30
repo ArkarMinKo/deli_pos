@@ -32,12 +32,18 @@ const server = http.createServer(async (req, res) => {
     if (pathName === "/login-accounts" && method === "POST") accounts.loginAccount(req, res);
     else if (pathName === "/accounts" && method === "POST") accounts.createAccounts(req, res);
 
-    // Products CRUD
-    else if (pathName === "/products" && method === "POST") products.createProducts(req, res);
-    
     else if (pathName.startsWith("/accounts/") && method === "GET") {
         const id = pathName.split("/")[2];
         accounts.getAccountsById(req, res, id);
+    }
+
+    // Products CRUD
+    else if (pathName === "/products" && method === "POST") products.createProducts(req, res);
+    else if (pathName === "/products" && method === "GET") products.getAllProducts(req, res);
+
+    else if (pathName.startsWith("/products/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        products.getProductsById(req, res, id);
     }
 
     // --- 404 fallback ---
