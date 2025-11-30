@@ -6,16 +6,18 @@ function createProducts(req, res) {
 
     form.parse(req, async (err, fields) => {
         if (err) {
-            return res.status(400).json({ error: "Form parse error" });
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Form parse error" }));
         }
 
         let { id, name, quantity, price, alert_date, exp_date, remark } = fields;
 
         // Required fields
         if (!id || !name || !quantity || !price || !alert_date) {
-            return res.status(400).json({
-                error: "လိုအပ်သော အချက်အလက်များ မပြည့်စုံပါ"
-            });
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({
+                error: "လိုအပ္ေသာ အခ်က္အလက္မ်ား မျပည့္စံုပါ"
+            }));
         }
 
         // Convert to integers
@@ -23,20 +25,25 @@ function createProducts(req, res) {
         price = parseInt(price);
 
         if (isNaN(quantity) || isNaN(price)) {
-            return res.status(400).json({
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({
                 error: "Quantity နဲ့ Price သည် numbers များသာ ဖြစ်ရမည်"
-            });
+            }));
         }
 
         // Check unique ID
         const checkSql = "SELECT id FROM products WHERE id = ?";
         db.query(checkSql, [id], (err, results) => {
             if (err) {
-                return res.status(500).json({ error: "Database error" });
+                res.writeHead(500, { "Content-Type": "application/json" });
+                return res.end(JSON.stringify({ error: "Database error" }));
             }
 
             if (results.length > 0) {
-                return res.status(400).json({ error: "ဤ item code သည် အရင်ထဲက ရှိပြီးသား ဖြစ်သည်" });
+                res.writeHead(400, { "Content-Type": "application/json" });
+                return res.end(JSON.stringify({
+                    error: "ဤ item code သည် အရင်ထဲက ရှိပြီးသား ဖြစ်သည်"
+                }));
             }
 
             // Insert product
@@ -51,12 +58,14 @@ function createProducts(req, res) {
                 [id, name, quantity, price, alert_date, exp_date || null, remark || null],
                 (err) => {
                     if (err) {
-                        return res.status(500).json({ error: "Insert error" });
+                        res.writeHead(500, { "Content-Type": "application/json" });
+                        return res.end(JSON.stringify({ error: "Insert error" }));
                     }
 
-                    return res.status(201).json({
+                    res.writeHead(201, { "Content-Type": "application/json" });
+                    return res.end(JSON.stringify({
                         message: "Product ကို အောင်မြင်စွာ အသစ် ထည့်သွင်းပြီးပါပြီ"
-                    });
+                    }));
                 }
             );
         });
