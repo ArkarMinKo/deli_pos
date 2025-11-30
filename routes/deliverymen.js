@@ -239,6 +239,31 @@ function getAllDeliverymen(req, res) {
     });
 }
 
+function getDeliverymenById(req, res, id) {
+    const sql = `
+        SELECT 
+        id, name, email, phone, photo, location, status,
+        work_type, rating, total_order, assign_order, created_at
+        FROM deliverymen
+        WHERE id = ?
+        LIMIT 1
+    `
+
+    db.query(sql, [id], (err, results) => {
+        if (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Database error" }));
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ error: "Account not found" });
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(results));
+    })
+}
+
 function changeStatus(req, res, id) {
     const deliverymenId = id;
 
@@ -320,5 +345,6 @@ module.exports = {
     getAllDeliverymen,
     changeStatus,
     deleteDeliverymen,
-    putDeliverymen
+    putDeliverymen,
+    getDeliverymenById
 };
