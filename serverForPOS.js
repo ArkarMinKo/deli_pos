@@ -59,6 +59,12 @@ const server = http.createServer(async (req, res) => {
 
     // Shops CRUD
     else if (pathName === "/shops" && method === "POST") shops.createShops(req, res);
+    else if (pathName === "/shops" && method === "GET") shops.getAllShops(req, res);
+
+    else if (pathName.startsWith("/shops/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        shops.getShopsById(req, res, id);
+    }
     
     else if (pathName.startsWith("/shops/") && method === "PUT") {
         const id = pathName.split("/")[2];

@@ -201,7 +201,51 @@ function putShops(req, res, id) {
     });
 }
 
+function getAllShops(req, res) {
+    const sql = `
+        SELECT *
+        FROM shops
+        ORDER BY created_at DESC
+    `;
+
+    db.query(sql, (err, results) => {
+        if (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Database error" }));
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(results));
+    });
+}
+
+function getShopsById(req, res, id) {
+    const sql = `
+        SELECT *
+        FROM shops
+        WHERE id = ?
+        LIMIT 1
+    `;
+
+    db.query(sql, [id], (err, results) => {
+        if (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Database error" }));
+        }
+
+        if (results.length === 0) {
+            res.writeHead(404, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ message: "Shop not found" }));
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(results));
+    });
+}
+
 module.exports = { 
     createShops,
-    putShops
+    putShops,
+    getAllShops,
+    getShopsById
 };
