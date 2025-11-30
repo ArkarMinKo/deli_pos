@@ -6,7 +6,8 @@ const db = require("./db");
 
 // Routes
 const accounts = require("./POS_routes/accounts");
-const products = require("./POS_routes/products");
+const products = require("./POS_routes/products")
+const shops = require("./POS_routes/shops");
 
 // CORS helper
 function setCorsHeaders(res) {
@@ -55,6 +56,10 @@ const server = http.createServer(async (req, res) => {
         const id = pathName.split("/")[2];
         products.deleteProducts(req, res, id);
     }
+
+    // Shops CRUD
+    else if (pathName === "/shops" && method === "POST") shops.createShops(req, res);
+    
 
     // --- 404 fallback ---
     else {

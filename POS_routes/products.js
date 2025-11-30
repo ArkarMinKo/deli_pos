@@ -16,7 +16,7 @@ function createProducts(req, res) {
         if (!id || !name || !quantity || !price || !alert_date) {
             res.writeHead(400, { "Content-Type": "application/json" });
             return res.end(JSON.stringify({
-                error: "လိုအပ္ေသာ အခ်က္အလက္မ်ား မျပည့္စံုပါ"
+                error: "လိုအပ်သော အချက်အလက်များ မပြည့်စုံပါ"
             }));
         }
 
