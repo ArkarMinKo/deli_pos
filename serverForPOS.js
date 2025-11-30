@@ -46,6 +46,11 @@ const server = http.createServer(async (req, res) => {
         products.getProductsById(req, res, id);
     }
 
+    else if (pathName.startsWith("/products/") && method === "PUT") {
+        const id = pathName.split("/")[2];
+        products.putProducts(req, res, id);
+    }
+
     // --- 404 fallback ---
     else {
         res.writeHead(404, { "Content-Type": "application/json" });

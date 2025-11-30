@@ -114,9 +114,102 @@ function getProductsById(req, res, id) {
     });
 }
 
+function putProducts(req, res, productId) {
+    const form = new formidable.IncomingForm();
+
+    form.parse(req, async (err, fields) => {
+        if (err) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Form parse error" }));
+        }
+
+        let { name, quantity, price, alert_date, exp_date, remark } = fields;
+
+        // Convert numeric fields
+        if (quantity !== undefined) quantity = parseInt(quantity);
+        if (price !== undefined) price = parseInt(price);
+
+        if (quantity !== undefined && isNaN(quantity)) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({
+                error: "Quantity သည် number ဖြစ်ရမည်"
+            }));
+        }
+
+        if (price !== undefined && isNaN(price)) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({
+                error: "Price သည် number ဖြစ်ရမည်"
+            }));
+        }
+
+        // Check if product exists
+        const checkSql = "SELECT * FROM products WHERE id = ?";
+        db.query(checkSql, [productId], (err, results) => {
+            if (err) {
+                res.writeHead(500, { "Content-Type": "application/json" });
+                return res.end(JSON.stringify({ error: "Database error" }));
+            }
+
+            if (results.length === 0) {
+                res.writeHead(404, { "Content-Type": "application/json" });
+                return res.end(JSON.stringify({
+                    error: "Product ကို မတွေ့ရှိပါ"
+                }));
+            }
+
+            // Keep previous values
+            const old = results[0];
+
+            const updatedName = name || old.name;
+            const updatedQuantity = quantity !== undefined ? quantity : old.quantity;
+            const updatedPrice = price !== undefined ? price : old.price;
+            const updatedAlertDate = alert_date || old.alert_date;
+            const updatedExpDate = exp_date || old.exp_date;
+            const updatedRemark = remark || old.remark;
+
+            // Update SQL
+            const updateSql = `
+                UPDATE products SET
+                    name = ?,
+                    quantity = ?,
+                    price = ?,
+                    alert_date = ?,
+                    exp_date = ?,
+                    remark = ?
+                WHERE id = ?
+            `;
+
+            db.query(
+                updateSql,
+                [
+                    updatedName,
+                    updatedQuantity,
+                    updatedPrice,
+                    updatedAlertDate,
+                    updatedExpDate,
+                    updatedRemark,
+                    productId
+                ],
+                (err) => {
+                    if (err) {
+                        res.writeHead(500, { "Content-Type": "application/json" });
+                        return res.end(JSON.stringify({ error: "Update error" }));
+                    }
+
+                    res.writeHead(200, { "Content-Type": "application/json" });
+                    return res.end(JSON.stringify({
+                        message: "Product ကို အောင်မြင်စွာ ပြင်ဆင်ပြီးပါပြီ"
+                    }));
+                }
+            );
+        });
+    });
+}
 
 module.exports = { 
     createProducts,
     getAllProducts,
-    getProductsById
+    getProductsById,
+    putProducts
 };
