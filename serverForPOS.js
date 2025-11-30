@@ -71,6 +71,11 @@ const server = http.createServer(async (req, res) => {
         shops.putShops(req, res, id);
     }
 
+    else if (pathName.startsWith("/shops/") && method === "DELETE") {
+        const id = pathName.split("/")[2];
+        shops.deleteShops(req, res, id);
+    }
+
     // --- 404 fallback ---
     else {
         res.writeHead(404, { "Content-Type": "application/json" });
