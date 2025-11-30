@@ -162,6 +162,11 @@ const server = http.createServer(async (req, res) => {
         deliverymen.putDeliverymen(req, res, id);
     }
 
+    else if (pathName.startsWith("/deliverymen/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        deliverymen.getDeliverymenById(req, res, id);
+    }
+
     else if (pathName.startsWith("/deliverymen/") && method === "DELETE") {
         const id = pathName.split("/")[2];
         deliverymen.deleteDeliverymen(req, res, id);
