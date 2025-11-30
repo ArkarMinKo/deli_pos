@@ -207,9 +207,46 @@ function putProducts(req, res, productId) {
     });
 }
 
+function deleteProducts(req, res, id) {
+    const productId = id;
+
+    if (!productId) {
+        return res.writeHead(400, { "Content-Type": "application/json" })
+        .end(JSON.stringify({ error: "Missing Product id" }));
+    }
+
+    // Check if product exists
+    db.query("SELECT id FROM products WHERE id = ?", [productId], (err, result) => {
+        if (err) {
+            return res.writeHead(500, { "Content-Type": "application/json" })
+            .end(JSON.stringify({ error: "DB error" }));
+        }
+
+        if (result.length === 0) {
+            return res.writeHead(404, { "Content-Type": "application/json" })
+            .end(JSON.stringify({ error: "Product not found" }));
+        }
+
+        // If exists → delete
+        db.query("DELETE FROM products WHERE id = ?", [productId], (deleteErr) => {
+            if (deleteErr) {
+                return res.writeHead(500, { "Content-Type": "application/json" })
+                .end(JSON.stringify({ error: "Delete failed" }));
+            }
+
+            return res.writeHead(200, { "Content-Type": "application/json" })
+            .end(JSON.stringify({
+                message: "Product ကို အောင်မြင်စွာ ဖျက်ပြီးပါပြီ",
+                deletedId: productId
+            }));
+        });
+    });
+}
+
 module.exports = { 
     createProducts,
     getAllProducts,
     getProductsById,
-    putProducts
+    putProducts,
+    deleteProducts
 };
