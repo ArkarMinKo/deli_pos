@@ -5,7 +5,8 @@ const path = require("path");
 const db = require("./db");
 
 // Routes
-const accounts = require("./POS_routes/accounts")
+const accounts = require("./POS_routes/accounts");
+const products = require("./POS_routes/products");
 
 // CORS helper
 function setCorsHeaders(res) {
@@ -30,6 +31,9 @@ const server = http.createServer(async (req, res) => {
     // Accounts CRUD
     if (pathName === "/login-accounts" && method === "POST") accounts.loginAccount(req, res);
     else if (pathName === "/accounts" && method === "POST") accounts.createAccounts(req, res);
+
+    // Products CRUD
+    else if (pathName === "/products" && method === "POST") products.createProducts(req, res);
     
     else if (pathName.startsWith("/accounts/") && method === "GET") {
         const id = pathName.split("/")[2];

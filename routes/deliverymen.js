@@ -213,7 +213,7 @@ function putDeliverymen(req, res, id) {
 
                 if (rows.length > 0) {
                     res.writeHead(400, { "Content-Type": "application/json" });
-                    return res.end(JSON.stringify({ error: "This email is already in use" }));
+                    return res.end(JSON.stringify({ error: "ဤ email သည် အသုံးပြုပြီးသား ဖြစ်ပါသည်" }));
                 }
 
                 try {
@@ -262,7 +262,7 @@ function putDeliverymen(req, res, id) {
                         }
 
                         res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
-                        res.end(JSON.stringify({ message: "Deliveryman updated successfully" }));
+                        res.end(JSON.stringify({ message: "Deliveryman ကို အောင်မြင်စွာ Updated ပြီးပါပြီ" }));
                     });
                 } catch (error) {
                     res.statusCode = 500;
