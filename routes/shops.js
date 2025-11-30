@@ -120,7 +120,7 @@ function createShops(req, res) {
         // --- Insert shop ---
         db.query(
           `INSERT INTO shops
-          (id, shopkeeper_name, shop_name, email, phone, password, photo, items, address)
+          (id, shopkeeper_name, shop_name, email, phone, password, photo, items, location)
           VALUES (?,?,?,?,?,?,?,?,?)`,
           [
             id,
@@ -131,7 +131,7 @@ function createShops(req, res) {
             hashedPassword,
             photoFile || null,
             parseInt(fields.items),
-            fields.address
+            fields.location
           ],
           (err) => {
             if (err) {
