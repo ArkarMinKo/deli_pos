@@ -86,7 +86,7 @@ function getIngredientsByShopId(req, res, id) {
         SELECT 
         id, name, price, photo
         FROM ingredients
-        WHERE shopid = ?
+        WHERE shop_id = ?
     `
 
     db.query(sql, [id], (err, results) => {
