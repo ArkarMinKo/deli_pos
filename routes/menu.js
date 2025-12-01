@@ -128,7 +128,7 @@ function getMenuByShopId(req, res, shopId) {
   const shopSql = `
     SELECT name, phone, address, location 
     FROM shops 
-    WHERE id = ?
+    WHERE shop_id = ?
   `;
 
   db.query(shopSql, [shopId], (err, shopResult) => {
