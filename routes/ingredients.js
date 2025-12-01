@@ -84,7 +84,7 @@ function createIngredients(req, res) {
 function getIngredientsByShopId(req, res, id) {
     const sql = `
         SELECT 
-        id, name, price, photo
+        id, name, prices, photo
         FROM ingredients
         WHERE shop_id = ?
     `
