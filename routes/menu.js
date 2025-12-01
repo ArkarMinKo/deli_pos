@@ -10,7 +10,9 @@ const UPLOAD_DIR = path.join(__dirname, "../menu_uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
 
 function createMenu(req, res) {
-    const form = formidable({ multiples: false });
+    const form = new formidable.IncomingForm({
+        multiples: false,
+    });
 
     form.parse(req, (err, fields, files) => {
         if (err) {
