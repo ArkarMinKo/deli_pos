@@ -134,7 +134,7 @@ function getMenuByShopId(req, res, shopId) {
   db.query(shopSql, [shopId], (err, shopResult) => {
     if (err || shopResult.length === 0) {
       res.writeHead(404, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ message: "Shop not found" }));
+      return res.end(JSON.stringify({ message: "menu များ မရှိသေးပါ" }));
     }
 
     const shopInfo = shopResult[0];
