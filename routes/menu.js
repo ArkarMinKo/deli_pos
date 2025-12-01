@@ -69,17 +69,46 @@ function createMenu(req, res) {
             }
 
             // === Prepare JSON fields ===
-            const relateMenuJson = relate_menu
-            ? JSON.stringify(JSON.parse(relate_menu))
-            : null;
+            let relateMenuJson = null;
+            if (relate_menu) {
+                try {
+                    if (relate_menu.startsWith("[")) {
+                        relateMenuJson = JSON.stringify(JSON.parse(relate_menu));
+                    } else {
+                        relateMenuJson = JSON.stringify(relate_menu.split(","));
+                    }
+                } catch {
+                    relateMenuJson = JSON.stringify(relate_menu.split(","));
+                }
+            }
 
-            const relateIngredientsJson = relate_ingredients
-            ? JSON.stringify(JSON.parse(relate_ingredients))
-            : null;
+            let relateIngredientsJson = null;
+            if (relate_ingredients) {
+                try {
+                    if (relate_ingredients.startsWith("[")) {
+                        relateIngredientsJson = JSON.stringify(JSON.parse(relate_ingredients));
+                    } else {
+                        relateIngredientsJson = JSON.stringify(relate_ingredients.split(","));
+                    }
+                } catch {
+                    relateIngredientsJson = JSON.stringify(relate_ingredients.split(","));
+                }
+            }
 
-            const monthJson = get_months
-            ? JSON.stringify(JSON.parse(get_months))
-            : JSON.stringify(["All months"]);
+            let monthJson = null;
+            if (get_months) {
+                try {
+                    if (get_months.startsWith("[")) {
+                        monthJson = JSON.stringify(JSON.parse(get_months));
+                    } else {
+                        monthJson = JSON.stringify(get_months.split(","));
+                    }
+                } catch {
+                    monthJson = JSON.stringify(get_months.split(","));
+                }
+            } else {
+                monthJson = JSON.stringify(["All months"]);
+            }
 
             // === Insert menu into DB ===
             const sql = `
