@@ -128,13 +128,13 @@ function getMenuByShopId(req, res, shopId) {
   const shopSql = `
     SELECT name, phone, address, location 
     FROM shops 
-    WHERE shop_id = ?
+    WHERE id = ?
   `;
 
   db.query(shopSql, [shopId], (err, shopResult) => {
-    if (err || shopResult.length === 0) {
+    if (shopResult.length === 0) {
       res.writeHead(404, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ message: "menu များ မရှိသေးပါ" }));
+      return res.end(JSON.stringify({ message: "Shop များ မရှိသေးပါ" }));
     }
 
     const shopInfo = shopResult[0];
