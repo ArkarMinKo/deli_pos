@@ -9,6 +9,7 @@ const shops = require("./routes/shops");
 const deliverymen = require("./routes/deliverymen");
 const categories = require("./routes/categories");
 const ingredients = require("./routes/ingredients");
+const menu = require("./routes/menu");
 
 // CORS helper
 function setCorsHeaders(res) {
@@ -129,6 +130,9 @@ const server = http.createServer(async (req, res) => {
         const id = pathName.split("/")[2];
         ingredients.getIngredientsByShopId(req, res, id);
     }
+
+    // menu CRUD
+    else if (pathName === "/menu" && method === "POST") menu.createMenu(req, res);
 
     // --- 404 fallback ---
     else {
