@@ -14,6 +14,7 @@ const users = require("./routes/users");
 const emails = require("./routes/emials");
 const shops = require("./routes/shops");
 const deliverymen = require("./routes/deliverymen");
+const categories = require("./routes/categories");
 
 // CORS helper
 function setCorsHeaders(res) {
@@ -182,6 +183,9 @@ const server = http.createServer(async (req, res) => {
         const id = pathName.split("/")[3];
         deliverymen.changeStatus(req, res, id);
     }
+
+    // categories CRUD
+    else if (pathName === "/categories" && method === "POST") categories.createCategories(req, res);
 
     // --- 404 fallback ---
     else {
