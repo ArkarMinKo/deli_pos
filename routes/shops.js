@@ -105,7 +105,7 @@ function createShops(req, res) {
         if (fields.photo && fields.photo.startsWith("data:image")) {
           const base64Data = fields.photo.replace(/^data:image\/\w+;base64,/, "");
           const ext = fields.photo.substring("data:image/".length, fields.photo.indexOf(";base64"));
-          const photoName = `${id}_shop.${ext}`;
+          const photoName = `${id}.${ext}`;
           fs.writeFileSync(path.join(UPLOAD_DIR, photoName), Buffer.from(base64Data, "base64"));
           photoFile = photoName;
         }

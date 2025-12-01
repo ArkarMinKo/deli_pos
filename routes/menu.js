@@ -123,4 +123,173 @@ function createMenu(req, res) {
     });
 }
 
-module.exports = { createMenu };
+function getMenuByShopId(req, res, shopId) {
+  // 1. Get shop information
+  const shopSql = `
+    SELECT name, phone, address, location 
+    FROM shops 
+    WHERE id = ?
+  `;
+
+  db.query(shopSql, [shopId], (err, shopResult) => {
+    if (err || shopResult.length === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ message: "Shop not found" }));
+    }
+
+    const shopInfo = shopResult[0];
+
+    // 2. Get all categories (for mapping category name)
+    const categoriesSql = `SELECT id, name FROM categories`;
+
+    db.query(categoriesSql, (err, categories) => {
+      if (err) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ message: "Category fetch error" }));
+      }
+
+      const categoryMap = {};
+      categories.forEach((c) => (categoryMap[c.id] = c.name));
+
+      // 3. Get all menu from this shop
+      const menuSql = `SELECT * FROM menu WHERE shop_id = ?`;
+
+      db.query(menuSql, [shopId], async (err, menus) => {
+        if (err) {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ message: "Menu fetch error" }));
+        }
+
+        // Convert each menu item with relations
+        let processedMenus = [];
+
+        let pending = menus.length;
+        if (pending === 0) {
+          res.writeHead(200, { "Content-Type": "application/json" });
+          return res.end(
+            JSON.stringify({
+              shop: shopInfo,
+              menus: [],
+            })
+          );
+        }
+
+        menus.forEach((menu) => {
+          // Parse relations
+          let relateMenuIds = [];
+          let relateIngredientsIds = [];
+
+          try {
+            relateMenuIds = menu.relate_menu
+              ? JSON.parse(menu.relate_menu)
+              : [];
+          } catch {}
+
+          try {
+            relateIngredientsIds = menu.relate_ingredients
+              ? JSON.parse(menu.relate_ingredients)
+              : [];
+          } catch {}
+
+          // 4. Fetch related menus
+          const relatedMenuSql = `
+            SELECT id, name, prices, size, category, photo 
+            FROM menu 
+            WHERE id IN (?)
+          `;
+
+          const fetchRelateMenu = new Promise((resolve) => {
+            if (relateMenuIds.length === 0) return resolve([]);
+
+            db.query(
+              relatedMenuSql,
+              [relateMenuIds],
+              (err, relateMenuResult) => {
+                if (err) return resolve([]);
+
+                const formatted = relateMenuResult.map((m) => ({
+                  id: m.id,
+                  name: m.name,
+                  prices: m.prices,
+                  size: m.size,
+                  category: categoryMap[m.category] || m.category,
+                  photo: m.photo,
+                }));
+
+                resolve(formatted);
+              }
+            );
+          });
+
+          // 5. Fetch related ingredients
+          const ingredientSql = `
+            SELECT id, name, photo, prices 
+            FROM ingredients 
+            WHERE id IN (?)
+          `;
+
+          const fetchRelateIngredients = new Promise((resolve) => {
+            if (relateIngredientsIds.length === 0) return resolve([]);
+
+            db.query(
+              ingredientSql,
+              [relateIngredientsIds],
+              (err, ingrResult) => {
+                if (err) return resolve([]);
+
+                const formatted = ingrResult.map((i) => ({
+                  id: i.id,
+                  name: i.name,
+                  photo: i.photo,
+                  prices: i.prices,
+                }));
+
+                resolve(formatted);
+              }
+            );
+          });
+
+          // 6. Combine all
+          Promise.all([fetchRelateMenu, fetchRelateIngredients]).then(
+            ([relatedMenus, relatedIngredients]) => {
+              processedMenus.push({
+                id: menu.id,
+                shop_id: menu.shop_id,
+                name: menu.name,
+                prices: menu.prices,
+                category: categoryMap[menu.category] || menu.category,
+                photo: menu.photo,
+                size: menu.size,
+                description: menu.description,
+                complete_order: menu.complete_order,
+                rating: menu.rating,
+                rating_count: menu.rating_count,
+                get_months: menu.get_months
+                  ? JSON.parse(menu.get_months)
+                  : ["All months"],
+                relate_menu: relatedMenus,
+                relate_ingredients: relatedIngredients,
+              });
+
+              pending--;
+              if (pending === 0) {
+                res.writeHead(200, { "Content-Type": "application/json" });
+                res.end(
+                  JSON.stringify({
+                    shop: shopInfo,
+                    menus: processedMenus,
+                  })
+                );
+              }
+            }
+          );
+        });
+      });
+    });
+  });
+}
+
+module.exports = { 
+    createMenu,
+    getMenuByShopId
+};
