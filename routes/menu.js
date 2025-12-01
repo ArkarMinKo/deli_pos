@@ -69,17 +69,17 @@ function createMenu(req, res) {
             }
 
             // === Prepare JSON fields ===
-            const relateMenuJson = relate_menu
-            ? JSON.stringify(JSON.parse(relate_menu))
-            : null;
+            const relateMenuJson = Array.isArray(relate_menu)
+                ? JSON.stringify(relate_menu)
+                : null;
 
-            const relateIngredientsJson = relate_ingredients
-            ? JSON.stringify(JSON.parse(relate_ingredients))
-            : null;
+            const relateIngredientsJson = Array.isArray(relate_ingredients)
+                ? JSON.stringify(relate_ingredients)
+                : null;
 
-            const monthJson = get_months
-            ? JSON.stringify(JSON.parse(get_months))
-            : JSON.stringify(["All months"]);
+            const monthJson = Array.isArray(get_months)
+                ? JSON.stringify(get_months)
+                : JSON.stringify(["All months"]);
 
             // === Insert menu into DB ===
             const sql = `
