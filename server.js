@@ -119,6 +119,10 @@ const server = http.createServer(async (req, res) => {
 
     // Ingredients CRUD
     else if (pathName === "/ingredients" && method === "POST") ingredients.createIngredients(req, res);
+    else if (pathName.startsWith("/ingredients/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        ingredients.getIngredientsByShopId(req, res, id);
+    }
 
     // --- 404 fallback ---
     else {

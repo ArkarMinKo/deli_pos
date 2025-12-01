@@ -81,4 +81,31 @@ function createIngredients(req, res) {
     });
 }
 
-module.exports = { createIngredients };
+function getIngredientsByShopId(req, res, id) {
+    const sql = `
+        SELECT 
+        id, name, price, photo
+        FROM ingredients
+        WHERE shopid = ?
+    `
+
+    db.query(sql, [id], (err, results) => {
+        if (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Database error" }));
+        }
+
+        if (results.length === 0) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Ingredients များ မရှိသေးပါ" }));
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(results));
+    })
+}
+
+module.exports = {
+        createIngredients,
+        getIngredientsByShopId
+    };
