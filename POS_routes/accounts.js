@@ -23,7 +23,7 @@ function loginAccount(req, res) {
         if (!email || !password) {
             res.writeHead(400, { "Content-Type": "application/json" });
             return res.end(
-                JSON.stringify({ error: "Email နှင့် Password ကို ထည့်သွင်းပေးပါ" })
+                JSON.stringify({ success: false, error: "Email နှင့် Password ကို ထည့်သွင်းပေးပါ" })
             );
         }
 
@@ -31,12 +31,12 @@ function loginAccount(req, res) {
         db.query("SELECT * FROM accounts WHERE email = ?", [email], async (err, rows) => {
             if (err) {
                 res.writeHead(500, { "Content-Type": "application/json" });
-                return res.end(JSON.stringify({ error: "Database error" }));
+                return res.end(JSON.stringify({ success: false, error: "Database error" }));
             }
 
             if (rows.length === 0) {
                 res.writeHead(400, { "Content-Type": "application/json" });
-                return res.end(JSON.stringify({ error: "Email မမှန်ကန်ပါ" }));
+                return res.end(JSON.stringify({ success: false, error: "Email မမှန်ကန်ပါ" }));
             }
 
             const account = rows[0];
