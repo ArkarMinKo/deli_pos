@@ -269,9 +269,12 @@ function getMenuByShopId(req, res, shopId) {
                 complete_order: menu.complete_order,
                 rating: menu.rating,
                 rating_count: menu.rating_count,
-                get_months: menu.get_months
-                ? menu.get_months.split(",")
-                : ["All months"],
+                get_months:
+                  Array.isArray(menu.get_months)
+                    ? menu.get_months
+                    : typeof menu.get_months === "string"
+                    ? JSON.parse(menu.get_months)
+                    : ["All months"],
                 relate_menu: relatedMenus,
                 relate_ingredients: relatedIngredients,
               });
