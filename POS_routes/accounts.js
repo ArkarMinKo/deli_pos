@@ -46,13 +46,14 @@ function loginAccount(req, res) {
 
             if (!isMatch) {
                 res.writeHead(400, { "Content-Type": "application/json" });
-                return res.end(JSON.stringify({ error: "Password မမှန်ကန်ပါ" }));
+                return res.end(JSON.stringify({ success: false, error: "Password မမှန်ကန်ပါ" }));
             }
 
             // Login Success
             res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
             res.end(
                 JSON.stringify({
+                    success: true,
                     message: "Login အောင်မြင်ပါသည်",
                     accountId: account.id,
                     accountRole: account.role
