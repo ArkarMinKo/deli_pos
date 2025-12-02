@@ -181,6 +181,7 @@ function getShopsPending(req, res) {
       created_at
     FROM shops
     WHERE permission = 'pending'
+    ORDER BY created_at DESC
   `;
 
   db.query(sql, (err, results) => {
@@ -212,6 +213,7 @@ function getShops(req, res) {
       created_at
     FROM shops
     WHERE permission != 'pending'
+    ORDER BY created_at DESC
   `;
 
   db.query(sql, (err, results) => {

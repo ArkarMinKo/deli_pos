@@ -157,7 +157,7 @@ function getMenuByShopId(req, res, shopId) {
       categories.forEach((c) => (categoryMap[c.id] = c.name));
 
       // 3. Get all menu from this shop
-      const menuSql = `SELECT * FROM menu WHERE shop_id = ?`;
+      const menuSql = `SELECT * FROM menu WHERE shop_id = ? ORDER BY created_at DESC`;
 
       db.query(menuSql, [shopId], async (err, menus) => {
         if (err) {
@@ -269,6 +269,7 @@ function getMenuByShopId(req, res, shopId) {
                 complete_order: menu.complete_order,
                 rating: menu.rating,
                 rating_count: menu.rating_count,
+                created_at: menu.created_at,
                 get_months:
                   Array.isArray(menu.get_months)
                     ? menu.get_months

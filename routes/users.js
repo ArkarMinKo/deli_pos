@@ -127,7 +127,7 @@ function createUsers(req, res) {
 }
 
 function getUsers(req, res) {
-  const sql = "SELECT id, name, email, phone, photo, location, status, created_at FROM users";
+  const sql = "SELECT id, name, email, phone, photo, location, status, created_at FROM users ORDER BY created_at DESC";
 
   db.query(sql, (err, results) => {
     if (err) {

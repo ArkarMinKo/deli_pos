@@ -87,6 +87,7 @@ function getIngredientsByShopId(req, res, id) {
         id, name, prices, photo
         FROM ingredients
         WHERE shop_id = ?
+        ORDER BY created_at DESC
     `
 
     db.query(sql, [id], (err, results) => {

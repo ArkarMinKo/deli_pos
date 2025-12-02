@@ -57,6 +57,7 @@ function getCategoriesByShopId(req, res, id) {
         id, name, icon
         FROM categories
         WHERE shop_id = ?
+        ORDER BY created_at DESC
     `
 
     db.query(sql, [id], (err, results) => {
