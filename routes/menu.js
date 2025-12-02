@@ -126,15 +126,20 @@ function createMenu(req, res) {
 function getMenuByShopId(req, res, shopId) {
   // 1. Get shop information
   const shopSql = `
-    SELECT name, phone, address, location 
+    SELECT shop_name, phone, address, location 
     FROM shops 
     WHERE id = ?
   `;
 
   db.query(shopSql, [shopId], (err, shopResult) => {
-    if (shopResult.length === 0) {
+    if (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ message: "Shop fetch error" }));
+    }
+
+    if (!shopResult || shopResult.length === 0) {
       res.writeHead(404, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ message: "Shop များ မရှိသေးပါ" }));
+      return res.end(JSON.stringify({ message: "Shop မရှိသေးပါ" }));
     }
 
     const shopInfo = shopResult[0];
