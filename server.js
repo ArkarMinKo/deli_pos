@@ -71,6 +71,7 @@ const server = http.createServer(async (req, res) => {
     else if (pathName === "/shops" && method === "POST") shops.createShops(req, res);
     else if (pathName === "/shops" && method === "GET") shops.getShops(req, res);
     else if (pathName === "/shops-pending" && method === "GET") shops.getShopsPending(req, res);
+    else if (pathName === "/shops-approve" && method === "GET") shops.getShopsApprove(req, res);
 
     else if (pathName.startsWith("/shops/") && method === "GET") {
         const id = pathName.split("/")[2];
