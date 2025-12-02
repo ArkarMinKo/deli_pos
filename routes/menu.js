@@ -270,8 +270,8 @@ function getMenuByShopId(req, res, shopId) {
                 rating: menu.rating,
                 rating_count: menu.rating_count,
                 get_months: menu.get_months
-                  ? JSON.parse(menu.get_months)
-                  : ["All months"],
+                ? menu.get_months.split(",")
+                : ["All months"],
                 relate_menu: relatedMenus,
                 relate_ingredients: relatedIngredients,
               });
