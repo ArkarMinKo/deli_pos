@@ -256,6 +256,47 @@ function updateMenu(req, res, id) {
     });
 }
 
+function deleteMenu(req, res, id) {
+    if (!id) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ message: "Menu ID is required" }));
+    }
+
+    // 1. Find old photo first
+    db.query(
+        "SELECT photo FROM menu WHERE id = ?",
+        [id],
+        (err, result) => {
+            if (err || result.length === 0) {
+                res.writeHead(404, { "Content-Type": "application/json" });
+                return res.end(JSON.stringify({ message: "Menu not found" }));
+            }
+
+            const photoName = result[0].photo;
+
+            // 2. Delete DB row
+            db.query("DELETE FROM menu WHERE id = ?", [id], (err2) => {
+                if (err2) {
+                    res.writeHead(500, { "Content-Type": "application/json" });
+                    return res.end(JSON.stringify({ message: "Delete failed", err2 }));
+                }
+
+                // 3. Delete photo file
+                const photoPath = path.join(UPLOAD_DIR, photoName);
+                if (fs.existsSync(photoPath)) fs.unlinkSync(photoPath);
+
+                res.writeHead(200, { "Content-Type": "application/json" });
+                res.end(
+                    JSON.stringify({
+                        message: "Menu ကို အောင်မြင်စွာ ဖျက်ပြီးပါပြီ",
+                        id,
+                    })
+                );
+            });
+        }
+    );
+}
+
 function getMenuByShopId(req, res, shopId) {
   // 1. Get shop information
   const shopSql = `
@@ -434,5 +475,6 @@ function getMenuByShopId(req, res, shopId) {
 module.exports = { 
     createMenu,
     updateMenu,
+    deleteMenu,
     getMenuByShopId
 };
