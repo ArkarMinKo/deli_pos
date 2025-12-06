@@ -131,7 +131,7 @@ function createMenu(req, res) {
     });
 }
 
-function updateMenu(req, res) {
+function updateMenu(req, res, id) {
     const form = new formidable.IncomingForm({ multiples: false });
 
     form.parse(req, async (err, fields) => {
@@ -141,8 +141,6 @@ function updateMenu(req, res) {
         }
 
         const {
-            id,
-            shop_id,
             name,
             prices,
             category,
@@ -153,6 +151,13 @@ function updateMenu(req, res) {
             get_months,
             photo  // OPTIONAL (base64)
         } = fields;
+
+        if (!name || !prices || !category, !size, !description, !relate_menu, !relate_ingredients, !get_months) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(
+                JSON.stringify({ message: "လိုအပ်ချက်များ မပြည့်စုံပါ" })
+            );
+        }
 
         if (!id) {
             res.writeHead(400, { "Content-Type": "application/json" });
@@ -220,7 +225,6 @@ function updateMenu(req, res) {
                 `;
 
                 const values = [
-                    shop_id || null,
                     name || null,
                     prices || null,
                     category || null,
