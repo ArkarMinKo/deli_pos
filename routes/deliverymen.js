@@ -84,7 +84,7 @@ function createDeliverymen(req, res) {
         const password = String(fields.password || "");
         const work_type = fields.work_type;
 
-        const photoFile = files.photo;
+        const photoFile = Array.isArray(files.photo) ? files.photo[0] : files.photo;
 
         if (!name || !email || !phone || !password) {
             res.writeHead(400, { "Content-Type": "application/json" });
