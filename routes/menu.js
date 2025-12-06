@@ -59,7 +59,10 @@ function createMenu(req, res) {
                         "data:image/".length,
                         fields.photo.indexOf(";base64")
                     );
-                    photoName = generatePhotoName(newId, `.${ext}`);
+                    if (!ext) {
+                        return res.end(JSON.stringify({ error: "Missing image extension in Base64 string" }));
+                    }
+                    photoName = generatePhotoName(newId, `photo.${ext}`);
                     fs.writeFileSync(
                         path.join(UPLOAD_DIR, photoName),
                         Buffer.from(base64Data, "base64")
