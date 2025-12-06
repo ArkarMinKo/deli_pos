@@ -15,6 +15,7 @@ const menu = require("./routes/menu");
 
 // Upload folders
 const INGREDIENTS_UPLOAD_DIR = path.join(__dirname, "ingredients_uploads");
+const MENU_UPLOAD_DIR = path.join(__dirname, "menu_uploads");
 
 // Create upload folders
 fs.mkdirSync(INGREDIENTS_UPLOAD_DIR, { recursive: true });
@@ -73,6 +74,7 @@ const server = http.createServer(async (req, res) => {
 
     // CALL IMAGE
     if (serveStaticFolder(pathName, res, "/ingredients-uploads/", INGREDIENTS_UPLOAD_DIR)) return;
+    if (serveStaticFolder(pathName, res, "/menu-uploads/", MENU_UPLOAD_DIR)) return;
 
     // Users CRUD
     if (pathName === "/login-user" && method === "POST") users.loginUser(req, res);
