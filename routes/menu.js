@@ -219,7 +219,7 @@ function updateMenu(req, res, id) {
                 // === 4. Update DB ===
                 const sql = `
                     UPDATE menu SET
-                        shop_id = ?, name = ?, prices = ?, category = ?, photo = ?,
+                        name = ?, prices = ?, category = ?, photo = ?,
                         size = ?, description = ?, relate_menu = ?, relate_ingredients = ?, get_months = ?
                     WHERE id = ?
                 `;
