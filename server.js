@@ -186,6 +186,11 @@ const server = http.createServer(async (req, res) => {
         categories.updateCategories(req, res, id);
     }
 
+    else if (pathName.startsWith("/categories/") && method === "DELETE") {
+        const id = pathName.split("/")[2];
+        categories.deleteCategories(req, res, id);
+    }
+
     // Ingredients CRUD
     else if (pathName === "/ingredients" && method === "POST") ingredients.createIngredients(req, res);
 
