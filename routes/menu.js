@@ -131,6 +131,127 @@ function createMenu(req, res) {
     });
 }
 
+function updateMenu(req, res) {
+    const form = new formidable.IncomingForm({ multiples: false });
+
+    form.parse(req, async (err, fields) => {
+        if (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ message: "Form parse failed", err }));
+        }
+
+        const {
+            id,
+            shop_id,
+            name,
+            prices,
+            category,
+            size,
+            description,
+            relate_menu,
+            relate_ingredients,
+            get_months,
+            photo  // OPTIONAL (base64)
+        } = fields;
+
+        if (!id) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ message: "Menu ID is required" }));
+        }
+
+        // === 1. Get existing menu to know old photo name ===
+        db.query(
+            "SELECT photo FROM menu WHERE id = ?",
+            [id],
+            (err, result) => {
+                if (err || result.length === 0) {
+                    res.writeHead(404, { "Content-Type": "application/json" });
+                    return res.end(JSON.stringify({ message: "Menu not found" }));
+                }
+
+                let oldPhoto = result[0].photo;
+                let newPhotoName = oldPhoto;
+
+                // === 2. If new Base64 photo included → decode + replace ===
+                try {
+                    if (photo && photo.startsWith("data:image")) {
+                        const base64Data = photo.replace(/^data:image\/\w+;base64,/, "");
+                        const ext = photo.substring(
+                            "data:image/".length,
+                            photo.indexOf(";base64")
+                        );
+
+                        newPhotoName = generatePhotoName(id, `photo.${ext}`);
+                        fs.writeFileSync(
+                            path.join(UPLOAD_DIR, newPhotoName),
+                            Buffer.from(base64Data, "base64")
+                        );
+
+                        // delete old photo
+                        if (oldPhoto) {
+                            const oldPath = path.join(UPLOAD_DIR, oldPhoto);
+                            if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+                        }
+                    }
+                } catch (e) {
+                    res.writeHead(400, { "Content-Type": "application/json" });
+                    return res.end(JSON.stringify({ message: "Invalid base64 format", e }));
+                }
+
+                // === 3. JSON fields ===
+                const relateMenuJson = Array.isArray(relate_menu)
+                    ? JSON.stringify(relate_menu)
+                    : null;
+
+                const relateIngredientsJson = Array.isArray(relate_ingredients)
+                    ? JSON.stringify(relate_ingredients)
+                    : null;
+
+                const monthsJson = Array.isArray(get_months)
+                    ? JSON.stringify(get_months)
+                    : null;
+
+                // === 4. Update DB ===
+                const sql = `
+                    UPDATE menu SET
+                        shop_id = ?, name = ?, prices = ?, category = ?, photo = ?,
+                        size = ?, description = ?, relate_menu = ?, relate_ingredients = ?, get_months = ?
+                    WHERE id = ?
+                `;
+
+                const values = [
+                    shop_id || null,
+                    name || null,
+                    prices || null,
+                    category || null,
+                    newPhotoName,
+                    size || null,
+                    description || null,
+                    relateMenuJson,
+                    relateIngredientsJson,
+                    monthsJson,
+                    id,
+                ];
+
+                db.query(sql, values, (err, result) => {
+                    if (err) {
+                        res.writeHead(500, { "Content-Type": "application/json" });
+                        return res.end(JSON.stringify({ message: "DB update error", err }));
+                    }
+
+                    res.writeHead(200, { "Content-Type": "application/json" });
+                    res.end(
+                        JSON.stringify({
+                            message: "Menu ကို အောင်မြင်စွာ ပြင်ဆင်ပြီးပါပြီ",
+                            id,
+                        })
+                    );
+                });
+            }
+        );
+    });
+}
+
 function getMenuByShopId(req, res, shopId) {
   // 1. Get shop information
   const shopSql = `
@@ -308,5 +429,6 @@ function getMenuByShopId(req, res, shopId) {
 
 module.exports = { 
     createMenu,
+    updateMenu,
     getMenuByShopId
 };

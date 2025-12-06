@@ -197,6 +197,11 @@ const server = http.createServer(async (req, res) => {
         menu.getMenuByShopId(req, res, id);
     }
 
+    else if (pathName.startsWith("/menu/") && method === "PUT") {
+        const id = pathName.split("/")[2];
+        menu.updateMenu(req, res, id);
+    }
+
     // --- 404 fallback ---
     else {
         res.writeHead(404, { "Content-Type": "application/json" });
