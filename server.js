@@ -204,7 +204,7 @@ const server = http.createServer(async (req, res) => {
 
     else if (pathName.startsWith("/menu/") && method === "DELETE") {
         const id = pathName.split("/")[2];
-        menu.updateMenu(req, res, id);
+        menu.deleteMenu(req, res, id);
     }
 
     // --- 404 fallback ---
