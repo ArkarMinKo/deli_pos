@@ -88,6 +88,98 @@ function createIngredients(req, res) {
     });
 }
 
+function updateIngredients(req, res, id) {
+    const form = new formidable.IncomingForm({ multiples: false });
+
+    form.parse(req, (err, fields) => {
+        if (err) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Form parse error" }));
+        }
+
+        let { name, prices, photo } = fields;
+
+        if (!id) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Ingredient ID required" }));
+        }
+
+        // Required fields
+        if (!name || !prices) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "လိုအပ်ချက်များ မပြည့်စုံပါ" }));
+        }
+
+        // 1. Get existing ingredient
+        const getSql = `SELECT photo FROM ingredients WHERE id = ?`;
+
+        db.query(getSql, [id], (err, result) => {
+            if (err || result.length === 0) {
+                res.writeHead(404, { "Content-Type": "application/json" });
+                return res.end(JSON.stringify({ error: "Ingredient not found" }));
+            }
+
+            let oldPhoto = result[0].photo;
+            let newPhotoName = oldPhoto;
+
+            // 2. Replace photo only if new Base64 photo included
+            try {
+                if (photo && photo.startsWith("data:image")) {
+                    const base64Data = photo.replace(/^data:image\/\w+;base64,/, "");
+                    const ext = photo.substring(
+                        "data:image/".length,
+                        photo.indexOf(";base64")
+                    );
+
+                    newPhotoName = generatePhotoName(id, `photo.${ext}`);
+
+                    fs.writeFileSync(
+                        path.join(UPLOAD_DIR, newPhotoName),
+                        Buffer.from(base64Data, "base64")
+                    );
+
+                    // delete old photo
+                    const oldPath = path.join(UPLOAD_DIR, oldPhoto);
+                    if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+                }
+            } catch (e) {
+                res.writeHead(400, { "Content-Type": "application/json" });
+                return res.end(JSON.stringify({ error: "Invalid Base64 format", e }));
+            }
+
+            // 3. Update DB
+            const updateSql = `
+                UPDATE ingredients SET
+                    name = ?, prices = ?, shop_id = ?, photo = ?
+                WHERE id = ?
+            `;
+
+            db.query(
+                updateSql,
+                [
+                    name,
+                    prices,
+                    newPhotoName,
+                    id,
+                ],
+                (err2) => {
+                    if (err2) {
+                        res.writeHead(500, { "Content-Type": "application/json" });
+                        return res.end(JSON.stringify({ error: "Update failed", details: err2 }));
+                    }
+
+                    res.writeHead(200, { "Content-Type": "application/json" });
+                    return res.end(
+                        JSON.stringify({
+                            message: "Ingredient ကို အောင်မြင်စွာ ပြင်ဆင်ပြီးပါပြီ",
+                        })
+                    );
+                }
+            );
+        });
+    });
+}
+
 function getIngredientsByShopId(req, res, id) {
     const sql = `
         SELECT 
@@ -115,5 +207,6 @@ function getIngredientsByShopId(req, res, id) {
 
 module.exports = {
         createIngredients,
+        updateIngredients,
         getIngredientsByShopId
     };
