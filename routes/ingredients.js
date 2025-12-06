@@ -47,8 +47,11 @@ function createIngredients(req, res) {
                         "data:image/".length,
                         fields.photo.indexOf(";base64")
                     );
+                    if (!ext) {
+                        return res.end(JSON.stringify({ error: "Missing image extension in Base64 string" }));
+                    }
 
-                    filename = generatePhotoName(newId, `.${ext}`);
+                    filename = generatePhotoName(newId, `photo.${ext}`);
                     const filePath = path.join(UPLOAD_DIR, filename);
 
                     fs.writeFileSync(filePath, Buffer.from(base64Data, "base64"));
