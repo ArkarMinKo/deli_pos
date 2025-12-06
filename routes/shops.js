@@ -164,6 +164,90 @@ function createShops(req, res) {
   });
 }
 
+function updateShop(req, res, id) {
+    const form = new formidable.IncomingForm({
+        multiples: false,
+        encoding: "utf-8",
+    });
+
+    form.parse(req, (err, fields) => {
+        if (err) {
+            res.statusCode = 400;
+            return res.end(JSON.stringify({ error: "Form parse error", details: err }));
+        }
+
+        const {shopkeeper_name, shop_name, phone, address, photo } = fields;
+
+        if (!id) {
+            res.statusCode = 400;
+            return res.end(JSON.stringify({ error: "Shop ID required" }));
+        }
+
+        if (!shop_name, !shopkeeper_name, !address, !phone) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(
+                JSON.stringify({ message: "လိုအပ်ချက်များ မပြည့်စုံပါ" })
+            );
+        }
+
+        // 1. Get existing shop (for old photo)
+        db.query("SELECT photo FROM shops WHERE id = ?", [id], (err, result) => {
+            if (err || result.length === 0) {
+                res.statusCode = 404;
+                return res.end(JSON.stringify({ error: "Shop not found" }));
+            }
+
+            let oldPhoto = result[0].photo;
+            let newPhotoFile = oldPhoto;
+
+            // 2. Handle photo update
+            try {
+                if (photo && photo.startsWith("data:image")) {
+                    const base64Data = photo.replace(/^data:image\/\w+;base64,/, "");
+                    const ext = photo.substring("data:image/".length, photo.indexOf(";base64"));
+                    const photoName = `${id}.${ext}`;
+                    fs.writeFileSync(path.join(UPLOAD_DIR, photoName), Buffer.from(base64Data, "base64"));
+                    newPhotoFile = photoName;
+
+                    // Delete old photo
+                    if (oldPhoto && fs.existsSync(path.join(UPLOAD_DIR, oldPhoto))) {
+                        fs.unlinkSync(path.join(UPLOAD_DIR, oldPhoto));
+                    }
+                }
+            } catch (e) {
+                res.statusCode = 400;
+                return res.end(JSON.stringify({ error: "Invalid photo format", details: e }));
+            }
+
+            // 3. Update DB (limited fields)
+            const sql = `
+                UPDATE shops SET
+                    shopkeeper_name = ?, shop_name = ?, phone = ?, address = ?, photo = ?
+                WHERE id = ?
+            `;
+
+            const values = [
+                shopkeeper_name,
+                shop_name,
+                phone,
+                address,
+                newPhotoFile,
+                id
+            ];
+
+            db.query(sql, values, (err2) => {
+                if (err2) {
+                    res.statusCode = 500;
+                    return res.end(JSON.stringify({ error: "DB update failed", details: err2 }));
+                }
+
+                res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+                return res.end(JSON.stringify({ message: "Shop ကို အောင်မြင်စွာ ပြင်ဆင်ပြီးပါပြီ" }));
+            });
+        });
+    });
+}
+
 function getShopsPending(req, res) {
   const sql = `
     SELECT 
@@ -425,5 +509,6 @@ module.exports = {
     changeStatus,
     deleteShop,
     getShopsById,
-    getShopsApprove
+    getShopsApprove,
+    updateShop
 };
