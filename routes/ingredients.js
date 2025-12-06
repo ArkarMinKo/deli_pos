@@ -205,8 +205,49 @@ function getIngredientsByShopId(req, res, id) {
     })
 }
 
+function deleteIngredients(req, res, id) {
+    if (!id) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Ingredient ID required" }));
+    }
+
+    // 1. Get photo name first
+    db.query(
+        "SELECT photo FROM ingredients WHERE id = ?",
+        [id],
+        (err, result) => {
+            if (err || result.length === 0) {
+                res.writeHead(404, { "Content-Type": "application/json" });
+                return res.end(JSON.stringify({ error: "Ingredient not found" }));
+            }
+
+            const photoName = result[0].photo;
+
+            // 2. Delete DB row
+            db.query("DELETE FROM ingredients WHERE id = ?", [id], (err2) => {
+                if (err2) {
+                    res.writeHead(500, { "Content-Type": "application/json" });
+                    return res.end(JSON.stringify({ error: "Delete failed", details: err2 }));
+                }
+
+                // 3. Delete image file
+                const photoPath = path.join(UPLOAD_DIR, photoName);
+                if (fs.existsSync(photoPath)) fs.unlinkSync(photoPath);
+
+                res.writeHead(200, { "Content-Type": "application/json" });
+                return res.end(
+                    JSON.stringify({
+                        message: "Ingredient ကို အောင်မြင်စွာ ဖျက်ပြီးပါပြီ",
+                    })
+                );
+            });
+        }
+    );
+}
+
 module.exports = {
         createIngredients,
         updateIngredients,
-        getIngredientsByShopId
+        getIngredientsByShopId,
+        deleteIngredients
     };
