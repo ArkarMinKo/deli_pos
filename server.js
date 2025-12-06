@@ -16,9 +16,14 @@ const menu = require("./routes/menu");
 // Upload folders
 const INGREDIENTS_UPLOAD_DIR = path.join(__dirname, "ingredients_uploads");
 const MENU_UPLOAD_DIR = path.join(__dirname, "menu_uploads");
+const SHOP_UPLOAD_DIR = path.join(__dirname, "shop_uploads");
+const DELIVERYMEN_UPLOAD_DIR = path.join(__dirname, "deliverymen_uploads");
 
 // Create upload folders
 fs.mkdirSync(INGREDIENTS_UPLOAD_DIR, { recursive: true });
+fs.mkdirSync(MENU_UPLOAD_DIR, { recursive: true });
+fs.mkdirSync(SHOP_UPLOAD_DIR, { recursive: true });
+fs.mkdirSync(DELIVERYMEN_UPLOAD_DIR, { recursive: true });
 
 /* ------------------------------------
       UNIVERSAL STATIC SERVE FUNCTION
@@ -75,6 +80,8 @@ const server = http.createServer(async (req, res) => {
     // CALL IMAGE
     if (serveStaticFolder(pathName, res, "/ingredients-uploads/", INGREDIENTS_UPLOAD_DIR)) return;
     if (serveStaticFolder(pathName, res, "/menu-uploads/", MENU_UPLOAD_DIR)) return;
+    if (serveStaticFolder(pathName, res, "/shop-uploads/", SHOP_UPLOAD_DIR)) return;
+    if (serveStaticFolder(pathName, res, "/deliverymen-uploads/", DELIVERYMEN_UPLOAD_DIR)) return;
 
     // Users CRUD
     if (pathName === "/login-user" && method === "POST") users.loginUser(req, res);
