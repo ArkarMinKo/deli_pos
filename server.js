@@ -1,5 +1,7 @@
 const http = require("http");
 const url = require("url");
+const fs = require("fs");
+const path = require("path");
 const db = require("./db");
 
 // Routes
@@ -10,6 +12,44 @@ const deliverymen = require("./routes/deliverymen");
 const categories = require("./routes/categories");
 const ingredients = require("./routes/ingredients");
 const menu = require("./routes/menu");
+
+// Upload folders
+const INGREDIENTS_UPLOAD_DIR = path.join(__dirname, "ingredients_uploads");
+
+// Create upload folders
+fs.mkdirSync(INGREDIENTS_UPLOAD_DIR, { recursive: true });
+
+/* ------------------------------------
+      UNIVERSAL STATIC SERVE FUNCTION
+--------------------------------------*/
+function serveStaticFolder(reqPath, res, urlPrefix, folderPath) {
+  if (!reqPath.startsWith(urlPrefix)) return false;
+
+  const fileName = reqPath.replace(urlPrefix, "");
+  const safePath = path.join(folderPath, fileName);
+
+  fs.readFile(safePath, (err, data) => {
+    if (err) {
+      res.writeHead(404);
+      return res.end("File not found");
+    }
+
+    const ext = path.extname(safePath).toLowerCase();
+    const mimeTypes = {
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png",
+      ".gif": "image/gif",
+    };
+
+    res.writeHead(200, {
+      "Content-Type": mimeTypes[ext] || "application/octet-stream",
+    });
+    res.end(data);
+  });
+
+  return true;
+}
 
 // CORS helper
 function setCorsHeaders(res) {
@@ -30,6 +70,9 @@ const server = http.createServer(async (req, res) => {
     const parsedUrl = url.parse(req.url, true);
     const pathName = parsedUrl.pathname;
     const method = req.method;
+
+    // CALL IMAGE
+    if (serveStaticFolder(pathName, res, "/ingredients-uploads/", INGREDIENTS_UPLOAD_DIR)) return;
 
     // Users CRUD
     if (pathName === "/login-user" && method === "POST") users.loginUser(req, res);
