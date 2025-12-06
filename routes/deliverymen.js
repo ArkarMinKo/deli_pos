@@ -70,7 +70,6 @@ function createDeliverymen(req, res) {
         keepExtensions: true,
         encoding: "utf-8",
     });
-    form.uploadDir = path.join(__dirname, "../deliverymen_uploads");
     form.keepExtensions = true;
 
     form.parse(req, async (err, fields, files) => {
@@ -118,20 +117,9 @@ function createDeliverymen(req, res) {
                         }
 
                         let photoName = null;
-
-                        // SAVE PHOTO
-                        if (photoFile && photoFile.originalFilename) {
+                        if (photoFile?.originalFilename) {
                             photoName = generatePhotoName(newId, photoFile.originalFilename);
-
-                            const newPath = path.join(
-                                __dirname,
-                                "../deliverymen_uploads",
-                                photoName
-                            );
-
-                            fs.rename(photoFile.filepath, newPath, (renameErr) => {
-                                if (renameErr) console.log("Photo save error:", renameErr);
-                            });
+                            fs.renameSync(photoFile.filepath, path.join(UPLOAD_DIR, photoName));
                         }
 
                         // HASH PASSWORD
