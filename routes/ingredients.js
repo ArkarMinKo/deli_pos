@@ -35,47 +35,51 @@ function createIngredients(req, res) {
                 return res.end(JSON.stringify({ error: "ID generation failed" }));
             }
 
-            // Convert Base64 → Buffer
-            const matches = photo.match(/^data:(.+);base64,(.+)$/);
-            if (!matches) {
+            // ------------------------------------------------------------------
+            // === Base64 Decode Logic (REPLACED EXACTLY AS YOU WANT) ===
+            // ------------------------------------------------------------------
+            let filename = null;
+
+            try {
+                if (fields.photo && fields.photo.startsWith("data:image")) {
+                    const base64Data = fields.photo.replace(/^data:image\/\w+;base64,/, "");
+                    const ext = fields.photo.substring(
+                        "data:image/".length,
+                        fields.photo.indexOf(";base64")
+                    );
+
+                    filename = generatePhotoName(newId, `.${ext}`);
+                    const filePath = path.join(UPLOAD_DIR, filename);
+
+                    fs.writeFileSync(filePath, Buffer.from(base64Data, "base64"));
+                } else {
+                    res.writeHead(400, { "Content-Type": "application/json" });
+                    return res.end(JSON.stringify({ error: "Invalid Base64 image format" }));
+                }
+            } catch (e) {
                 res.writeHead(400, { "Content-Type": "application/json" });
-                return res.end(JSON.stringify({ error: "Invalid Base64 image format" }));
+                return res.end(JSON.stringify({ error: "Invalid Base64 format", e }));
             }
+            // ------------------------------------------------------------------
 
-            const base64Data = matches[2];
-            const mimeType = matches[1];
-            const ext = mimeType.split("/")[1];
+            // Insert into DB
+            const sql = `
+                INSERT INTO ingredients (id, name, photo, prices, shop_id)
+                VALUES (?, ?, ?, ?, ?)
+            `;
 
-            // Generate filename
-            const filename = generatePhotoName(newId, "." + ext);
-            const filePath = path.join(UPLOAD_DIR, filename);
-
-            // Save image file
-            fs.writeFile(filePath, Buffer.from(base64Data, "base64"), (err) => {
+            db.query(sql, [newId, name, filename, prices, shop_id], (err, result) => {
                 if (err) {
                     res.writeHead(500, { "Content-Type": "application/json" });
-                    return res.end(JSON.stringify({ error: "Photo save failed" }));
+                    return res.end(JSON.stringify({ error: "Database insert failed", details: err }));
                 }
 
-                // Insert into DB
-                const sql = `
-                    INSERT INTO ingredients (id, name, photo, prices, shop_id)
-                    VALUES (?, ?, ?, ?, ?)
-                `;
-
-                db.query(sql, [newId, name, filename, prices, shop_id], (err, result) => {
-                    if (err) {
-                        res.writeHead(500, { "Content-Type": "application/json" });
-                        return res.end(JSON.stringify({ error: "Database insert failed", details: err }));
-                    }
-
-                    res.writeHead(201, { "Content-Type": "application/json" });
-                    return res.end(
-                        JSON.stringify({
-                            message: "Ingredient ကို အောင်မြင်စွာ အသစ်ထည့်သွင်း ပြီးပါပြီ",
-                        })
-                    );
-                });
+                res.writeHead(201, { "Content-Type": "application/json" });
+                return res.end(
+                    JSON.stringify({
+                        message: "Ingredient ကို အောင်မြင်စွာ အသစ်ထည့်သွင်း ပြီးပါပြီ",
+                    })
+                );
             });
         });
     });
