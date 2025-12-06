@@ -181,6 +181,11 @@ const server = http.createServer(async (req, res) => {
         categories.getCategoriesByShopId(req, res, id);
     }
 
+    else if (pathName.startsWith("/categories/") && method === "PUT") {
+        const id = pathName.split("/")[2];
+        categories.updateCategories(req, res, id);
+    }
+
     // Ingredients CRUD
     else if (pathName === "/ingredients" && method === "POST") ingredients.createIngredients(req, res);
 

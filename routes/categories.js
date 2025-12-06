@@ -76,7 +76,53 @@ function getCategoriesByShopId(req, res, id) {
     })
 }
 
+function updateCategories(req, res, id) {
+    const form = new formidable.IncomingForm({ multiples: false });
+
+    form.parse(req, (err, fields) => {
+        if (err) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Form parse error" }));
+        }
+
+        let { name, icon } = fields;
+
+        if (!id) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Category ID required" }));
+        }
+
+        // Validate required fields
+        if (!name || !parseInt(icon)) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "လိုအပ်ချက်များ မပြည့်စုံပါ" }));
+        }
+
+        const sql = `
+            UPDATE categories SET
+                name = ?, icon = ?
+            WHERE id = ?
+        `;
+
+        db.query(sql, [name, icon, id], (err2) => {
+            if (err2) {
+                res.writeHead(500, { "Content-Type": "application/json" });
+                return res.end(JSON.stringify({ error: "Update failed", details: err2 }));
+            }
+
+            res.writeHead(200, { "Content-Type": "application/json" });
+            return res.end(
+                JSON.stringify({
+                    message: "Category ကို အောင်မြင်စွာ ပြင်ဆင်ပြီးပါပြီ",
+                    id
+                })
+            );
+        });
+    });
+}
+
 module.exports = { 
     createCategories,
-    getCategoriesByShopId
+    getCategoriesByShopId,
+    updateCategories
  };
