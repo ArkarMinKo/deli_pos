@@ -333,99 +333,93 @@ function getMenuByShopId(req, res, shopId) {
       // 3. Get all menu from this shop
       const menuSql = `SELECT * FROM menu WHERE shop_id = ? ORDER BY created_at DESC`;
 
-      db.query(menuSql, [shopId], async (err, menus) => {
+      db.query(menuSql, [shopId], (err, menus) => {
         if (err) {
           res.writeHead(500, { "Content-Type": "application/json" });
           return res.end(JSON.stringify({ message: "Menu fetch error" }));
         }
 
-        // Convert each menu item with relations
         let processedMenus = [];
-
         let pending = menus.length;
+
         if (pending === 0) {
           res.writeHead(200, { "Content-Type": "application/json" });
-          return res.end(
-            JSON.stringify({
-              shop: shopInfo,
-              menus: [],
-            })
-          );
+          return res.end(JSON.stringify({ shop: shopInfo, menus: [] }));
         }
 
         menus.forEach((menu) => {
-          // Parse relations
+          // ===== SAFE PARSE RELATIONS =====
           let relateMenuIds = [];
           let relateIngredientsIds = [];
 
-          try {
-            relateMenuIds = menu.relate_menu
-              ? JSON.parse(menu.relate_menu)
-              : [];
-          } catch {}
+          if (Array.isArray(menu.relate_menu)) {
+            relateMenuIds = menu.relate_menu;
+          } else if (typeof menu.relate_menu === "string") {
+            try {
+              relateMenuIds = JSON.parse(menu.relate_menu);
+            } catch {
+              relateMenuIds = [];
+            }
+          }
 
-          try {
-            relateIngredientsIds = menu.relate_ingredients
-              ? JSON.parse(menu.relate_ingredients)
-              : [];
-          } catch {}
+          if (Array.isArray(menu.relate_ingredients)) {
+            relateIngredientsIds = menu.relate_ingredients;
+          } else if (typeof menu.relate_ingredients === "string") {
+            try {
+              relateIngredientsIds = JSON.parse(menu.relate_ingredients);
+            } catch {
+              relateIngredientsIds = [];
+            }
+          }
 
           // 4. Fetch related menus
-          const relatedMenuSql = `
-            SELECT id, name, prices, size, category, photo
-            FROM menu
-            WHERE id IN (${relateMenuIds.map(() => "?").join(",")})
-          `;
-
           const fetchRelateMenu = new Promise((resolve) => {
             if (relateMenuIds.length === 0) return resolve([]);
 
-            db.query(
-              relatedMenuSql,
-              relateMenuIds,   // ✅ array spread correctly
-              (err, relateMenuResult) => {
-                if (err) return resolve([]);
+            const relatedMenuSql = `
+              SELECT id, name, prices, size, category, photo
+              FROM menu
+              WHERE id IN (${relateMenuIds.map(() => "?").join(",")})
+            `;
 
-                resolve(
-                  relateMenuResult.map((m) => ({
-                    id: m.id,
-                    name: m.name,
-                    prices: m.prices,
-                    size: m.size,
-                    category: categoryMap[m.category] || m.category,
-                    photo: m.photo,
-                  }))
-                );
-              }
-            );
+            db.query(relatedMenuSql, relateMenuIds, (err, result) => {
+              if (err) return resolve([]);
+
+              resolve(
+                result.map((m) => ({
+                  id: m.id,
+                  name: m.name,
+                  prices: m.prices,
+                  size: m.size,
+                  category: categoryMap[m.category] || m.category,
+                  photo: m.photo,
+                }))
+              );
+            });
           });
 
           // 5. Fetch related ingredients
-          const ingredientSql = `
-            SELECT id, name, photo, prices
-            FROM ingredients
-            WHERE id IN (${relateIngredientsIds.map(() => "?").join(",")})
-          `;
-
           const fetchRelateIngredients = new Promise((resolve) => {
             if (relateIngredientsIds.length === 0) return resolve([]);
 
-            db.query(
-              ingredientSql,
-              relateIngredientsIds,
-              (err, ingrResult) => {
-                if (err) return resolve([]);
+            const ingredientSql = `
+              SELECT id, name, photo, prices
+              FROM ingredients
+              WHERE id IN (${relateIngredientsIds.map(() => "?").join(",")})
+            `;
 
-                resolve(
-                  ingrResult.map((i) => ({
-                    id: i.id,
-                    name: i.name,
-                    photo: i.photo,
-                    prices: i.prices,
-                  }))
-                );
-              }
-            );
+            db.query(ingredientSql, relateIngredientsIds, (err, result) => {
+              if (err) return resolve([]);
+
+              resolve(
+                result.map((i) => ({
+                  id: i.id,
+                  name: i.name,
+                  photo: i.photo,
+                  prices: i.prices,
+                }))
+              );
+            });
           });
 
           // 6. Combine all
