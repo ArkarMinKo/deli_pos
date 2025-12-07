@@ -371,59 +371,61 @@ function getMenuByShopId(req, res, shopId) {
           } catch {}
 
           // 4. Fetch related menus
+          const relatedMenuSql = `
+            SELECT id, name, prices, size, category, photo
+            FROM menu
+            WHERE id IN (${relateMenuIds.map(() => "?").join(",")})
+          `;
 
           const fetchRelateMenu = new Promise((resolve) => {
-            if (!relateMenuIds.length) return resolve([]);
+            if (relateMenuIds.length === 0) return resolve([]);
 
-            const placeholders = relateMenuIds.map(() => '?').join(','); // "?, ?, ?"
+            db.query(
+              relatedMenuSql,
+              relateMenuIds,   // ✅ array spread correctly
+              (err, relateMenuResult) => {
+                if (err) return resolve([]);
 
-            const sql = `
-              SELECT id, name, prices, size, category, photo 
-              FROM menu 
-              WHERE id IN (${placeholders})
-            `;
-
-            db.query(sql, relateMenuIds, (err, relateMenuResult) => {
-              if (err) return resolve([]);
-
-              resolve(
-                relateMenuResult.map((m) => ({
-                  id: m.id,
-                  name: m.name,
-                  prices: m.prices,
-                  size: m.size,
-                  category: categoryMap[m.category] || m.category,
-                  photo: m.photo,
-                }))
-              );
-            });
+                resolve(
+                  relateMenuResult.map((m) => ({
+                    id: m.id,
+                    name: m.name,
+                    prices: m.prices,
+                    size: m.size,
+                    category: categoryMap[m.category] || m.category,
+                    photo: m.photo,
+                  }))
+                );
+              }
+            );
           });
 
           // 5. Fetch related ingredients
+          const ingredientSql = `
+            SELECT id, name, photo, prices
+            FROM ingredients
+            WHERE id IN (${relateIngredientsIds.map(() => "?").join(",")})
+          `;
 
           const fetchRelateIngredients = new Promise((resolve) => {
-            if (!relateIngredientsIds.length) return resolve([]);
+            if (relateIngredientsIds.length === 0) return resolve([]);
 
-            const placeholders = relateIngredientsIds.map(() => '?').join(',');
+            db.query(
+              ingredientSql,
+              relateIngredientsIds,
+              (err, ingrResult) => {
+                if (err) return resolve([]);
 
-            const sql = `
-              SELECT id, name, photo, prices 
-              FROM ingredients 
-              WHERE id IN (${placeholders})
-            `;
-
-            db.query(sql, relateIngredientsIds, (err, ingrResult) => {
-              if (err) return resolve([]);
-
-              resolve(
-                ingrResult.map((i) => ({
-                  id: i.id,
-                  name: i.name,
-                  photo: i.photo,
-                  prices: i.prices,
-                }))
-              );
-            });
+                resolve(
+                  ingrResult.map((i) => ({
+                    id: i.id,
+                    name: i.name,
+                    photo: i.photo,
+                    prices: i.prices,
+                  }))
+                );
+              }
+            );
           });
 
           // 6. Combine all
