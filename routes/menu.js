@@ -339,7 +339,7 @@ function getMenuByShopId(req, res, shopId) {
           return res.end(JSON.stringify({ message: "Menu fetch error" }));
         }
 
-        let processedMenus = [];
+        let processedMenus = new Array(menus.length);
         let pending = menus.length;
 
         if (pending === 0) {
@@ -347,7 +347,7 @@ function getMenuByShopId(req, res, shopId) {
           return res.end(JSON.stringify({ shop: shopInfo, menus: [] }));
         }
 
-        menus.forEach((menu) => {
+        menus.forEach((menu, index) => {
           // ===== SAFE PARSE RELATIONS =====
           let relateMenuIds = [];
           let relateIngredientsIds = [];
@@ -425,7 +425,7 @@ function getMenuByShopId(req, res, shopId) {
           // 6. Combine all
           Promise.all([fetchRelateMenu, fetchRelateIngredients]).then(
             ([relatedMenus, relatedIngredients]) => {
-              processedMenus.push({
+              processedMenus[index] = {
                 id: menu.id,
                 shop_id: menu.shop_id,
                 name: menu.name,
@@ -446,7 +446,7 @@ function getMenuByShopId(req, res, shopId) {
                     : ["All months"],
                 relate_menu: relatedMenus,
                 relate_ingredients: relatedIngredients,
-              });
+              };
 
               pending--;
               if (pending === 0) {
