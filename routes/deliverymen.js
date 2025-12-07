@@ -179,17 +179,16 @@ function putDeliverymen(req, res, id) {
         const name = fields.name;
         const email = fields.email;
         const phone = fields.phone;
-        const password = fields.password ? String(fields.password) : null; // Optional
+        const password = fields.password ? String(fields.password) : null;
         const work_type = fields.work_type;
 
-        const photoFile = files.photo;
+        const photoFile = Array.isArray(files.photo) ? files.photo[0] : files.photo;
 
         if (!id || !name || !email || !phone) {
             res.writeHead(400, { "Content-Type": "application/json" });
-            return res.end(JSON.stringify({ error: "Required fields are missing" }));
+            return res.end(JSON.stringify({ error: "လိုအပ်ချက်များ မပြည့်စုံပါ" }));
         }
 
-        // Check if email is already used by another deliveryman
         db.query(
             "SELECT id FROM deliverymen WHERE email = ? AND id != ?",
             [email, id],
@@ -207,28 +206,19 @@ function putDeliverymen(req, res, id) {
                 try {
                     let photoName = null;
 
-                    // SAVE PHOTO IF NEW ONE UPLOADED
-                    if (photoFile && photoFile.originalFilename) {
+                    if (photoFile?.originalFilename) {
                         photoName = generatePhotoName(id, photoFile.originalFilename);
-
-                        const newPath = path.join(
-                            __dirname,
-                            "../deliverymen_uploads",
-                            photoName
+                        fs.renameSync(
+                            photoFile.filepath,
+                            path.join(__dirname, "../deliverymen_uploads", photoName)
                         );
-
-                        fs.rename(photoFile.filepath, newPath, (renameErr) => {
-                            if (renameErr) console.log("Photo save error:", renameErr);
-                        });
                     }
 
-                    // HASH PASSWORD IF PROVIDED
                     let hashedPassword = null;
                     if (password) {
                         hashedPassword = await bcrypt.hash(password, 10);
                     }
 
-                    // Build SQL dynamically
                     const fieldsToUpdate = [];
                     const values = [];
 
@@ -239,7 +229,7 @@ function putDeliverymen(req, res, id) {
                     if (photoName) { fieldsToUpdate.push("photo = ?"); values.push(photoName); }
                     if (work_type) { fieldsToUpdate.push("work_type = ?"); values.push(work_type); }
 
-                    values.push(id); // for WHERE clause
+                    values.push(id);
 
                     const sql = `UPDATE deliverymen SET ${fieldsToUpdate.join(", ")} WHERE id = ?`;
 
