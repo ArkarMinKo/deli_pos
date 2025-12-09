@@ -150,7 +150,7 @@ function updateIngredients(req, res, id) {
             // 3. Update DB
             const updateSql = `
                 UPDATE ingredients SET
-                    name = ?, prices = ?, shop_id = ?, photo = ?
+                    name = ?, prices = ?, photo = ?
                 WHERE id = ?
             `;
 
