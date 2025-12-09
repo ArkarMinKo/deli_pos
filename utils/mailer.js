@@ -25,7 +25,7 @@ async function sendMail(to, name, type, data = {}) {
         <div style="background:#fff; max-width:600px; margin:auto; border-radius:10px; box-shadow:0 3px 10px rgba(0,0,0,0.1); padding:30px;">
           <h2 style="color:#2563eb;text-align:center;">Account Pending</h2>
           <p>Hi <b>${name}</b>,</p>
-          <p>Thank you for registering with <b>Shwe Kone Tal</b>. Your account is currently under review. We’ll notify you once it’s approved.</p>
+          <p>Thank you for registering with <b>DELIVERY SYSTEM</b>. Your account is currently under review. We’ll notify you once it’s approved.</p>
           <p style="color:#6b7280;">Please wait for admin approval.</p>
         </div>
       </body>
@@ -41,7 +41,7 @@ async function sendMail(to, name, type, data = {}) {
         <div style="background:#fff; max-width:600px; margin:auto; border-radius:10px; padding:30px; text-align:center;">
           <h2 style="color:#16a34a;">Congratulations!</h2>
           <p>Hi <b>${name}</b>,</p>
-          <p>Your account has been <b>approved</b>. You can now log in and start using <b>Shwe Kone Tal</b>.</p>
+          <p>Your account has been <b>approved</b>. You can now log in and start using <b>DELIVERY SYSTEM</b>.</p>
           <a href="#" style="display:inline-block;margin-top:20px;padding:10px 20px;background:#16a34a;color:#fff;text-decoration:none;border-radius:8px;">Login Now</a>
         </div>
       </body>
@@ -83,17 +83,17 @@ async function sendMail(to, name, type, data = {}) {
       break;
 
     default:
-      subject = "Notification from Shwe Kone Tal";
+      subject = "Notification from DELIVERY SYSTEM";
       html = `<p>Hello ${name},</p><p>${data.message || "You have a new notification."}</p>`;
   }
 
   try {
     const info = await transporter.sendMail({
-      from: `"Shwe Kone Tal" <jairo223555@gmail.com>`,
+      from: `"DELIVERY SYSTEM" <jairo223555@gmail.com>`,
       to,
       subject,
       html,
-      replyTo: "example@shwekontal.com",
+      replyTo: "example@DELIVERYSYSTEM.com",
     });
     console.log("✅ Mail sent:", info.response);
   } catch (err) {
