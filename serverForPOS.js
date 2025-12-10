@@ -16,6 +16,44 @@ function setCorsHeaders(res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 }
 
+// Upload folders
+const SHOP_UPLOAD_DIR = path.join(__dirname, "../shop_pos_uploads");
+
+// Create upload folders
+fs.mkdirSync(SHOP_UPLOAD_DIR, { recursive: true });
+
+/* ------------------------------------
+      UNIVERSAL STATIC SERVE FUNCTION
+--------------------------------------*/
+function serveStaticFolder(reqPath, res, urlPrefix, folderPath) {
+  if (!reqPath.startsWith(urlPrefix)) return false;
+
+  const fileName = reqPath.replace(urlPrefix, "");
+  const safePath = path.join(folderPath, fileName);
+
+  fs.readFile(safePath, (err, data) => {
+    if (err) {
+      res.writeHead(404);
+      return res.end("File not found");
+    }
+
+    const ext = path.extname(safePath).toLowerCase();
+    const mimeTypes = {
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png",
+      ".gif": "image/gif",
+    };
+
+    res.writeHead(200, {
+      "Content-Type": mimeTypes[ext] || "application/octet-stream",
+    });
+    res.end(data);
+  });
+
+  return true;
+}
+
 const server = http.createServer(async (req, res) => {
     setCorsHeaders(res);
 
@@ -29,6 +67,9 @@ const server = http.createServer(async (req, res) => {
     const parsedUrl = url.parse(req.url, true);
     const pathName = parsedUrl.pathname;
     const method = req.method;
+
+    // CALL IMAGE
+    if (serveStaticFolder(pathName, res, "/shop-pos-uploads/", SHOP_UPLOAD_DIR)) return;
 
     // Accounts CRUD
     if (pathName === "/login-accounts" && method === "POST") accounts.loginAccount(req, res);
