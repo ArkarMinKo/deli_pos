@@ -18,9 +18,11 @@ function setCorsHeaders(res) {
 
 // Upload folders
 const SHOP_UPLOAD_DIR = path.join(__dirname, "shop_pos_uploads");
+const ACCOUNT_UPLOAD_DIR = path.join(__dirname, "account_uploads");
 
 // Create upload folders
 fs.mkdirSync(SHOP_UPLOAD_DIR, { recursive: true });
+fs.mkdirSync(ACCOUNT_UPLOAD_DIR, { recursive: true });
 
 /* ------------------------------------
       UNIVERSAL STATIC SERVE FUNCTION
@@ -70,6 +72,7 @@ const server = http.createServer(async (req, res) => {
 
     // CALL IMAGE
     if (serveStaticFolder(pathName, res, "/shop-pos-uploads/", SHOP_UPLOAD_DIR)) return;
+    if (serveStaticFolder(pathName, res, "/account-uploads/", ACCOUNT_UPLOAD_DIR)) return;
 
     // Accounts CRUD
     if (pathName === "/login-accounts" && method === "POST") accounts.loginAccount(req, res);

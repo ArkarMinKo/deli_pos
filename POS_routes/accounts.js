@@ -7,6 +7,9 @@ const db = require("../dbForPOS")
 const { generateId } = require("../POS_utils/idAccountsGenerator");
 const { generatePhotoName } = require("../POS_utils/photoNameGenerator");
 
+const UPLOAD_DIR = path.join(__dirname, "../account_uploads");
+if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
+
 function loginAccount(req, res) {
     const form = new formidable.IncomingForm();
 
@@ -65,12 +68,7 @@ function loginAccount(req, res) {
 
 function createAccounts(req, res) {
     const form = new formidable.IncomingForm();
-    form.uploadDir = path.join(__dirname, "../account_uploads");
     form.keepExtensions = true;
-
-    if (!fs.existsSync(form.uploadDir)) {
-      fs.mkdirSync(form.uploadDir, { recursive: true });
-    }
 
     form.parse(req, async (err, fields, files) => {
         if (err) {
@@ -82,6 +80,8 @@ function createAccounts(req, res) {
         const email = String(fields.email || "");
         const password = String(fields.password || "");
         const phone = String(fields.phone || "");
+
+        const photoFile = Array.isArray(files.photo) ? files.photo[0] : files.photo;
 
         if (!username || !email || !password || !phone) {
             res.writeHead(400, { "Content-Type": "application/json" });
@@ -112,17 +112,11 @@ function createAccounts(req, res) {
                 // 3️⃣ Hash password
                 const hashedPassword = await bcrypt.hash(password, 10);
 
-                // 4️⃣ Handle photo upload
                 let photoName = null;
-
-                if (files.photos && files.photos.originalFilename) {
-                photoName = generatePhotoName(newId, files.photos.originalFilename);
-                const newPath = path.join(form.uploadDir, photoName);
-
-                fs.rename(files.photos.filepath, newPath, (err) => {
-                    if (err) console.log("Photo rename error:", err);
-                });
-                }
+                    if (photoFile?.originalFilename) {
+                        photoName = generatePhotoName(newId, photoFile.originalFilename);
+                        fs.renameSync(photoFile.filepath, path.join(UPLOAD_DIR, photoName));
+                    }
 
                 // 5️⃣ Insert into DB
                 const sql = `
