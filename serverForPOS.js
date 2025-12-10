@@ -17,7 +17,7 @@ function setCorsHeaders(res) {
 }
 
 // Upload folders
-const SHOP_UPLOAD_DIR = path.join(__dirname, "../shop_pos_uploads");
+const SHOP_UPLOAD_DIR = path.join(__dirname, "shop_pos_uploads");
 
 // Create upload folders
 fs.mkdirSync(SHOP_UPLOAD_DIR, { recursive: true });
@@ -28,10 +28,7 @@ fs.mkdirSync(SHOP_UPLOAD_DIR, { recursive: true });
 function serveStaticFolder(reqPath, res, urlPrefix, folderPath) {
   if (!reqPath.startsWith(urlPrefix)) return false;
 
-  const fileName = decodeURIComponent(
-    reqPath.slice(urlPrefix.length)
-  ); // ✅ NO leading slash
-
+  const fileName = reqPath.replace(urlPrefix, "");
   const safePath = path.join(folderPath, fileName);
 
   fs.readFile(safePath, (err, data) => {
