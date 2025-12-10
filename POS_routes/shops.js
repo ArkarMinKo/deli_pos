@@ -27,7 +27,7 @@ function createShops(req, res) {
         }
 
         let { id, name, phone, address } = fields;
-        let photo = files.photo;
+        const photo = Array.isArray(files.photo) ? files.photo[0] : files.photo;
 
         // -----------------------------
         //   Validate required fields
