@@ -28,7 +28,10 @@ fs.mkdirSync(SHOP_UPLOAD_DIR, { recursive: true });
 function serveStaticFolder(reqPath, res, urlPrefix, folderPath) {
   if (!reqPath.startsWith(urlPrefix)) return false;
 
-  const fileName = reqPath.replace(urlPrefix, "");
+  const fileName = decodeURIComponent(
+    reqPath.slice(urlPrefix.length)
+  ); // ✅ NO leading slash
+
   const safePath = path.join(folderPath, fileName);
 
   fs.readFile(safePath, (err, data) => {
