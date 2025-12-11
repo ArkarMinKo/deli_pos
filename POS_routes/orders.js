@@ -63,4 +63,50 @@ function createOrder(req, res) {
     });
 }
 
-module.exports = { createOrder };
+function getAllOrders(req, res) {
+    const sql = `
+        SELECT *
+        FROM orders
+        ORDER BY date DESC
+    `;
+
+    db.query(sql, (err, results) => {
+        if (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Database error" }));
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(results));
+    });
+}
+
+function getOrderBySellerId(req, res, id) {
+    const sql = `
+        SELECT *
+        FROM orders
+        WHERE seller_id = ?
+        ORDER BY date DESC
+    `;
+
+    db.query(sql, [id], (err, results) => {
+        if (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Database error" }));
+        }
+
+        if (results.length === 0) {
+            res.writeHead(404, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ message: "Order not found" }));
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(results));
+    });
+}
+
+module.exports = { 
+    createOrder,
+    getAllOrders,
+    getOrderBySellerId
+};

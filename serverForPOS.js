@@ -124,6 +124,12 @@ const server = http.createServer(async (req, res) => {
 
     // Orders CRUD
     else if (pathName === "/orders" && method === "POST") orders.createOrder(req, res);
+    else if (pathName === "/orders" && method === "GET") orders.getAllOrders(req, res);
+
+    else if (pathName.startsWith("/orders/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        orders.getOrderBySellerId(req, res, id);
+    }
 
     // --- 404 fallback ---
     else {
