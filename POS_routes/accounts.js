@@ -177,8 +177,117 @@ function getAccountsById(req, res, id) {
     });
 }
 
+function getAllAccounts(req, res) {
+    const sql = `
+        SELECT id, username, email, phone, photos, role, created_at
+        FROM accounts
+    `;
+
+    db.query(sql, (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: "Database error", details: err });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ error: "Account not found" });
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(results));
+    });
+}
+
+function putAccount(req, res, id) {
+    const form = new formidable.IncomingForm();
+    form.keepExtensions = true;
+
+    form.parse(req, async (err, fields, files) => {
+        if (err) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Form parse error" }));
+        }
+
+        const username = fields.username ? String(fields.username) : null;
+        const email = fields.email ? String(fields.email) : null;
+        const phone = fields.phone ? String(fields.phone) : null;
+
+        const photoFile = Array.isArray(files.photo) ? files.photo[0] : files.photo;
+
+        // 1️⃣ Check account exists
+        const findSQL = "SELECT * FROM accounts WHERE id = ?";
+        db.query(findSQL, [id], (err, results) => {
+            if (err) {
+                res.writeHead(500, { "Content-Type": "application/json" });
+                return res.end(JSON.stringify({ error: "Database error", detail: err }));
+            }
+            if (results.length === 0) {
+                res.writeHead(404, { "Content-Type": "application/json" });
+                return res.end(JSON.stringify({ error: "Account not found" }));
+            }
+
+            const oldData = results[0];
+
+            // 2️⃣ Check duplicate email (but ignore current account)
+            if (email) {
+                const checkEmailSQL = "SELECT id FROM accounts WHERE email = ? AND id != ?";
+                db.query(checkEmailSQL, [email, id], (err, resultEmail) => {
+                    if (err) {
+                        res.writeHead(500, { "Content-Type": "application/json" });
+                        return res.end(JSON.stringify({ error: "Email check error", detail: err }));
+                    }
+                    if (resultEmail.length > 0) {
+                        res.writeHead(400, { "Content-Type": "application/json" });
+                        return res.end(JSON.stringify({ error: "ဤ email သည် အသုံးပြုပြီးသား ဖြစ်သည်" }));
+                    }
+
+                    // Proceed to update photo + fields
+                    updateAccountData();
+                });
+            } else {
+                updateAccountData();
+            }
+
+            // 3️⃣ Update function
+            const updateAccountData = () => {
+                let newPhotoName = oldData.photos;
+
+                if (photoFile?.originalFilename) {
+                    newPhotoName = generatePhotoName(id, photoFile.originalFilename);
+                    fs.renameSync(photoFile.filepath, path.join(UPLOAD_DIR, newPhotoName));
+                }
+
+                const updateSQL = `
+                    UPDATE accounts
+                    SET username = ?, email = ?, phone = ?, photos = ?
+                    WHERE id = ?
+                `;
+
+                const values = [
+                    username || oldData.username,
+                    email || oldData.email,
+                    phone || oldData.phone,
+                    newPhotoName,
+                    id
+                ];
+
+                db.query(updateSQL, values, (err, result) => {
+                    if (err) {
+                        res.writeHead(500, { "Content-Type": "application/json" });
+                        return res.end(JSON.stringify({ error: "Database update failed", detail: err }));
+                    }
+
+                    res.writeHead(200, { "Content-Type": "application/json" });
+                    res.end(JSON.stringify({ message: "Account updated successfully" }));
+                });
+            };
+        });
+    });
+}
+
 module.exports = {
     loginAccount,
     createAccounts,
-    getAccountsById
+    getAccountsById,
+    getAllAccounts,
+    putAccount
 };

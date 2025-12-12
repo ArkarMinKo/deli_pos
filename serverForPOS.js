@@ -78,6 +78,11 @@ const server = http.createServer(async (req, res) => {
     // Accounts CRUD
     if (pathName === "/login-accounts" && method === "POST") accounts.loginAccount(req, res);
     else if (pathName === "/accounts" && method === "POST") accounts.createAccounts(req, res);
+    else if (pathName === "/accounts" && method === "GET") accounts.getAllAccounts(req, res);
+    else if (pathName.startsWith("/shops/") && method === "PUT") {
+        const id = pathName.split("/")[2];
+        accounts.putAccount(req, res, id);
+    }
 
     else if (pathName.startsWith("/accounts/") && method === "GET") {
         const id = pathName.split("/")[2];
