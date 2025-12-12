@@ -84,6 +84,11 @@ const server = http.createServer(async (req, res) => {
         accounts.putAccount(req, res, id);
     }
 
+    else if (pathName.startsWith("/accounts/") && method === "DELETE") {
+        const id = pathName.split("/")[2];
+        accounts.deleteAccount(req, res, id);
+    }
+
     else if (pathName.startsWith("/accounts/") && method === "GET") {
         const id = pathName.split("/")[2];
         accounts.getAccountsById(req, res, id);

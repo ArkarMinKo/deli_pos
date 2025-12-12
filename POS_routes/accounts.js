@@ -285,10 +285,55 @@ function putAccount(req, res, id) {
     });
 }
 
+function deleteAccount(req, res, id) {
+    // ❗ 1️⃣ Block deleting A001
+    if (id === "A001") {
+        res.writeHead(403, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "A001 ကို ဖျက်ခွင့်မရှိပါ" }));
+    }
+
+    // 2️⃣ Check if account exists
+    const checkSQL = "SELECT photos FROM accounts WHERE id = ?";
+    db.query(checkSQL, [id], (err, results) => {
+        if (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Database error", detail: err }));
+        }
+
+        if (results.length === 0) {
+            res.writeHead(404, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Account not found" }));
+        }
+
+        const photoName = results[0].photos;
+
+        // 3️⃣ Delete account
+        const deleteSQL = "DELETE FROM accounts WHERE id = ?";
+        db.query(deleteSQL, [id], (err, result) => {
+            if (err) {
+                res.writeHead(500, { "Content-Type": "application/json" });
+                return res.end(JSON.stringify({ error: "Delete failed", detail: err }));
+            }
+
+            // 4️⃣ Delete photo file if exists
+            if (photoName) {
+                const photoPath = path.join(UPLOAD_DIR, photoName);
+                if (fs.existsSync(photoPath)) {
+                    fs.unlinkSync(photoPath); // delete file
+                }
+            }
+
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ message: "Account deleted successfully" }));
+        });
+    });
+}
+
 module.exports = {
     loginAccount,
     createAccounts,
     getAccountsById,
     getAllAccounts,
-    putAccount
+    putAccount,
+    deleteAccount
 };
