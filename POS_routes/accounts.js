@@ -181,7 +181,7 @@ function getAccountsById(req, res, id) {
 function getAllAccounts(req, res) {
     const sql = `
         SELECT id, username, email, phone, photos, role, created_at
-        FROM accounts
+        FROM accounts WHERE id != 'A001' ORDER BY created_at DESC
     `;
 
     db.query(sql, (err, results) => {
