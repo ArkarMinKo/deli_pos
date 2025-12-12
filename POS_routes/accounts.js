@@ -59,7 +59,8 @@ function loginAccount(req, res) {
                     success: true,
                     message: "Login အောင်မြင်ပါသည်",
                     accountId: account.id,
-                    accountRole: account.role
+                    accountRole: account.role,
+                    accountName: account.username
                 })
             );
         });
