@@ -113,7 +113,7 @@ function putShops(req, res, id) {
         }
 
         let { name, phone, address } = fields;
-        let photo = files.photo;
+        const photo = Array.isArray(files.photo) ? files.photo[0] : files.photo;
 
         // --------------------------
         //   Required: ID
