@@ -349,7 +349,7 @@ function updateAccountPassword(req, res) {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Update password
-        const updateSql = "UPDATE account SET password = ? WHERE email = ?";
+        const updateSql = "UPDATE accounts SET password = ? WHERE email = ?";
         db.query(updateSql, [hashedPassword, email], (err) => {
             if (err) {
                 res.statusCode = 500;
