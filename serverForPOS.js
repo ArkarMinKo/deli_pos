@@ -94,6 +94,8 @@ const server = http.createServer(async (req, res) => {
         accounts.getAccountsById(req, res, id);
     }
 
+    else if (pathName === "/change-password" && method === "PATCH") accounts.updateAccountPassword(req, res);
+
     // Products CRUD
     else if (pathName === "/products" && method === "POST") products.createProducts(req, res);
     else if (pathName === "/products" && method === "GET") products.getAllProducts(req, res);

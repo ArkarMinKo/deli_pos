@@ -329,11 +329,45 @@ function deleteAccount(req, res, id) {
     });
 }
 
+function updateAccountPassword(req, res) {
+    const form = new formidable.IncomingForm({ multiples: false });
+
+    form.parse(req, async (err, fields) => {
+        if (err) {
+            res.statusCode = 500;
+            return res.end(JSON.stringify({ error: err.message }));
+        }
+
+        const { email, password } = fields;
+
+        if (!email || !password) {
+            res.statusCode = 400;
+            return res.end(JSON.stringify({ message: "လိုအပ်တဲ့အချက်အလက်များ မပြည့်စုံပါ" }));
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Update password
+        const updateSql = "UPDATE admin SET password = ? WHERE email = ?";
+        db.query(updateSql, [hashedPassword, email], (err) => {
+            if (err) {
+                res.statusCode = 500;
+                return res.end(JSON.stringify({ error: err.message }));
+            }
+
+            res.statusCode = 200;
+            res.end(JSON.stringify({ success: true, message: "Password updated successfully" }));
+        });
+    });
+}
+
 module.exports = {
     loginAccount,
     createAccounts,
     getAccountsById,
     getAllAccounts,
     putAccount,
-    deleteAccount
+    deleteAccount,
+    updateAccountPassword
 };
