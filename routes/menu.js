@@ -430,6 +430,7 @@ function getMenuByShopId(req, res, shopId) {
                 shop_id: menu.shop_id,
                 name: menu.name,
                 prices: menu.prices,
+                category_id: menu.category,
                 category: categoryMap[menu.category] || menu.category,
                 photo: menu.photo,
                 size: menu.size,
