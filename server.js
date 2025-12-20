@@ -12,18 +12,21 @@ const deliverymen = require("./routes/deliverymen");
 const categories = require("./routes/categories");
 const ingredients = require("./routes/ingredients");
 const menu = require("./routes/menu");
+const admin = require("./routes/admin");
 
 // Upload folders
 const INGREDIENTS_UPLOAD_DIR = path.join(__dirname, "ingredients_uploads");
 const MENU_UPLOAD_DIR = path.join(__dirname, "menu_uploads");
 const SHOP_UPLOAD_DIR = path.join(__dirname, "shop_uploads");
 const DELIVERYMEN_UPLOAD_DIR = path.join(__dirname, "deliverymen_uploads");
+const ADMIN_UPLOAD_DIR = path.join(__dirname, "admin_uploads");
 
 // Create upload folders
 fs.mkdirSync(INGREDIENTS_UPLOAD_DIR, { recursive: true });
 fs.mkdirSync(MENU_UPLOAD_DIR, { recursive: true });
 fs.mkdirSync(SHOP_UPLOAD_DIR, { recursive: true });
 fs.mkdirSync(DELIVERYMEN_UPLOAD_DIR, { recursive: true });
+fs.mkdirSync(ADMIN_UPLOAD_DIR, { recursive: true });
 
 /* ------------------------------------
       UNIVERSAL STATIC SERVE FUNCTION
@@ -82,6 +85,7 @@ const server = http.createServer(async (req, res) => {
     if (serveStaticFolder(pathName, res, "/menu-uploads/", MENU_UPLOAD_DIR)) return;
     if (serveStaticFolder(pathName, res, "/shop-uploads/", SHOP_UPLOAD_DIR)) return;
     if (serveStaticFolder(pathName, res, "/deliverymen-uploads/", DELIVERYMEN_UPLOAD_DIR)) return;
+    if (serveStaticFolder(pathName, res, "/admin-uploads/", ADMIN_UPLOAD_DIR)) return;
 
     // Users CRUD
     if (pathName === "/login-user" && method === "POST") users.loginUser(req, res);
@@ -112,6 +116,29 @@ const server = http.createServer(async (req, res) => {
     else if(pathName === "/verify-email-code" && method === "POST"){
         emails.verifyEmailCodeBeforeCreate(req, res);
     }
+
+    // --- ‌Admin CRUD ---
+    else if (pathName === "/login-admin" && method === "POST"){
+        admin.loginAdmin(req, res)
+    }
+    else if (pathName === "/admin" && method === "POST") admin.createAdmin(req, res);
+    else if (pathName === "/admin" && method === "GET") admin.getAdmins(req, res);
+    else if (pathName === "/admin" && method === "PUT") admin.updateAdminInfo(req, res);
+    else if (pathName.startsWith("/admin/") && method === "DELETE") {
+        const id = pathName.split("/")[2];
+        admin.deleteAdmin(req, res, id);
+    }
+
+    else if (pathName.startsWith("/admin/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        admin.getAdminsById(req, res, id);
+    }
+
+    else if (pathName === "/admin/verify-admin-passcode" && method === "POST") admin.verifyAdminPasscode(req, res);
+    else if (pathName === "/admin/verify-owner-passcode" && method === "POST") admin.verifyOwnerPasscode(req, res);
+
+    else if(pathName === "/admin/password" && method === "PATCH") admin.updateAdminPassword(req, res);
+    else if(pathName === "/admin/passcode" && method === "PATCH") admin.updateAdminPasscode(req, res);
 
     // Shops CRUD
     else if (pathName === "/login-shop" && method === "POST") {
