@@ -435,9 +435,9 @@ function updateAdminPasscode(req, res) {
                     return res.end(JSON.stringify({ message: "Account not found" }));
                 }
 
-                if (roleResults[0].role === "seller") {
+                if (roleResults[0].role === "admin") {
                     res.statusCode = 403;
-                    return res.end(JSON.stringify({ message: "Seller ၏ Passcode ကို ပြင်ခွင့်မရှိပါ" }));
+                    return res.end(JSON.stringify({ message: "Admin ၏ Passcode ကို ပြင်ခွင့်မရှိပါ" }));
                 }
 
                 const getPasscodeSql = "SELECT passcode FROM admin WHERE id = 'A001'";
