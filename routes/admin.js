@@ -325,8 +325,7 @@ function updateAdminInfo(req, res) {
                         res.end(
                             JSON.stringify({
                                 success: true,
-                                message: "Admin အချက်အလက် ပြင်ပြီးပါပြီ",
-                                updated: { id, name: nameStr, phone: phoneStr, gender: genderStr, photo: updatedPhoto }
+                                message: "Admin အချက်အလက် ပြင်ပြီးပါပြီ"
                             })
                         );
                     }
