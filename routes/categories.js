@@ -153,7 +153,6 @@ function deleteCategories(req, res, id) {
     });
 }
 
-
 module.exports = { 
     createCategories,
     getCategoriesByShopId,

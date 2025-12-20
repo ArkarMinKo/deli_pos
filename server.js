@@ -232,6 +232,11 @@ const server = http.createServer(async (req, res) => {
         menu.deleteMenu(req, res, id);
     }
 
+    else if (pathName.startsWith("/menu-count/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        menu.countByShopId(req, res, id);
+    }
+
     // --- 404 fallback ---
     else {
         res.writeHead(404, { "Content-Type": "application/json" });

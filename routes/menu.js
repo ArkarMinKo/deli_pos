@@ -467,9 +467,49 @@ function getMenuByShopId(req, res, shopId) {
   });
 }
 
+function countByShopId(req, res, shopId) {
+  const ingredientQuery =
+    "SELECT COUNT(*) AS ingredientCount FROM ingredients WHERE shop_id = ?";
+  const categoryQuery =
+    "SELECT COUNT(*) AS categoryCount FROM categories WHERE shop_id = ?";
+  const menuQuery =
+    "SELECT COUNT(*) AS menusCount FROM menu WHERE shop_id = ?";
+
+  db.query(ingredientQuery, [shopId], (err, ingredientResult) => {
+    if (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: err.message }));
+    }
+
+    db.query(categoryQuery, [shopId], (err, categoryResult) => {
+      if (err) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: err.message }));
+      }
+
+      db.query(menuQuery, [shopId], (err, menuResult) => {
+        if (err) {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: err.message }));
+        }
+
+        const response = {
+          ingredientCount: ingredientResult[0].ingredientCount,
+          categoryCount: categoryResult[0].categoryCount,
+          menusCount: menuResult[0].menusCount
+        };
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(response));
+      });
+    });
+  });
+}
+
 module.exports = { 
     createMenu,
     updateMenu,
     deleteMenu,
-    getMenuByShopId
+    getMenuByShopId,
+    countByShopId
 };
