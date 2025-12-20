@@ -123,9 +123,9 @@ function createAdmin(req, res) {
             const genderStr = (Array.isArray(gender) ? gender[0] : gender)?.trim();
             const roleStr = (Array.isArray(role) ? role[0] : role)?.trim() || "admin";
 
-            // if (roleStr === "owner") {
-            //     return res.end(JSON.stringify({ message: "Owner account ဖန်တီးခွင့်မရှိပါ" }));
-            // }
+            if (roleStr === "owner") {
+                return res.end(JSON.stringify({ message: "Owner account ဖန်တီးခွင့်မရှိပါ" }));
+            }
 
             if (!nameStr || !passwordStr || !emailStr || !genderStr) {
                 return res.end(JSON.stringify({ message: "လိုအပ်တဲ့အချက်အလက်များ မပြည့်စုံပါ" }));
