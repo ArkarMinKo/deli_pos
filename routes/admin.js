@@ -121,7 +121,7 @@ function createAdmin(req, res) {
             const emailStr = (Array.isArray(email) ? email[0] : email)?.trim();
             const phoneStr = (Array.isArray(phone) ? phone[0] : phone)?.trim();
             const genderStr = (Array.isArray(gender) ? gender[0] : gender)?.trim();
-            const roleStr = (Array.isArray(role) ? role[0] : role)?.trim() || "admin";
+            const roleStr = (Array.isArray(role) ? role[0] : role)?.trim().toLowerCase() || "admin";
 
             if (roleStr === "owner") {
                 return res.end(JSON.stringify({ message: "Owner account ဖန်တီးခွင့်မရှိပါ" }));
