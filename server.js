@@ -243,6 +243,7 @@ const server = http.createServer(async (req, res) => {
 
     // menu CRUD
     else if (pathName === "/menu" && method === "POST") menu.createMenu(req, res);
+    else if (pathName === "/menu" && method === "GET") menu.getAllShopsWithMenus(req, res);
 
     else if (pathName.startsWith("/menu/") && method === "GET") {
         const id = pathName.split("/")[2];
