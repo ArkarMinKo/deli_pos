@@ -300,7 +300,7 @@ function deleteMenu(req, res, id) {
 function getMenuByShopId(req, res, shopId) {
   // 1. Get shop information
   const shopSql = `
-    SELECT shop_name, phone, address, location 
+    SELECT shop_name, shopkeeper_name, photo, phone, address, location 
     FROM shops 
     WHERE id = ?
   `;
