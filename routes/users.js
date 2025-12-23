@@ -143,7 +143,7 @@ function getUsers(req, res) {
 
 function getUsersById(req, res, id) {
     const sql = `
-        SELECT *
+        SELECT id AS userid, *
         FROM users
         WHERE id = ?
         LIMIT 1
