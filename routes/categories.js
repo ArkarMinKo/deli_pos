@@ -93,8 +93,9 @@ function getCategoriesByShopId(req, res, id) {
 
     db.query(sql, [id], (err, results) => {
         if (err) {
+            console.error(err); // <-- ဒီလိုထည့်ပါ
             res.writeHead(500, { "Content-Type": "application/json" });
-            return res.end(JSON.stringify({ error: "Database error" }));
+            return res.end(JSON.stringify({ error: err.message }));
         }
 
         if (results.length === 0) {
