@@ -85,7 +85,7 @@ function getCategoriesByShopId(req, res, id) {
             COUNT(m.id) AS menu_count
         FROM categories c
         LEFT JOIN menu m 
-            ON m.category_id = c.id
+            ON m.category = c.id
         WHERE c.shop_id = ?
         GROUP BY c.id
         ORDER BY c.created_at DESC
