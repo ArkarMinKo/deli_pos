@@ -51,14 +51,45 @@ function createCategories(req, res) {
     });
 }
 
+// function getCategoriesByShopId(req, res, id) {
+//     const sql = `
+//         SELECT 
+//         id, name, icon
+//         FROM categories
+//         WHERE shop_id = ?
+//         ORDER BY created_at DESC
+//     `
+
+//     db.query(sql, [id], (err, results) => {
+//         if (err) {
+//             res.writeHead(500, { "Content-Type": "application/json" });
+//             return res.end(JSON.stringify({ error: "Database error" }));
+//         }
+
+//         if (results.length === 0) {
+//             res.writeHead(400, { "Content-Type": "application/json" });
+//             return res.end(JSON.stringify({ error: "Categories များ မရှိသေးပါ" }));
+//         }
+
+//         res.writeHead(200, { "Content-Type": "application/json" });
+//         res.end(JSON.stringify(results));
+//     })
+// }
+
 function getCategoriesByShopId(req, res, id) {
     const sql = `
         SELECT 
-        id, name, icon
-        FROM categories
-        WHERE shop_id = ?
-        ORDER BY created_at DESC
-    `
+            c.id,
+            c.name,
+            c.icon,
+            COUNT(m.id) AS menu_count
+        FROM categories c
+        LEFT JOIN menu m 
+            ON m.category_id = c.id
+        WHERE c.shop_id = ?
+        GROUP BY c.id
+        ORDER BY c.created_at DESC
+    `;
 
     db.query(sql, [id], (err, results) => {
         if (err) {
@@ -73,7 +104,7 @@ function getCategoriesByShopId(req, res, id) {
 
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify(results));
-    })
+    });
 }
 
 function updateCategories(req, res, id) {
