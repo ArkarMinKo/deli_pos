@@ -1,4 +1,3 @@
-const formidable = require("formidable");
 const path = require("path");
 const fs = require("fs");
 const db = require("../db");
@@ -8,15 +7,16 @@ const UPLOAD_DIR = path.join(__dirname, "../orders_uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
 
 function postOrder(req, res) {
-  const form = new formidable.IncomingForm({ multiples: false });
+  let body = "";
 
-  form.parse(req, (err, fields) => {
-    if (err) {
-      res.writeHead(400, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ success: false, message: "Form parse error" }));
-    }
+  req.on("data", chunk => {
+    body += chunk.toString();
+  });
 
+  req.on("end", () => {
     try {
+      const data = JSON.parse(body);
+
       const {
         userId,
         name,
@@ -34,31 +34,37 @@ function postOrder(req, res) {
         payment_method,
         payment_phone,
         payment_name,
-        payment_photo // base64 string
-      } = fields;
+        payment_photo
+      } = data;
 
       if (!userId || !orders || !grand_total || !payment_photo) {
         res.writeHead(400, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ success: false, message: "Missing required fields" }));
+        return res.end(JSON.stringify({
+          success: false,
+          message: "Missing required fields"
+        }));
       }
 
-      const ordersArray = JSON.parse(orders);
+      const ordersArray = orders; // Already array from Flutter
 
-      // Generate Order ID first
+      // ==========================
+      // Generate Order ID
+      // ==========================
       generateOrderId(db, (err, newOrderId) => {
         if (err) {
           res.writeHead(500, { "Content-Type": "application/json" });
-          return res.end(JSON.stringify({ success: false, message: "ID generation error" }));
+          return res.end(JSON.stringify({
+            success: false,
+            message: "ID generation error"
+          }));
         }
 
         // ==========================
         // Base64 → Image Save
         // ==========================
-
         let base64Data = payment_photo;
         let extension = "png";
 
-        // detect image type
         const matches = base64Data.match(/^data:image\/(\w+);base64,/);
         if (matches) {
           extension = matches[1];
@@ -69,7 +75,6 @@ function postOrder(req, res) {
         const filePath = path.join(UPLOAD_DIR, fileName);
 
         const buffer = Buffer.from(base64Data, "base64");
-
         fs.writeFileSync(filePath, buffer);
 
         const relativePath = `orders_uploads/${fileName}`;
@@ -77,7 +82,6 @@ function postOrder(req, res) {
         // ==========================
         // Insert to Database
         // ==========================
-
         const insertSql = `
           INSERT INTO orders (
             id,
@@ -126,24 +130,29 @@ function postOrder(req, res) {
         db.query(insertSql, values, (err) => {
           if (err) {
             res.writeHead(500, { "Content-Type": "application/json" });
-            return res.end(JSON.stringify({ success: false, message: "Database error", error: err }));
+            return res.end(JSON.stringify({
+              success: false,
+              message: "Database error",
+              error: err
+            }));
           }
 
           res.writeHead(201, { "Content-Type": "application/json" });
-          res.end(
-            JSON.stringify({
-              success: true,
-              message: "သင့် Order အောင်မြင်စွာ မှာယူပြီးပါပြီ ကျေးဇူးပြု၍ ဆိုင်ဘက်မှ reply ကို စောင့်ပေးပါ",
-              orderId: newOrderId,
-              photo: relativePath
-            })
-          );
+          res.end(JSON.stringify({
+            success: true,
+            message: "သင့် Order အောင်မြင်စွာ မှာယူပြီးပါပြီ ကျေးဇူးပြု၍ ဆိုင်ဘက်မှ reply ကို စောင့်ပေးပါ",
+            orderId: newOrderId,
+            photo: relativePath
+          }));
         });
       });
 
     } catch (error) {
       res.writeHead(400, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ success: false, message: "Invalid JSON format" }));
+      res.end(JSON.stringify({
+        success: false,
+        message: "Invalid JSON format"
+      }));
     }
   });
 }
