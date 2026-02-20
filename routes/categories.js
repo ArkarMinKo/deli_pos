@@ -1,5 +1,7 @@
 const formidable = require("formidable");
 const db = require("../db");
+const path = require("path");
+const fs = require("fs");
 const { generateCategoryId } = require("../utils/idCategoriesGenerator");
 
 function createCategories(req, res) {
@@ -50,31 +52,6 @@ function createCategories(req, res) {
         });
     });
 }
-
-// function getCategoriesByShopId(req, res, id) {
-//     const sql = `
-//         SELECT 
-//         id, name, icon
-//         FROM categories
-//         WHERE shop_id = ?
-//         ORDER BY created_at DESC
-//     `
-
-//     db.query(sql, [id], (err, results) => {
-//         if (err) {
-//             res.writeHead(500, { "Content-Type": "application/json" });
-//             return res.end(JSON.stringify({ error: "Database error" }));
-//         }
-
-//         if (results.length === 0) {
-//             res.writeHead(400, { "Content-Type": "application/json" });
-//             return res.end(JSON.stringify({ error: "Categories များ မရှိသေးပါ" }));
-//         }
-
-//         res.writeHead(200, { "Content-Type": "application/json" });
-//         res.end(JSON.stringify(results));
-//     })
-// }
 
 function getCategoriesByShopId(req, res, id) {
     const sql = `
