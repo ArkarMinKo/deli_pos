@@ -201,12 +201,20 @@ function getOrdersByShopId(req, res, shopId) {
       let items = [];
 
       try {
-        items = JSON.parse(row.orders);
-      } catch {
+        if (typeof row.orders === "string") {
+          items = JSON.parse(row.orders);
+        } else if (Array.isArray(row.orders)) {
+          items = row.orders;
+        } else {
+          items = [];
+        }
+      } catch (e) {
         items = [];
       }
 
-      const matchedItems = items.filter(item => item.shop_id === shopId);
+      const matchedItems = items.filter(item =>
+        String(item.shop_id).trim() === String(shopId).trim()
+      );
 
       return {
         id: row.id,
