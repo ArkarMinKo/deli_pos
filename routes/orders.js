@@ -157,4 +157,78 @@ function postOrder(req, res) {
   });
 }
 
-module.exports = { postOrder };
+function getOrdersByShopId(req, res, shopId) {
+
+  if (!shopId) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({
+      success: false,
+      message: "shopId is required"
+    }));
+  }
+
+  // JSON_CONTAINS to filter rows that contain shop_id
+  const query = `
+    SELECT 
+      id,
+      userId,
+      name,
+      phone,
+      type,
+      remark,
+      JSON_EXTRACT(orders, '$') AS orders
+    FROM orders
+    WHERE JSON_CONTAINS(
+      orders,
+      JSON_OBJECT('shop_id', ?),
+      '$'
+    )
+  `;
+
+  db.query(query, [shopId], (err, results) => {
+
+    if (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: false,
+        message: "Database error",
+        error: err.sqlMessage || err
+      }));
+    }
+
+    // Now split per shop (still needed because one order may contain multiple shops)
+    const finalResult = results.map(row => {
+
+      let items = [];
+
+      try {
+        items = JSON.parse(row.orders);
+      } catch {
+        items = [];
+      }
+
+      const matchedItems = items.filter(item => item.shop_id === shopId);
+
+      return {
+        id: row.id,
+        userId: row.userId,
+        name: row.name,
+        phone: row.phone,
+        type: row.type,
+        remark: row.remark,
+        orders: matchedItems
+      };
+
+    });
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      success: true,
+      data: finalResult
+    }));
+
+  });
+
+}
+
+module.exports = { postOrder, getOrdersByShopId };

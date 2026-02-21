@@ -272,6 +272,11 @@ const server = http.createServer(async (req, res) => {
     // Orders CRUD
     else if (pathName === "/orders" && method === "POST") order.postOrder(req, res);
 
+    else if (pathName.startsWith("/orders-by-shop/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        order.getOrdersByShopId(req, res, id);
+    }
+
     // --- 404 fallback ---
     else {
         res.writeHead(404, { "Content-Type": "application/json" });
