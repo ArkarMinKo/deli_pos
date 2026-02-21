@@ -167,22 +167,23 @@ function getOrdersByShopId(req, res, shopId) {
     }));
   }
 
-  // JSON_CONTAINS to filter rows that contain shop_id
   const query = `
-    SELECT 
-      id,
-      userId,
-      name,
-      phone,
-      type,
-      remark,
-      JSON_EXTRACT(orders, '$') AS orders
-    FROM orders
-    WHERE JSON_CONTAINS(
-      orders,
-      JSON_OBJECT('shop_id', ?),
-      '$'
-    )
+    SELECT DISTINCT
+      o.id,
+      o.userId,
+      o.name,
+      o.phone,
+      o.type,
+      o.remark,
+      o.orders
+    FROM orders o,
+    JSON_TABLE(
+      o.orders,
+      '$[*]' COLUMNS (
+        shop_id VARCHAR(50) PATH '$.shop_id'
+      )
+    ) jt
+    WHERE jt.shop_id = ?
   `;
 
   db.query(query, [shopId], (err, results) => {
@@ -191,12 +192,10 @@ function getOrdersByShopId(req, res, shopId) {
       res.writeHead(500, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({
         success: false,
-        message: "Database error",
-        error: err.sqlMessage || err
+        message: err.sqlMessage || "Database error"
       }));
     }
 
-    // Now split per shop (still needed because one order may contain multiple shops)
     const finalResult = results.map(row => {
 
       let items = [];
