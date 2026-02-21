@@ -183,7 +183,7 @@ function getOrdersByShopId(req, res, shopId) {
         shop_id VARCHAR(50) PATH '$.shop_id'
       )
     ) jt
-    WHERE jt.shop_id = ?
+    WHERE jt.shop_id = ? ORDER BY o.id DESC
   `;
 
   db.query(query, [shopId], (err, results) => {
