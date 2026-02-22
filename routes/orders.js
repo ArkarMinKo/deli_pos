@@ -248,15 +248,7 @@ async function approvedOrder(req, res) {
   req.on("end", async () => {
     try {
 
-      // 🛡 Safe Parse
-      let parsedBody;
-      try {
-        parsedBody = typeof body === "string" ? JSON.parse(body) : body;
-      } catch (e) {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ message: "Invalid JSON format" }));
-      }
-
+      const parsedBody = JSON.parse(body);
       const { orderId, menu_id } = parsedBody;
 
       if (!orderId || !menu_id) {
@@ -274,7 +266,12 @@ async function approvedOrder(req, res) {
         return res.end(JSON.stringify({ message: "Order not found" }));
       }
 
-      let orderItems = JSON.parse(rows[0].orders);
+      let orderItems = rows[0].orders;
+
+      // 🛡 FIX HERE
+      if (typeof orderItems === "string") {
+        orderItems = JSON.parse(orderItems);
+      }
 
       let found = false;
 
@@ -300,7 +297,7 @@ async function approvedOrder(req, res) {
       res.end(JSON.stringify({ message: "Order item approved successfully" }));
 
     } catch (err) {
-      console.error(err);
+      console.error("ERROR:", err);
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ message: "Server error" }));
     }
