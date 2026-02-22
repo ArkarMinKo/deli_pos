@@ -242,19 +242,28 @@ async function approvedOrder(req, res) {
   let body = "";
 
   req.on("data", chunk => {
-    body += chunk.toString();
+    body += chunk;
   });
 
   req.on("end", async () => {
     try {
-      const { orderId, menu_id } = JSON.parse(body);
+
+      // 🛡 Safe Parse
+      let parsedBody;
+      try {
+        parsedBody = typeof body === "string" ? JSON.parse(body) : body;
+      } catch (e) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ message: "Invalid JSON format" }));
+      }
+
+      const { orderId, menu_id } = parsedBody;
 
       if (!orderId || !menu_id) {
         res.writeHead(400, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({ message: "orderId and menu_id required" }));
       }
 
-      // 1️⃣ Get order first
       const [rows] = await db.promise().query(
         "SELECT orders FROM orders WHERE id = ?",
         [orderId]
@@ -267,12 +276,11 @@ async function approvedOrder(req, res) {
 
       let orderItems = JSON.parse(rows[0].orders);
 
-      // 2️⃣ Change only specific item's status
       let found = false;
 
       orderItems = orderItems.map(item => {
         if (item.menu_id === menu_id) {
-          item.status = 1; // approved
+          item.status = 1;
           found = true;
         }
         return item;
@@ -283,7 +291,6 @@ async function approvedOrder(req, res) {
         return res.end(JSON.stringify({ message: "Menu item not found in order" }));
       }
 
-      // 3️⃣ Update back to DB
       await db.promise().query(
         "UPDATE orders SET orders = ? WHERE id = ?",
         [JSON.stringify(orderItems), orderId]
