@@ -278,6 +278,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     else if (pathName === "/orders-approved" && method === "PATCH") order.approvedOrder(req, res);
+    else if (pathName === "/orders-rejected" && method === "PATCH") order.rejectedOrder(req, res);
 
     // --- 404 fallback ---
     else {

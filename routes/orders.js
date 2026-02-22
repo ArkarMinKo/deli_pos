@@ -304,4 +304,71 @@ async function approvedOrder(req, res) {
   });
 }
 
-module.exports = { postOrder, getOrdersByShopId, approvedOrder };
+
+async function rejectedOrder(req, res) {
+  let body = "";
+
+  req.on("data", chunk => {
+    body += chunk;
+  });
+
+  req.on("end", async () => {
+    try {
+
+      const parsedBody = JSON.parse(body);
+      const { orderId, menu_id } = parsedBody;
+
+      if (!orderId || !menu_id) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ message: "orderId and menu_id required" }));
+      }
+
+      const [rows] = await db.promise().query(
+        "SELECT orders FROM orders WHERE id = ?",
+        [orderId]
+      );
+
+      if (rows.length === 0) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ message: "Order not found" }));
+      }
+
+      let orderItems = rows[0].orders;
+
+      // If MySQL returns string
+      if (typeof orderItems === "string") {
+        orderItems = JSON.parse(orderItems);
+      }
+
+      let found = false;
+
+      orderItems = orderItems.map(item => {
+        if (item.menu_id === menu_id) {
+          item.status = 2; // 🔴 Rejected
+          found = true;
+        }
+        return item;
+      });
+
+      if (!found) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ message: "Menu item not found in order" }));
+      }
+
+      await db.promise().query(
+        "UPDATE orders SET orders = ? WHERE id = ?",
+        [JSON.stringify(orderItems), orderId]
+      );
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Order item rejected successfully" }));
+
+    } catch (err) {
+      console.error("ERROR:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Server error" }));
+    }
+  });
+}
+
+module.exports = { postOrder, getOrdersByShopId, approvedOrder, rejectedOrder };
