@@ -280,6 +280,16 @@ const server = http.createServer(async (req, res) => {
     else if (pathName === "/orders-approved" && method === "PATCH") order.approvedOrder(req, res);
     else if (pathName === "/orders-rejected" && method === "PATCH") order.rejectedOrder(req, res);
 
+    else if(pathName.startsWith("/all-approved-orders/") && method === "PATCH") {
+        const id = pathName.split("/")[2];
+        order.approveAllOrderItems(req, res, id)
+    }
+
+    else if(pathName.startsWith("/all-rejected-orders/") && method === "PATCH") {
+        const id = pathName.split("/")[2];
+        order.rejectAllOrderItems(req, res, id)
+    }
+
     // --- 404 fallback ---
     else {
         res.writeHead(404, { "Content-Type": "application/json" });

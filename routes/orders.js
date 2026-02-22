@@ -371,4 +371,94 @@ async function rejectedOrder(req, res) {
   });
 }
 
-module.exports = { postOrder, getOrdersByShopId, approvedOrder, rejectedOrder };
+async function approveAllOrderItems(req, res, orderId) {
+  try {
+
+    if (!orderId) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ message: "orderId required" }));
+    }
+
+    const [rows] = await db.promise().query(
+      "SELECT orders FROM orders WHERE id = ?",
+      [orderId]
+    );
+
+    if (rows.length === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ message: "Order not found" }));
+    }
+
+    let orderItems = rows[0].orders;
+
+    if (typeof orderItems === "string") {
+      orderItems = JSON.parse(orderItems);
+    }
+
+    // ✅ All → Approved
+    orderItems = orderItems.map(item => ({
+      ...item,
+      status: 1
+    }));
+
+    await db.promise().query(
+      "UPDATE orders SET orders = ? WHERE id = ?",
+      [JSON.stringify(orderItems), orderId]
+    );
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ message: "All order items approved successfully" }));
+
+  } catch (err) {
+    console.error(err);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ message: "Server error" }));
+  }
+}
+
+async function rejectAllOrderItems(req, res, orderId) {
+  try {
+
+    if (!orderId) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ message: "orderId required" }));
+    }
+
+    const [rows] = await db.promise().query(
+      "SELECT orders FROM orders WHERE id = ?",
+      [orderId]
+    );
+
+    if (rows.length === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ message: "Order not found" }));
+    }
+
+    let orderItems = rows[0].orders;
+
+    if (typeof orderItems === "string") {
+      orderItems = JSON.parse(orderItems);
+    }
+
+    // 🔴 All → Rejected
+    orderItems = orderItems.map(item => ({
+      ...item,
+      status: 2
+    }));
+
+    await db.promise().query(
+      "UPDATE orders SET orders = ? WHERE id = ?",
+      [JSON.stringify(orderItems), orderId]
+    );
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ message: "All order items rejected successfully" }));
+
+  } catch (err) {
+    console.error(err);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ message: "Server error" }));
+  }
+}
+
+module.exports = { postOrder, getOrdersByShopId, approvedOrder, rejectedOrder, approveAllOrderItems, rejectAllOrderItems };
