@@ -277,6 +277,8 @@ const server = http.createServer(async (req, res) => {
         order.getOrdersByShopId(req, res, id);
     }
 
+    else if (pathName === "/orders-approved" && method === "POST") order.approvedOrder(req, res);
+
     // --- 404 fallback ---
     else {
         res.writeHead(404, { "Content-Type": "application/json" });
