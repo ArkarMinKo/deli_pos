@@ -238,4 +238,66 @@ function getOrdersByShopId(req, res, shopId) {
 
 }
 
-module.exports = { postOrder, getOrdersByShopId };
+async function approvedOrder(req, res) {
+  let body = "";
+
+  req.on("data", chunk => {
+    body += chunk.toString();
+  });
+
+  req.on("end", async () => {
+    try {
+      const { orderId, menu_id } = JSON.parse(body);
+
+      if (!orderId || !menu_id) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ message: "orderId and menu_id required" }));
+      }
+
+      // 1️⃣ Get order first
+      const [rows] = await db.promise().query(
+        "SELECT orders FROM orders WHERE id = ?",
+        [orderId]
+      );
+
+      if (rows.length === 0) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ message: "Order not found" }));
+      }
+
+      let orderItems = JSON.parse(rows[0].orders);
+
+      // 2️⃣ Change only specific item's status
+      let found = false;
+
+      orderItems = orderItems.map(item => {
+        if (item.menu_id === menu_id) {
+          item.status = 1; // approved
+          found = true;
+        }
+        return item;
+      });
+
+      if (!found) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ message: "Menu item not found in order" }));
+      }
+
+      // 3️⃣ Update back to DB
+      await db.promise().query(
+        "UPDATE orders SET orders = ? WHERE id = ?",
+        [JSON.stringify(orderItems), orderId]
+      );
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Order item approved successfully" }));
+
+    } catch (err) {
+      console.error(err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Server error" }));
+    }
+  });
+}
+
+module.exports = { postOrder, getOrdersByShopId, approvedOrder };
