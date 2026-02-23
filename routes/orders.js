@@ -461,4 +461,43 @@ async function rejectAllOrderItems(req, res, orderId) {
   }
 }
 
-module.exports = { postOrder, getOrdersByShopId, approvedOrder, rejectedOrder, approveAllOrderItems, rejectAllOrderItems };
+function getAllOrders(req, res) {
+
+  const query = `
+    SELECT 
+      o.*
+    FROM orders o
+    JOIN JSON_TABLE(
+      o.orders,
+      '$[*]' COLUMNS (
+        status INT PATH '$.status'
+      )
+    ) jt
+    GROUP BY o.id
+    HAVING COUNT(*) = SUM(CASE WHEN jt.status = 1 THEN 1 ELSE 0 END)
+    ORDER BY o.id DESC
+  `;
+
+  db.query(query, (err, results) => {
+
+    if (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: false,
+        message: "Database error",
+        error: err.message
+      }));
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      success: true,
+      count: results.length,
+      data: results
+    }));
+
+  });
+
+}
+
+module.exports = { postOrder, getOrdersByShopId, approvedOrder, rejectedOrder, approveAllOrderItems, rejectAllOrderItems, getAllOrders };
