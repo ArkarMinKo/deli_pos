@@ -225,6 +225,8 @@ function getOrdersByShopId(req, res, shopId) {
         phone: row.phone,
         type: row.type,
         remark: row.remark,
+        created_at: row.created_at,
+        orders_done: row.orders_done,
         orders: matchedItems
       };
 
