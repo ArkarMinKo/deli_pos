@@ -175,8 +175,9 @@ function getOrdersByShopId(req, res, shopId) {
       o.phone,
       o.type,
       o.remark,
+      o.orders,
       o.created_at,
-      o.orders
+      o.orders_done
     FROM orders o,
     JSON_TABLE(
       o.orders,
