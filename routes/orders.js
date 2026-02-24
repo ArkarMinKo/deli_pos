@@ -77,7 +77,7 @@ function postOrder(req, res) {
         const buffer = Buffer.from(base64Data, "base64");
         fs.writeFileSync(filePath, buffer);
 
-        const relativePath = `orders_uploads/${fileName}`;
+        const relativePath = `orders-uploads/${fileName}`;
 
         // ==========================
         // Insert to Database
