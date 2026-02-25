@@ -206,6 +206,11 @@ const server = http.createServer(async (req, res) => {
         deliverymen.onlineDeliverymen(req, res, id);
     }
 
+    else if (pathName.startsWith("/offline-deliverymen/") && method === "PATCH") {
+        const id = pathName.split("/")[2];
+        deliverymen.offlineDeliverymen(req, res, id);
+    }
+
     else if (pathName.startsWith("/deliverymen/") && method === "DELETE") {
         const id = pathName.split("/")[2];
         deliverymen.deleteDeliverymen(req, res, id);

@@ -5,6 +5,7 @@ const path = require("path");
 const fs = require("fs");
 const db = require("../db");
 const bcrypt = require("bcrypt");
+const { off } = require("process");
 
 const UPLOAD_DIR = path.join(__dirname, "../deliverymen_uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
@@ -450,6 +451,40 @@ function onlineDeliverymen(req, res, id) {
   });
 }
 
+function offlineDeliverymen(req, res, id) {
+
+  if (!id) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Deliveryman ID is required" }));
+  }
+
+  const query = `
+    UPDATE deliverymen
+    SET is_online = 0
+    WHERE id = ?
+  `;
+
+  db.query(query, [id], (err, result) => {
+    if (err) {
+      console.error("Database error:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Database error" }));
+    }
+
+    if (result.affectedRows === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Deliveryman not found" }));
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      success: true,
+      message: "Deliveryman is now offline",
+      deliveryman_id: id
+    }));
+  });
+}
+
 module.exports = { 
     loginDeliverymen,
     createDeliverymen,
@@ -459,5 +494,6 @@ module.exports = {
     putDeliverymen,
     getDeliverymenById,
     getOnlineDeliverymen,
-    onlineDeliverymen
+    onlineDeliverymen,
+    offlineDeliverymen
 };
