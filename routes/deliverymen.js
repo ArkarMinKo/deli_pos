@@ -372,6 +372,50 @@ function deleteDeliverymen(req, res, id) {
     });
 }
 
+function getOnlineDeliverymen(req, res) {
+  if (req.method !== "GET") {
+    res.writeHead(405, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Method Not Allowed" }));
+  }
+
+  const query = `
+    SELECT 
+      id,
+      name,
+      email,
+      phone,
+      photo,
+      work_type,
+      location,
+      status,
+      rating,
+      total_order,
+      assign_order,
+      is_online,
+      created_at
+    FROM deliverymen
+    WHERE is_online = 1
+    ORDER BY created_at DESC
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error("Database error:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Database error" }));
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        success: true,
+        count: results.length,
+        data: results,
+      })
+    );
+  });
+}
+
 module.exports = { 
     loginDeliverymen,
     createDeliverymen,
@@ -379,5 +423,6 @@ module.exports = {
     changeStatus,
     deleteDeliverymen,
     putDeliverymen,
-    getDeliverymenById
+    getDeliverymenById,
+    getOnlineDeliverymen
 };
