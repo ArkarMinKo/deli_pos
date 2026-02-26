@@ -507,7 +507,6 @@ function getAllOrders(req, res) {
 
 async function connectedDeliverymen(req, res) {
   try {
-    // 1️⃣ Get deliverymen with current_orders not null
     const [deliverymen] = await db.promise().query(
       "SELECT * FROM deliverymen WHERE current_orders IS NOT NULL"
     );
@@ -515,17 +514,23 @@ async function connectedDeliverymen(req, res) {
     const result = [];
 
     for (let dm of deliverymen) {
+
       let orderIds = [];
 
+      // 🔹 Important Fix Here
       if (dm.current_orders) {
-        orderIds = JSON.parse(dm.current_orders);
+        if (Array.isArray(dm.current_orders)) {
+          orderIds = dm.current_orders; // already parsed
+        } else if (typeof dm.current_orders === "string") {
+          orderIds = JSON.parse(dm.current_orders);
+        }
       }
 
       let ordersData = [];
 
       if (orderIds.length > 0) {
         const placeholders = orderIds.map(() => "?").join(",");
-        
+
         const [orders] = await db.promise().query(
           `SELECT * FROM orders WHERE id IN (${placeholders})`,
           orderIds
