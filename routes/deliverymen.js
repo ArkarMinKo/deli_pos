@@ -559,6 +559,67 @@ function addOrdersToDeliverymen(req, res, id) {
   });
 }
 
+async function connectedOrders(req, res, id) {
+  try {
+    // 1️⃣ Get deliveryman by id
+    const [rows] = await db.promise().query(
+      "SELECT * FROM deliverymen WHERE id = ?",
+      [id]
+    );
+
+    if (rows.length === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Deliveryman not found" }));
+    }
+
+    const dm = rows[0];
+
+    let orderIds = [];
+
+    // 2️⃣ Safe JSON handling
+    if (dm.current_orders) {
+      if (Array.isArray(dm.current_orders)) {
+        orderIds = dm.current_orders;
+      } else if (typeof dm.current_orders === "string") {
+        orderIds = JSON.parse(dm.current_orders);
+      }
+    }
+
+    let ordersData = [];
+
+    // 3️⃣ Fetch related orders
+    if (orderIds.length > 0) {
+      const placeholders = orderIds.map(() => "?").join(",");
+
+      const [orders] = await db.promise().query(
+        `SELECT * FROM orders WHERE id IN (${placeholders})`,
+        orderIds
+      );
+
+      ordersData = orders;
+    }
+
+    // 4️⃣ Response
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      success: true,
+      data: {
+        id: dm.id,
+        name: dm.name,
+        phone: dm.phone,
+        is_online: dm.is_online,
+        assign_order: dm.assign_order,
+        current_orders: orderIds,
+        orders: ordersData
+      }
+    }));
+
+  } catch (error) {
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: error.message }));
+  }
+}
+
 module.exports = { 
     loginDeliverymen,
     createDeliverymen,
@@ -570,5 +631,6 @@ module.exports = {
     getOnlineDeliverymen,
     onlineDeliverymen,
     offlineDeliverymen,
-    addOrdersToDeliverymen
+    addOrdersToDeliverymen,
+    connectedOrders
 };

@@ -226,6 +226,11 @@ const server = http.createServer(async (req, res) => {
         deliverymen.addOrdersToDeliverymen(req, res, id);
     }
 
+    else if (pathName.startsWith("/connected-orders/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        deliverymen.connectedOrders(req, res, id);
+    }
+
     // categories CRUD
     else if (pathName === "/categories" && method === "POST") categories.createCategories(req, res);
 
