@@ -395,7 +395,7 @@ function getOnlineDeliverymen(req, res) {
       is_online,
       created_at
     FROM deliverymen
-    WHERE is_online = 1 AND current_orders IS NULL
+    WHERE is_online = 1
     ORDER BY created_at DESC
   `;
 
