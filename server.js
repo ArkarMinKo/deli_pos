@@ -308,6 +308,8 @@ const server = http.createServer(async (req, res) => {
         order.rejectAllOrderItems(req, res, id)
     }
 
+    else if (pathName === "/connected-orders" && method === "GET") order.connectedDeliverymen(req, res);
+
     // --- 404 fallback ---
     else {
         res.writeHead(404, { "Content-Type": "application/json" });

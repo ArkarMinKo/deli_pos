@@ -505,4 +505,63 @@ function getAllOrders(req, res) {
 
 }
 
-module.exports = { postOrder, getOrdersByShopId, approvedOrder, rejectedOrder, approveAllOrderItems, rejectAllOrderItems, getAllOrders };
+async function connectedDeliverymen(req, res) {
+  try {
+    // 1️⃣ Get deliverymen with current_orders not null
+    const [deliverymen] = await db.promise().query(
+      "SELECT * FROM deliverymen WHERE current_orders IS NOT NULL"
+    );
+
+    const result = [];
+
+    for (let dm of deliverymen) {
+      let orderIds = [];
+
+      if (dm.current_orders) {
+        orderIds = JSON.parse(dm.current_orders);
+      }
+
+      let ordersData = [];
+
+      if (orderIds.length > 0) {
+        const placeholders = orderIds.map(() => "?").join(",");
+        
+        const [orders] = await db.promise().query(
+          `SELECT * FROM orders WHERE id IN (${placeholders})`,
+          orderIds
+        );
+
+        ordersData = orders;
+      }
+
+      result.push({
+        id: dm.id,
+        name: dm.name,
+        email: dm.email,
+        phone: dm.phone,
+        work_type: dm.work_type,
+        location: dm.location,
+        status: dm.status,
+        rating: dm.rating,
+        total_order: dm.total_order,
+        is_online: dm.is_online,
+        assign_order: dm.assign_order,
+        current_orders: orderIds,
+        orders: ordersData
+      });
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      success: true,
+      count: result.length,
+      data: result
+    }));
+
+  } catch (error) {
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: error.message }));
+  }
+}
+
+module.exports = { postOrder, getOrdersByShopId, approvedOrder, rejectedOrder, approveAllOrderItems, rejectAllOrderItems, getAllOrders, connectedDeliverymen };
