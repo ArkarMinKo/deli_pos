@@ -486,6 +486,79 @@ function offlineDeliverymen(req, res, id) {
   });
 }
 
+function addOrdersToDeliverymen(req, res, id) {
+  let body = "";
+
+  req.on("data", chunk => {
+    body += chunk;
+  });
+
+  req.on("end", async () => {
+    const connection = await db.promise().getConnection();
+
+    try {
+      const parsedBody = JSON.parse(body);
+      const { orderId } = parsedBody;
+
+      if (!orderId) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "orderId is required" }));
+      }
+
+      await connection.beginTransaction();
+
+      // 1️⃣ Get current_orders
+      const [rows] = await connection.query(
+        "SELECT current_orders FROM deliverymen WHERE id = ? FOR UPDATE",
+        [id]
+      );
+
+      if (rows.length === 0) {
+        await connection.rollback();
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Deliveryman not found" }));
+      }
+
+      let currentOrders = [];
+
+      if (rows[0].current_orders) {
+        currentOrders = JSON.parse(rows[0].current_orders);
+      }
+
+      // 2️⃣ Add new order
+      currentOrders.push(orderId);
+
+      // 3️⃣ Update deliverymen table
+      await connection.query(
+        "UPDATE deliverymen SET current_orders = ? WHERE id = ?",
+        [JSON.stringify(currentOrders), id]
+      );
+
+      // 4️⃣ Update orders table (connected_deliveryman = 1)
+      await connection.query(
+        "UPDATE orders SET connected_deliveryman = 1 WHERE id = ?",
+        [orderId]
+      );
+
+      await connection.commit();
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        success: true,
+        message: "Order assigned & connected successfully",
+        current_orders: currentOrders
+      }));
+
+    } catch (error) {
+      await connection.rollback();
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: error.message }));
+    } finally {
+      connection.release();
+    }
+  });
+}
+
 module.exports = { 
     loginDeliverymen,
     createDeliverymen,
@@ -496,5 +569,6 @@ module.exports = {
     getDeliverymenById,
     getOnlineDeliverymen,
     onlineDeliverymen,
-    offlineDeliverymen
+    offlineDeliverymen,
+    addOrdersToDeliverymen
 };

@@ -477,7 +477,7 @@ function getAllOrders(req, res) {
         status INT PATH '$.status'
       )
     ) jt
-    WHERE o.orders_done = 0
+    WHERE o.orders_done = 0 AND o.connected_deliveryman = 0
     GROUP BY o.id
     HAVING COUNT(*) = SUM(CASE WHEN jt.status = 1 THEN 1 ELSE 0 END)
     ORDER BY o.id DESC
