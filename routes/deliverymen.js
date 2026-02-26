@@ -497,8 +497,7 @@ function addOrdersToDeliverymen(req, res, id) {
     const connection = await db.promise().getConnection();
 
     try {
-      const parsedBody = JSON.parse(body);
-      const { orderId } = parsedBody;
+      const { orderId } = JSON.parse(body);
 
       if (!orderId) {
         res.writeHead(400, { "Content-Type": "application/json" });
@@ -507,7 +506,6 @@ function addOrdersToDeliverymen(req, res, id) {
 
       await connection.beginTransaction();
 
-      // 1️⃣ Get current_orders
       const [rows] = await connection.query(
         "SELECT current_orders FROM deliverymen WHERE id = ? FOR UPDATE",
         [id]
@@ -520,21 +518,31 @@ function addOrdersToDeliverymen(req, res, id) {
       }
 
       let currentOrders = [];
+      const dbValue = rows[0].current_orders;
 
-      if (rows[0].current_orders) {
-        currentOrders = JSON.parse(rows[0].current_orders);
+      if (dbValue) {
+        if (Array.isArray(dbValue)) {
+          currentOrders = dbValue;
+        } else if (typeof dbValue === "string") {
+          try {
+            const parsed = JSON.parse(dbValue);
+            currentOrders = Array.isArray(parsed) ? parsed : [parsed];
+          } catch {
+            currentOrders = [dbValue];
+          }
+        }
       }
 
-      // 2️⃣ Add new order
-      currentOrders.push(orderId);
+      // 🚫 prevent duplicate
+      if (!currentOrders.includes(orderId)) {
+        currentOrders.push(orderId);
+      }
 
-      // 3️⃣ Update deliverymen table
       await connection.query(
-        "UPDATE deliverymen SET current_orders = ? WHERE id = ?",
+        "UPDATE deliverymen SET current_orders = ?, assign_order = assign_order + 1 WHERE id = ?",
         [JSON.stringify(currentOrders), id]
       );
 
-      // 4️⃣ Update orders table (connected_deliveryman = 1)
       await connection.query(
         "UPDATE orders SET connected_deliveryman = 1 WHERE id = ?",
         [orderId]
@@ -545,7 +553,6 @@ function addOrdersToDeliverymen(req, res, id) {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({
         success: true,
-        message: "Order assigned & connected successfully",
         current_orders: currentOrders
       }));
 
