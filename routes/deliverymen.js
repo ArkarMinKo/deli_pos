@@ -393,6 +393,7 @@ function getOnlineDeliverymen(req, res) {
       total_order,
       assign_order,
       is_online,
+      current_orders,
       created_at
     FROM deliverymen
     WHERE is_online = 1
