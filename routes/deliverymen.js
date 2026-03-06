@@ -627,6 +627,142 @@ async function connectedOrders(req, res, id) {
   }
 }
 
+async function connectedOrdersBySpecialUsers(req, res, id) {
+  try {
+
+    // 1️⃣ Get deliveryman
+    const [rows] = await db.promise().query(
+      "SELECT * FROM deliverymen WHERE id = ?",
+      [id]
+    );
+
+    if (rows.length === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Deliveryman not found" }));
+    }
+
+    const dm = rows[0];
+    let orderIds = [];
+
+    // 2️⃣ Safe JSON parse
+    if (dm.current_orders) {
+      if (Array.isArray(dm.current_orders)) {
+        orderIds = dm.current_orders;
+      } else if (typeof dm.current_orders === "string") {
+        orderIds = JSON.parse(dm.current_orders);
+      }
+    }
+
+    let ordersData = [];
+
+    // 3️⃣ Get orders (special users only)
+    if (orderIds.length > 0) {
+
+      const placeholders = orderIds.map(() => "?").join(",");
+
+      const [orders] = await db.promise().query(
+        `
+        SELECT o.*
+        FROM orders o
+        JOIN users u ON o.userId = u.id
+        WHERE o.id IN (${placeholders})
+        AND u.special = 1
+        `,
+        orderIds
+      );
+
+      ordersData = orders;
+    }
+
+    // 4️⃣ Response
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      success: true,
+      data: {
+        id: dm.id,
+        name: dm.name,
+        phone: dm.phone,
+        is_online: dm.is_online,
+        assign_order: dm.assign_order,
+        current_orders: orderIds,
+        orders: ordersData
+      }
+    }));
+
+  } catch (error) {
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: error.message }));
+  }
+}
+
+async function connectedOrdersByNonSpecialUsers(req, res, id) {
+  try {
+
+    // 1️⃣ Get deliveryman
+    const [rows] = await db.promise().query(
+      "SELECT * FROM deliverymen WHERE id = ?",
+      [id]
+    );
+
+    if (rows.length === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Deliveryman not found" }));
+    }
+
+    const dm = rows[0];
+    let orderIds = [];
+
+    // 2️⃣ Safe JSON parse
+    if (dm.current_orders) {
+      if (Array.isArray(dm.current_orders)) {
+        orderIds = dm.current_orders;
+      } else if (typeof dm.current_orders === "string") {
+        orderIds = JSON.parse(dm.current_orders);
+      }
+    }
+
+    let ordersData = [];
+
+    // 3️⃣ Get orders (special users only)
+    if (orderIds.length > 0) {
+
+      const placeholders = orderIds.map(() => "?").join(",");
+
+      const [orders] = await db.promise().query(
+        `
+        SELECT o.*
+        FROM orders o
+        JOIN users u ON o.userId = u.id
+        WHERE o.id IN (${placeholders})
+        AND u.special = 0
+        `,
+        orderIds
+      );
+
+      ordersData = orders;
+    }
+
+    // 4️⃣ Response
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      success: true,
+      data: {
+        id: dm.id,
+        name: dm.name,
+        phone: dm.phone,
+        is_online: dm.is_online,
+        assign_order: dm.assign_order,
+        current_orders: orderIds,
+        orders: ordersData
+      }
+    }));
+
+  } catch (error) {
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: error.message }));
+  }
+}
+
 module.exports = { 
     loginDeliverymen,
     createDeliverymen,
@@ -639,5 +775,7 @@ module.exports = {
     onlineDeliverymen,
     offlineDeliverymen,
     addOrdersToDeliverymen,
-    connectedOrders
+    connectedOrders,
+    connectedOrdersBySpecialUsers,
+    connectedOrdersByNonSpecialUsers
 };
