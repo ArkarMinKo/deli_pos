@@ -95,6 +95,7 @@ const server = http.createServer(async (req, res) => {
     if (pathName === "/login-user" && method === "POST") users.loginUser(req, res);
     else if (pathName === "/users" && method === "POST") users.createUsers(req, res);
     else if (pathName === "/users" && method === "GET") users.getUsers(req, res);
+    else if (pathName === "/special-users" && method === "GET") users.getUsers(req, res);
 
     else if (pathName.startsWith("/get-users-by-id/") && method === "GET") {
         const id = pathName.split("/")[2];
@@ -110,7 +111,11 @@ const server = http.createServer(async (req, res) => {
         const id = pathName.split("/")[3];
         users.changeStatus(req, res, id);
     }
-
+    
+    else if (pathName.startsWith("/special-users/") && method === "PATCH") {
+        const id = pathName.split("/")[2];
+        users.toMakeSpecial(req, res, id);
+    }
     // -- email confrimation ---
 
     else if(pathName === "/request-email-confirmation" && method === "POST"){

@@ -127,7 +127,7 @@ function createUsers(req, res) {
 }
 
 function getUsers(req, res) {
-  const sql = "SELECT id, name, email, phone, photo, location, status, created_at FROM users ORDER BY created_at DESC";
+  const sql = "SELECT id, name, email, phone, photo, location, status, special, created_at FROM users ORDER BY created_at DESC";
 
   db.query(sql, (err, results) => {
     if (err) {
@@ -241,11 +241,51 @@ function deleteUser(req, res, id) {
     });
 }
 
+function toMakeSpecial(req, res, id) {
+    const sql = "UPDATE users SET special = 1 WHERE id = ?";
+
+    db.query(sql, [id], function(err, result) {
+        if (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({
+                success: false,
+                message: "Database error",
+                error: err
+            }));
+            return;
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({
+            success: true,
+            message: "User marked as special",
+            affectedRows: result.affectedRows
+        }));
+    });
+}
+
+function getSpecialUsers(req, res) {
+  const sql = "SELECT id, name, email, phone, photo, location, status, special, created_at FROM users WHERE special = 1 ORDER BY created_at DESC";
+
+  db.query(sql, (err, results) => {
+    if (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Database error", details: err }));
+      return;
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(results));
+  });
+}
+
 module.exports = {
     loginUser,
     createUsers,
     getUsers,
     changeStatus,
     deleteUser,
-    getUsersById
+    getUsersById,
+    toMakeSpecial,
+    getSpecialUsers
 };
