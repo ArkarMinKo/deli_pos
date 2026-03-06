@@ -228,6 +228,7 @@ function getOrdersByShopId(req, res, shopId) {
         name: row.name,
         phone: row.phone,
         type: row.type,
+        timer: row.timer,
         remark: row.remark,
         created_at: row.created_at,
         orders_done: row.orders_done,
