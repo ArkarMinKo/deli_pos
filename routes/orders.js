@@ -308,7 +308,6 @@ async function approvedOrder(req, res) {
   });
 }
 
-
 async function rejectedOrder(req, res) {
   let body = "";
 
@@ -465,19 +464,67 @@ async function rejectAllOrderItems(req, res, orderId) {
   }
 }
 
-function getAllOrders(req, res) {
+function getAllSpecialOrders(req, res) {
 
   const query = `
     SELECT 
       o.*
     FROM orders o
+    JOIN users u ON o.userId = u.id
     JOIN JSON_TABLE(
       o.orders,
       '$[*]' COLUMNS (
         status INT PATH '$.status'
       )
     ) jt
-    WHERE o.orders_done = 0 AND o.connected_deliveryman = 0
+    WHERE 
+      o.orders_done = 0
+      AND o.connected_deliveryman = 0
+      AND u.special = 1
+    GROUP BY o.id
+    HAVING COUNT(*) = SUM(CASE WHEN jt.status = 1 THEN 1 ELSE 0 END)
+    ORDER BY o.id DESC
+  `;
+
+  db.query(query, (err, results) => {
+
+    if (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: false,
+        message: "Database error",
+        error: err.message
+      }));
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      success: true,
+      count: results.length,
+      data: results
+    }));
+
+  });
+
+}
+
+function getAllOrders(req, res) {
+
+  const query = `
+    SELECT 
+      o.*
+    FROM orders o
+    JOIN users u ON o.userId = u.id
+    JOIN JSON_TABLE(
+      o.orders,
+      '$[*]' COLUMNS (
+        status INT PATH '$.status'
+      )
+    ) jt
+    WHERE 
+      o.orders_done = 0
+      AND o.connected_deliveryman = 0
+      AND u.special = 0
     GROUP BY o.id
     HAVING COUNT(*) = SUM(CASE WHEN jt.status = 1 THEN 1 ELSE 0 END)
     ORDER BY o.id DESC
@@ -569,4 +616,4 @@ async function connectedDeliverymen(req, res) {
   }
 }
 
-module.exports = { postOrder, getOrdersByShopId, approvedOrder, rejectedOrder, approveAllOrderItems, rejectAllOrderItems, getAllOrders, connectedDeliverymen };
+module.exports = { postOrder, getOrdersByShopId, approvedOrder, rejectedOrder, approveAllOrderItems, rejectAllOrderItems, getAllSpecialOrders, getAllOrders, connectedDeliverymen };
