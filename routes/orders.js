@@ -24,6 +24,7 @@ function postOrder(req, res) {
         location,
         phone,
         type,
+        timer,
         remark,
         orders,
         total_order,
@@ -91,6 +92,7 @@ function postOrder(req, res) {
             location,
             phone,
             type,
+            timer,
             remark,
             orders,
             total_order,
@@ -103,7 +105,7 @@ function postOrder(req, res) {
             payment_name,
             payment_photo
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
         const values = [
@@ -114,6 +116,7 @@ function postOrder(req, res) {
           location,
           phone,
           type || "Normal",
+          timer || null,
           remark || null,
           JSON.stringify(ordersArray),
           total_order || 0,
