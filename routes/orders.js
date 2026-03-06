@@ -177,6 +177,7 @@ function getOrdersByShopId(req, res, shopId) {
       o.name,
       o.phone,
       o.type,
+      o.timer,
       o.remark,
       o.orders,
       o.created_at,
