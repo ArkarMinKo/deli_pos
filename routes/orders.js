@@ -749,9 +749,7 @@ async function getReport(req, res) {
 
     // password မပါအောင် select
     const [deliverymen] = await db.promise().query(`
-      SELECT id,name,email,phone,photo,work_type,location,status,
-      rating,total_order,assign_order,current_orders,fininshed_orders,
-      is_online,created_at
+      SELECT id,name,email,phone
       FROM deliverymen
     `);
 
