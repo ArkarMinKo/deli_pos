@@ -621,4 +621,123 @@ async function connectedDeliverymen(req, res) {
   }
 }
 
-module.exports = { postOrder, getOrdersByShopId, approvedOrder, rejectedOrder, approveAllOrderItems, rejectAllOrderItems, getAllSpecialOrders, getAllOrders, connectedDeliverymen };
+async function finishOrder(req, res, orderId) {
+  try {
+
+    let body = "";
+
+    req.on("data", chunk => {
+      body += chunk.toString();
+    });
+
+    req.on("end", async () => {
+
+      const data = JSON.parse(body);
+      const { esign, deliverymanId } = data;
+
+      if (!esign || !deliverymanId) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({
+          error: "esign and deliverymanId required"
+        }));
+      }
+
+      // ---------- 1️⃣ base64 image save ----------
+
+      const base64Data = esign.replace(/^data:image\/\w+;base64,/, "");
+
+      const fileName = `esign_${Date.now()}.png`;
+      const uploadDir = path.join(UPLOAD_DIR, fileName);
+
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir);
+      }
+
+      const filePath = path.join(uploadDir, fileName);
+
+      fs.writeFileSync(filePath, base64Data, "base64");
+
+      const imagePath = `orders-uploads/${fileName}`;
+
+      // ---------- 2️⃣ update order ----------
+
+      await db.promise().query(
+        `UPDATE orders 
+         SET orders_done = 1, esign = ?
+         WHERE id = ?`,
+        [imagePath, orderId]
+      );
+
+      // ---------- 3️⃣ get deliveryman ----------
+
+      const [rows] = await db.promise().query(
+        "SELECT current_orders, fininshed_orders, assign_order FROM deliverymen WHERE id = ?",
+        [deliverymanId]
+      );
+
+      if (rows.length === 0) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({
+          error: "Deliveryman not found"
+        }));
+      }
+
+      const deliveryman = rows[0];
+
+      let currentOrders = [];
+      let finishedOrders = [];
+
+      if (deliveryman.current_orders) {
+        currentOrders = JSON.parse(deliveryman.current_orders);
+      }
+
+      if (deliveryman.fininshed_orders) {
+        finishedOrders = JSON.parse(deliveryman.fininshed_orders);
+      }
+
+      // ---------- 4️⃣ remove from current_orders ----------
+
+      currentOrders = currentOrders.filter(id => id !== orderId);
+
+      // ---------- 5️⃣ add to finished_orders ----------
+
+      finishedOrders.push(orderId);
+
+      // ---------- 6️⃣ update deliveryman ----------
+
+      await db.promise().query(
+        `UPDATE deliverymen 
+         SET current_orders = ?, 
+             fininshed_orders = ?, 
+             total_order = total_order + 1
+         WHERE id = ?`,
+        [
+          JSON.stringify(currentOrders),
+          JSON.stringify(finishedOrders),
+          deliverymanId
+        ]
+      );
+
+      // ---------- response ----------
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        success: true,
+        message: "Order finished successfully"
+      }));
+
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      error: "Server error"
+    }));
+
+  }
+}
+
+module.exports = { postOrder, getOrdersByShopId, approvedOrder, rejectedOrder, approveAllOrderItems, rejectAllOrderItems, getAllSpecialOrders, getAllOrders, connectedDeliverymen, finishOrder };

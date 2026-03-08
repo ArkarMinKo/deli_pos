@@ -329,6 +329,11 @@ const server = http.createServer(async (req, res) => {
         order.rejectAllOrderItems(req, res, id)
     }
 
+    else if(pathName.startsWith("/finish-order/") && method === "POST") {
+        const id = pathName.split("/")[2];
+        order.finishOrder(req, res, id)
+    }
+
     else if (pathName === "/connected-orders" && method === "GET") order.connectedDeliverymen(req, res);
 
     // --- 404 fallback ---
