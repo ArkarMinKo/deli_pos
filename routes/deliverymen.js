@@ -506,6 +506,24 @@ function addOrdersToDeliverymen(req, res, id) {
 
       await connection.beginTransaction();
 
+      // 🔒 try to claim order
+      const [orderUpdate] = await connection.query(
+        `UPDATE orders 
+         SET connected_deliveryman = 1 
+         WHERE id = ? AND connected_deliveryman = 0`,
+        [orderId]
+      );
+
+      // ❌ already taken
+      if (orderUpdate.affectedRows === 0) {
+        await connection.rollback();
+        res.writeHead(409, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({
+          error: "Order already taken by another deliveryman"
+        }));
+      }
+
+      // 🔒 lock deliveryman row
       const [rows] = await connection.query(
         "SELECT current_orders FROM deliverymen WHERE id = ? FOR UPDATE",
         [id]
@@ -539,13 +557,11 @@ function addOrdersToDeliverymen(req, res, id) {
       }
 
       await connection.query(
-        "UPDATE deliverymen SET current_orders = ?, assign_order = assign_order + 1 WHERE id = ?",
+        `UPDATE deliverymen 
+         SET current_orders = ?, 
+             assign_order = assign_order + 1
+         WHERE id = ?`,
         [JSON.stringify(currentOrders), id]
-      );
-
-      await connection.query(
-        "UPDATE orders SET connected_deliveryman = 1 WHERE id = ?",
-        [orderId]
       );
 
       await connection.commit();
@@ -557,9 +573,12 @@ function addOrdersToDeliverymen(req, res, id) {
       }));
 
     } catch (error) {
+
       await connection.rollback();
+
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: error.message }));
+
     } finally {
       connection.release();
     }
