@@ -341,6 +341,9 @@ const server = http.createServer(async (req, res) => {
 
     else if (pathName === "/connected-orders" && method === "GET") order.connectedDeliverymen(req, res);
 
+    // --- Report ---
+    else if (pathName === "/report" && method === "GET") order.getReport(req, res);
+
     // --- 404 fallback ---
     else {
         res.writeHead(404, { "Content-Type": "application/json" });

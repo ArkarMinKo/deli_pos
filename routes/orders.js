@@ -739,4 +739,70 @@ async function finishOrder(req, res, orderId) {
   }
 }
 
-module.exports = { postOrder, getOrdersByShopId, approvedOrder, rejectedOrder, approveAllOrderItems, rejectAllOrderItems, getAllSpecialOrders, getAllOrders, connectedDeliverymen, finishOrder };
+async function getReport(req, res) {
+  try {
+
+    // orders_done = 1 orders
+    const [orders] = await db.promise().query(
+      "SELECT * FROM orders WHERE orders_done = 1"
+    );
+
+    // password မပါအောင် select
+    const [deliverymen] = await db.promise().query(`
+      SELECT id,name,email,phone,photo,work_type,location,status,
+      rating,total_order,assign_order,current_orders,fininshed_orders,
+      is_online,created_at
+      FROM deliverymen
+    `);
+
+    const report = [];
+
+    for (let order of orders) {
+
+      let deliverymanInfo = null;
+
+      for (let dm of deliverymen) {
+
+        if (!dm.fininshed_orders) continue;
+
+        let finishedOrders;
+
+        try {
+          finishedOrders = JSON.parse(dm.fininshed_orders);
+        } catch {
+          finishedOrders = [];
+        }
+
+        if (finishedOrders.includes(order.id)) {
+          deliverymanInfo = dm;
+          break;
+        }
+
+      }
+
+      report.push({
+        order: order,
+        deliveryman: deliverymanInfo
+      });
+
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      success: true,
+      total: report.length,
+      data: report
+    }));
+
+  } catch (err) {
+
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      success: false,
+      error: err.message
+    }));
+
+  }
+}
+
+module.exports = { postOrder, getOrdersByShopId, approvedOrder, rejectedOrder, approveAllOrderItems, rejectAllOrderItems, getAllSpecialOrders, getAllOrders, connectedDeliverymen, finishOrder, getReport };
