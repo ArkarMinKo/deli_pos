@@ -116,6 +116,11 @@ const server = http.createServer(async (req, res) => {
         const id = pathName.split("/")[2];
         users.toMakeSpecial(req, res, id);
     }
+
+    else if (pathName.startsWith("/non-special-users/") && method === "PATCH") {
+        const id = pathName.split("/")[2];
+        users.toMakeNonSpecial(req, res, id);
+    }
     // -- email confrimation ---
 
     else if(pathName === "/request-email-confirmation" && method === "POST"){

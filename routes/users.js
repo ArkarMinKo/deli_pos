@@ -264,6 +264,29 @@ function toMakeSpecial(req, res, id) {
     });
 }
 
+function toMakeNonSpecial(req, res, id) {
+    const sql = "UPDATE users SET special = 0 WHERE id = ?";
+
+    db.query(sql, [id], function(err, result) {
+        if (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({
+                success: false,
+                message: "Database error",
+                error: err
+            }));
+            return;
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({
+            success: true,
+            message: "User marked as non-special",
+            affectedRows: result.affectedRows
+        }));
+    });
+}
+
 function getSpecialUsers(req, res) {
   const sql = "SELECT id, name, email, phone, photo, location, status, special, created_at FROM users WHERE special = 1 ORDER BY created_at DESC";
 
@@ -287,5 +310,6 @@ module.exports = {
     deleteUser,
     getUsersById,
     toMakeSpecial,
-    getSpecialUsers
+    getSpecialUsers,
+    toMakeNonSpecial
 };
