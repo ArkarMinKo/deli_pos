@@ -642,12 +642,11 @@ async function finishOrder(req, res, orderId) {
         }));
       }
 
-      // ---------- 1️⃣ base64 image save ----------
-
+      // base64 → image
       const base64Data = esign.replace(/^data:image\/\w+;base64,/, "");
 
       const fileName = `esign_${Date.now()}.png`;
-      const uploadDir = path.join(UPLOAD_DIR, fileName);
+      const uploadDir = path.join(__dirname, "uploads");
 
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir);
@@ -657,10 +656,9 @@ async function finishOrder(req, res, orderId) {
 
       fs.writeFileSync(filePath, base64Data, "base64");
 
-      const imagePath = `orders-uploads/${fileName}`;
+      const imagePath = `/uploads/${fileName}`;
 
-      // ---------- 2️⃣ update order ----------
-
+      // update order
       await db.promise().query(
         `UPDATE orders 
          SET orders_done = 1, esign = ?
@@ -668,10 +666,11 @@ async function finishOrder(req, res, orderId) {
         [imagePath, orderId]
       );
 
-      // ---------- 3️⃣ get deliveryman ----------
-
+      // get deliveryman
       const [rows] = await db.promise().query(
-        "SELECT current_orders, fininshed_orders, assign_order FROM deliverymen WHERE id = ?",
+        `SELECT current_orders, fininshed_orders 
+         FROM deliverymen 
+         WHERE id = ?`,
         [deliverymanId]
       );
 
@@ -695,16 +694,18 @@ async function finishOrder(req, res, orderId) {
         finishedOrders = JSON.parse(deliveryman.fininshed_orders);
       }
 
-      // ---------- 4️⃣ remove from current_orders ----------
-
+      // remove from current_orders
       currentOrders = currentOrders.filter(id => id !== orderId);
 
-      // ---------- 5️⃣ add to finished_orders ----------
-
+      // add to finished_orders
       finishedOrders.push(orderId);
 
-      // ---------- 6️⃣ update deliveryman ----------
+      const currentOrdersValue =
+        currentOrders.length === 0 ? null : JSON.stringify(currentOrders);
 
+      const finishedOrdersValue = JSON.stringify(finishedOrders);
+
+      // update deliveryman
       await db.promise().query(
         `UPDATE deliverymen 
          SET current_orders = ?, 
@@ -712,13 +713,11 @@ async function finishOrder(req, res, orderId) {
              total_order = total_order + 1
          WHERE id = ?`,
         [
-          JSON.stringify(currentOrders),
-          JSON.stringify(finishedOrders),
+          currentOrdersValue,
+          finishedOrdersValue,
           deliverymanId
         ]
       );
-
-      // ---------- response ----------
 
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({
