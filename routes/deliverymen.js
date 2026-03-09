@@ -621,7 +621,10 @@ async function connectedOrders(req, res, id) {
       const placeholders = orderIds.map(() => "?").join(",");
 
       const [orders] = await db.promise().query(
-        `SELECT * FROM orders WHERE id IN (${placeholders}) AND orders_done = 0`,
+        `SELECT * FROM orders WHERE id IN (${placeholders}) AND orders_done = 0
+        ORDER BY FIELD(o.id, ${placeholders})
+        `,
+        [...orderIds, ...orderIds],
         orderIds
       );
 
