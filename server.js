@@ -251,6 +251,11 @@ const server = http.createServer(async (req, res) => {
         deliverymen.connectedOrdersByNonSpecialUsers(req, res, id);
     }
 
+    else if (pathName.startsWith("/order-history/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        deliverymen.ordersHistoryByDeliveryman(req, res, id);
+    }
+
     // categories CRUD
     else if (pathName === "/categories" && method === "POST") categories.createCategories(req, res);
 
