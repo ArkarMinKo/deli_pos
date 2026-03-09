@@ -577,7 +577,7 @@ function addOrdersToDeliverymen(req, res, id) {
       await connection.rollback();
 
       res.writeHead(500, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: error.message }));
+      res.end(JSON.stringify({ success: false, error: error.message }));
 
     } finally {
       connection.release();
