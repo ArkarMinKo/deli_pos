@@ -802,11 +802,11 @@ async function ordersHistoryByDeliveryman(req, res, id) {
     let orderIds = [];
 
     // 2️⃣ Safe JSON parse
-    if (dm.current_orders) {
-      if (Array.isArray(dm.current_orders)) {
-        orderIds = dm.current_orders;
-      } else if (typeof dm.current_orders === "string") {
-        orderIds = JSON.parse(dm.current_orders);
+    if (dm.finished_orders) {
+      if (Array.isArray(dm.finished_orders)) {
+        orderIds = dm.finished_orders;
+      } else if (typeof dm.finished_orders === "string") {
+        orderIds = JSON.parse(dm.finished_orders);
       }
     }
 
@@ -836,8 +836,9 @@ async function ordersHistoryByDeliveryman(req, res, id) {
         name: dm.name,
         phone: dm.phone,
         is_online: dm.is_online,
+        total_order: dm.total_order,
         assign_order: dm.assign_order,
-        current_orders: orderIds,
+        finished_orders: orderIds,
         orders: ordersData
       }
     }));
