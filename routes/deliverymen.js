@@ -390,7 +390,7 @@ function getOnlineDeliverymen(req, res) {
       location,
       status,
       rating,
-      fininshed_order_count,
+      finished_order_count,
       assign_order,
       is_online,
       current_orders,
