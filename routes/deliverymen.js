@@ -256,7 +256,7 @@ function getAllDeliverymen(req, res) {
     const sql = `
         SELECT 
         id, name, email, phone, photo, location, status,
-        work_type, rating, total_order, assign_order, created_at
+        work_type, rating, finished_order_count, assign_order, created_at
         FROM deliverymen
         ORDER BY created_at DESC
     `;
@@ -276,7 +276,7 @@ function getDeliverymenById(req, res, id) {
     const sql = `
         SELECT 
         id, name, email, phone, photo, location, status,
-        work_type, rating, total_order, assign_order, created_at
+        work_type, rating, finished_order_count, assign_order, created_at
         FROM deliverymen
         WHERE id = ?
         LIMIT 1
@@ -390,7 +390,7 @@ function getOnlineDeliverymen(req, res) {
       location,
       status,
       rating,
-      total_order,
+      fininshed_order_count,
       assign_order,
       is_online,
       current_orders,
@@ -836,7 +836,7 @@ async function ordersHistoryByDeliveryman(req, res, id) {
         name: dm.name,
         phone: dm.phone,
         is_online: dm.is_online,
-        total_order: dm.total_order,
+        finished_orders_count: dm.finished_orders_count,
         assign_order: dm.assign_order,
         finished_orders: orderIds,
         orders: ordersData

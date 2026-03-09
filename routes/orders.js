@@ -600,7 +600,7 @@ async function connectedDeliverymen(req, res) {
         location: dm.location,
         status: dm.status,
         rating: dm.rating,
-        total_order: dm.total_order,
+        finished_order_count: dm.finished_order_count,
         is_online: dm.is_online,
         assign_order: dm.assign_order,
         current_orders: orderIds,
@@ -668,7 +668,7 @@ async function finishOrder(req, res, orderId) {
 
       // get deliveryman
       const [rows] = await db.promise().query(
-        `SELECT current_orders, fininshed_orders 
+        `SELECT current_orders, finished_orders 
          FROM deliverymen 
          WHERE id = ?`,
         [deliverymanId]
@@ -690,8 +690,8 @@ async function finishOrder(req, res, orderId) {
         currentOrders = JSON.parse(deliveryman.current_orders);
       }
 
-      if (deliveryman.fininshed_orders) {
-        finishedOrders = JSON.parse(deliveryman.fininshed_orders);
+      if (deliveryman.finished_orders) {
+        finishedOrders = JSON.parse(deliveryman.finished_orders);
       }
 
       // remove from current_orders
@@ -709,8 +709,9 @@ async function finishOrder(req, res, orderId) {
       await db.promise().query(
         `UPDATE deliverymen 
          SET current_orders = ?, 
-             fininshed_orders = ?, 
-             total_order = total_order + 1
+             finished_orders = ?, 
+             finished_order_count = finished_order_count + 1,
+             assign_order = GREATEST(assign_order - 1, 0)
          WHERE id = ?`,
         [
           currentOrdersValue,
@@ -761,12 +762,12 @@ async function getReport(req, res) {
 
       for (let dm of deliverymen) {
 
-        if (!dm.fininshed_orders) continue;
+        if (!dm.finished_orders) continue;
 
         let finishedOrders;
 
         try {
-          finishedOrders = JSON.parse(dm.fininshed_orders);
+          finishedOrders = JSON.parse(dm.finished_orders);
         } catch {
           finishedOrders = [];
         }
