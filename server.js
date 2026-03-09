@@ -251,7 +251,7 @@ const server = http.createServer(async (req, res) => {
         deliverymen.connectedOrdersByNonSpecialUsers(req, res, id);
     }
 
-    else if (pathName.startsWith("/order-history/") && method === "GET") {
+    else if (pathName.startsWith("/orders-history/") && method === "GET") {
         const id = pathName.split("/")[2];
         deliverymen.ordersHistoryByDeliveryman(req, res, id);
     }

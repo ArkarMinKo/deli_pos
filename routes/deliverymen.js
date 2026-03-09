@@ -618,7 +618,7 @@ async function connectedOrders(req, res, id) {
       const placeholders = orderIds.map(() => "?").join(",");
 
       const [orders] = await db.promise().query(
-        `SELECT * FROM orders WHERE id IN (${placeholders}) AND o.order_done = 0`,
+        `SELECT * FROM orders WHERE id IN (${placeholders}) AND order_done = 0`,
         orderIds
       );
 
@@ -819,7 +819,7 @@ async function ordersHistoryByDeliveryman(req, res, id) {
 
       const [orders] = await db.promise().query(
         `
-        SELECT * FROM orders WHERE id IN (${placeholders}) AND o.order_done = 1
+        SELECT * FROM orders WHERE id IN (${placeholders}) AND order_done = 1
         `,
         orderIds
       );
