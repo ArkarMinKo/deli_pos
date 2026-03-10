@@ -633,41 +633,51 @@ async function connectedDeliverymen(req, res) {
 }
 
 async function finishOrder(req, res, orderId) {
-  try {
+  let body = "";
 
-    let body = "";
+  req.on("data", chunk => {
+    body += chunk.toString();
+  });
 
-    req.on("data", chunk => {
-      body += chunk.toString();
-    });
+  req.on("end", async () => {
 
-    req.on("end", async () => {
+    // JSON parse safe
+    let data;
+    try {
+      data = JSON.parse(body);
+    } catch (err) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        error: "Invalid JSON body"
+      }));
+    }
 
-      const data = JSON.parse(body);
-      const { esign, deliverymanId } = data;
+    const { esign, deliverymanId } = data;
 
-      if (!esign || !deliverymanId) {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({
-          error: "esign and deliverymanId required"
-        }));
-      }
+    if (!esign || !deliverymanId) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        error: "esign and deliverymanId required"
+      }));
+    }
+
+    try {
 
       // base64 → image
       const base64Data = esign.replace(/^data:image\/\w+;base64,/, "");
 
       const fileName = `esign_${Date.now()}.png`;
-      const uploadDir = path.join(__dirname, "uploads");
+      const uploadDir = path.join(__dirname, "../orders_uploads");
 
       if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir);
+        fs.mkdirSync(uploadDir, { recursive: true });
       }
 
       const filePath = path.join(uploadDir, fileName);
 
       fs.writeFileSync(filePath, base64Data, "base64");
 
-      const imagePath = `/uploads/${fileName}`;
+      const imagePath = `/orders_uploads/${fileName}`;
 
       // update order
       await db.promise().query(
@@ -697,12 +707,22 @@ async function finishOrder(req, res, orderId) {
       let currentOrders = [];
       let finishedOrders = [];
 
+      // parse current_orders safely
       if (deliveryman.current_orders) {
-        currentOrders = JSON.parse(deliveryman.current_orders);
+        try {
+          currentOrders = JSON.parse(deliveryman.current_orders);
+        } catch {
+          currentOrders = [];
+        }
       }
 
+      // parse finished_orders safely
       if (deliveryman.finished_orders) {
-        finishedOrders = JSON.parse(deliveryman.finished_orders);
+        try {
+          finishedOrders = JSON.parse(deliveryman.finished_orders);
+        } catch {
+          finishedOrders = [];
+        }
       }
 
       // remove from current_orders
@@ -737,18 +757,18 @@ async function finishOrder(req, res, orderId) {
         message: "Order finished successfully"
       }));
 
-    });
+    } catch (error) {
 
-  } catch (error) {
+      console.error(error);
 
-    console.error(error);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        error: "Server error"
+      }));
 
-    res.writeHead(500, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({
-      error: "Server error"
-    }));
+    }
 
-  }
+  });
 }
 
 async function getReport(req, res) {
