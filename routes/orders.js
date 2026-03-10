@@ -380,48 +380,59 @@ async function rejectedOrder(req, res) {
 }
 
 async function approveAllOrderItems(req, res, orderId) {
-  try {
+  let body = "";
 
-    if (!orderId) {
-      res.writeHead(400, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ message: "orderId required" }));
+  req.on("data", chunk => {
+    body += chunk;
+  });
+
+  req.on("end", async () => {
+    try {
+      const { shopId } = JSON.parse(body);
+
+      if (!orderId || !shopId) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ message: "orderId and shopId required" }));
+      }
+
+      const [rows] = await db.promise().query(
+        "SELECT orders FROM orders WHERE id = ?",
+        [orderId]
+      );
+
+      if (rows.length === 0) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ message: "Order not found" }));
+      }
+
+      let orderItems = rows[0].orders;
+
+      if (typeof orderItems === "string") {
+        orderItems = JSON.parse(orderItems);
+      }
+
+      // ✅ Only approve items with same shopId
+      orderItems = orderItems.map(item => {
+        if (item.shopId === shopId) {
+          return { ...item, status: 1 };
+        }
+        return item;
+      });
+
+      await db.promise().query(
+        "UPDATE orders SET orders = ? WHERE id = ?",
+        [JSON.stringify(orderItems), orderId]
+      );
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Shop order items approved successfully" }));
+
+    } catch (err) {
+      console.error(err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Server error" }));
     }
-
-    const [rows] = await db.promise().query(
-      "SELECT orders FROM orders WHERE id = ?",
-      [orderId]
-    );
-
-    if (rows.length === 0) {
-      res.writeHead(404, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ message: "Order not found" }));
-    }
-
-    let orderItems = rows[0].orders;
-
-    if (typeof orderItems === "string") {
-      orderItems = JSON.parse(orderItems);
-    }
-
-    // ✅ All → Approved
-    orderItems = orderItems.map(item => ({
-      ...item,
-      status: 1
-    }));
-
-    await db.promise().query(
-      "UPDATE orders SET orders = ? WHERE id = ?",
-      [JSON.stringify(orderItems), orderId]
-    );
-
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ message: "All order items approved successfully" }));
-
-  } catch (err) {
-    console.error(err);
-    res.writeHead(500, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ message: "Server error" }));
-  }
+  });
 }
 
 async function rejectAllOrderItems(req, res, orderId) {
