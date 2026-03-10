@@ -679,7 +679,7 @@ async function finishOrder(req, res, orderId) {
 
       fs.writeFileSync(filePath, base64Data, "base64");
 
-      const imagePath = `/orders_uploads/${fileName}`;
+      const imagePath = `/orders-uploads/${fileName}`;
 
       // update order
       await db.promise().query(
