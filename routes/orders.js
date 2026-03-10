@@ -413,7 +413,7 @@ async function approveAllOrderItems(req, res, orderId) {
 
       // ✅ Only approve items with same shopId
       orderItems = orderItems.map(item => {
-        if (item.shopId === shopId) {
+        if (item.shop_id === shopId) {
           return { ...item, status: 1 };
         }
         return item;
