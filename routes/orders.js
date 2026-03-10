@@ -648,6 +648,7 @@ async function finishOrder(req, res, orderId) {
     } catch (err) {
       res.writeHead(400, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({
+        success: false,
         error: "Invalid JSON body"
       }));
     }
@@ -657,6 +658,7 @@ async function finishOrder(req, res, orderId) {
     if (!esign || !deliverymanId) {
       res.writeHead(400, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({
+        success: false,
         error: "esign and deliverymanId required"
       }));
     }
@@ -698,6 +700,7 @@ async function finishOrder(req, res, orderId) {
       if (rows.length === 0) {
         res.writeHead(404, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({
+          success: false,
           error: "Deliveryman not found"
         }));
       }
@@ -763,6 +766,7 @@ async function finishOrder(req, res, orderId) {
 
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({
+        success: false,
         error: "Server error"
       }));
 
