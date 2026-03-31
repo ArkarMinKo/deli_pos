@@ -104,9 +104,15 @@ function createShops(req, res) {
       try {
         if (fields.photo && fields.photo.startsWith("data:image")) {
           const base64Data = fields.photo.replace(/^data:image\/\w+;base64,/, "");
-          const ext = fields.photo.substring("data:image/".length, fields.photo.indexOf(";base64"));
+          const ext = fields.photo.substring(
+            "data:image/".length,
+            fields.photo.indexOf(";base64")
+          );
           const photoName = `${id}.${ext}`;
-          fs.writeFileSync(path.join(UPLOAD_DIR, photoName), Buffer.from(base64Data, "base64"));
+          fs.writeFileSync(
+            path.join(UPLOAD_DIR, photoName),
+            Buffer.from(base64Data, "base64")
+          );
           photoFile = photoName;
         }
       } catch (e) {
@@ -117,11 +123,17 @@ function createShops(req, res) {
         // --- Hash password ---
         const hashedPassword = await bcrypt.hash(fields.password, 10);
 
+        // --- Prepare JSON payment (single -> array) ---
+        const paymentName = JSON.stringify([fields.payment_name]);
+        const paymentPhone = JSON.stringify([fields.payment_phone]);
+        const paymentMethod = JSON.stringify([fields.payment_method]);
+
         // --- Insert shop ---
         db.query(
           `INSERT INTO shops
-          (id, shopkeeper_name, shop_name, email, phone, password, photo, items, location, address)
-          VALUES (?,?,?,?,?,?,?,?,?,?)`,
+          (id, shopkeeper_name, shop_name, email, phone, password, photo, items, location, address,
+           payment_name, payment_phone, payment_method)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
           [
             id,
             fields.shopkeeper_name,
@@ -130,9 +142,12 @@ function createShops(req, res) {
             fields.phone,
             hashedPassword,
             photoFile || null,
-            parseInt(fields.items),
-            fields.location,
-            fields.address
+            parseInt(fields.items) || 0,
+            fields.location || null,
+            fields.address || null,
+            paymentName,
+            paymentPhone,
+            paymentMethod,
           ],
           (err) => {
             if (err) {
@@ -142,7 +157,7 @@ function createShops(req, res) {
                 const msg = err.message.includes("email")
                   ? "ဤ email သည် အသုံးပြုပြီးသား ဖြစ်ပါသည်"
                   : "ဝင်ရောက်လာသော အချက်အလက်များ ထပ်နေပါသည်";
-                res.statusCode = 400;
+
                 res.writeHead(400, { "Content-Type": "application/json" });
                 return res.end(JSON.stringify({ error: msg }));
               }
@@ -150,8 +165,12 @@ function createShops(req, res) {
               res.statusCode = 500;
               return res.end(JSON.stringify({ error: err.message }));
             }
+
             sendMail(fields.email, fields.shopkeeper_name, "pending");
-            res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+
+            res.writeHead(200, {
+              "Content-Type": "application/json; charset=utf-8",
+            });
             res.end(JSON.stringify({ message: "ဆိုင်အကောင့် ဖန်တီးပြီးပါပြီ" }));
           }
         );
@@ -325,6 +344,9 @@ function getShops(req, res) {
       address, 
       location, 
       status, 
+      payment_name,
+      payment_phone,
+      payment_method,
       permission, 
       created_at
     FROM shops
@@ -356,7 +378,10 @@ function getShopsById(req, res, id) {
         items, 
         address, 
         location, 
-        status, 
+        status,
+        payment_name,
+        payment_phone,
+        payment_method,
         permission, 
         created_at
         FROM shops
