@@ -132,8 +132,8 @@ function createShops(req, res) {
         db.query(
           `INSERT INTO shops
           (id, shopkeeper_name, shop_name, email, phone, password, photo, items, location, address,
-           payment_name, payment_phone, payment_method, deli_fees_method)
-          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+           payment_name, payment_phone, payment_method, have_deliverymen, deli_fees_method)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
           [
             id,
             fields.shopkeeper_name,
@@ -148,6 +148,7 @@ function createShops(req, res) {
             paymentName,
             paymentPhone,
             paymentMethod,
+            fields.have_deliverymen || 0,
             fields.deli_fees_method || 'km'
           ],
           (err) => {
@@ -348,6 +349,7 @@ function getShops(req, res) {
       payment_name,
       payment_phone,
       payment_method,
+      have_deliverymen,
       deli_fees_method,
       permission, 
       created_at
@@ -384,6 +386,7 @@ function getShopsById(req, res, id) {
         payment_name,
         payment_phone,
         payment_method,
+        have_deliverymen,
         deli_fees_method,
         permission, 
         created_at
