@@ -30,15 +30,29 @@ function createMenu(req, res) {
             relate_menu,
             relate_ingredients,
             get_months,
-            photo, // base64 string
+            photo,
         } = fields;
 
-        // Required fields validation
         if (!shop_id || !name || !prices || !category || !photo) {
             res.writeHead(400, { "Content-Type": "application/json" });
-            return res.end(
-                JSON.stringify({ message: "လိုအပ်ချက်များ မပြည့်စုံပါ" })
+            return res.end(JSON.stringify({ message: "လိုအပ်ချက်များ မပြည့်စုံပါ" }));
+        }
+
+        // ✅ FIX prices
+        let pricesJson;
+        try {
+            const parsed = typeof prices === "string" ? JSON.parse(prices) : prices;
+            if (!Array.isArray(parsed)) throw new Error();
+
+            pricesJson = JSON.stringify(
+                parsed.map(p => ({
+                    size: p.size,
+                    price: Number(p.price)
+                }))
             );
+        } catch (e) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ message: "Invalid prices JSON" }));
         }
 
         generateMenuId(db, shop_id, (err, newId) => {
@@ -47,9 +61,6 @@ function createMenu(req, res) {
                 return res.end(JSON.stringify({ message: "ID generation failed" }));
             }
 
-            // ------------------------------------------------------------------
-            // === Base64 Decode Logic (REPLACED EXACTLY AS YOU ASKED) ===
-            // ------------------------------------------------------------------
             let photoName = null;
 
             try {
@@ -59,25 +70,20 @@ function createMenu(req, res) {
                         "data:image/".length,
                         fields.photo.indexOf(";base64")
                     );
-                    if (!ext) {
-                        return res.end(JSON.stringify({ error: "Missing image extension in Base64 string" }));
-                    }
+
                     photoName = generatePhotoName(newId, `photo.${ext}`);
+
                     fs.writeFileSync(
                         path.join(UPLOAD_DIR, photoName),
                         Buffer.from(base64Data, "base64")
                     );
                 } else {
-                    res.writeHead(400, { "Content-Type": "application/json" });
                     return res.end(JSON.stringify({ message: "Invalid base64 photo" }));
                 }
             } catch (e) {
-                res.writeHead(400, { "Content-Type": "application/json" });
-                return res.end(JSON.stringify({ message: "Invalid base64 format", e }));
+                return res.end(JSON.stringify({ message: "Invalid base64 format" }));
             }
-            // ------------------------------------------------------------------
 
-            // === Prepare JSON fields ===
             const relateMenuJson = Array.isArray(relate_menu)
                 ? JSON.stringify(relate_menu)
                 : null;
@@ -90,7 +96,6 @@ function createMenu(req, res) {
                 ? JSON.stringify(get_months)
                 : JSON.stringify(["All months"]);
 
-            // === Insert menu into DB ===
             const sql = `
                 INSERT INTO menu (
                     id, shop_id, name, prices, category, photo,
@@ -103,7 +108,7 @@ function createMenu(req, res) {
                 newId,
                 shop_id,
                 name,
-                prices,
+                pricesJson,
                 category,
                 photoName,
                 size || null,
@@ -113,19 +118,15 @@ function createMenu(req, res) {
                 monthJson,
             ];
 
-            db.query(sql, values, (err, result) => {
+            db.query(sql, values, (err) => {
                 if (err) {
-                    res.writeHead(500, { "Content-Type": "application/json" });
                     return res.end(JSON.stringify({ message: "DB error", err }));
                 }
 
-                res.writeHead(200, { "Content-Type": "application/json" });
-                res.end(
-                    JSON.stringify({
-                        message: "Menu ကို အောင်မြင်စွာ အသစ်ထည့်သွင်း ပြီးပါပြီ",
-                        id: newId,
-                    })
-                );
+                res.end(JSON.stringify({
+                    message: "Menu ကို အောင်မြင်စွာ အသစ်ထည့်သွင်း ပြီးပါပြီ",
+                    id: newId,
+                }));
             });
         });
     });
@@ -134,9 +135,8 @@ function createMenu(req, res) {
 function updateMenu(req, res, id) {
     const form = new formidable.IncomingForm({ multiples: false });
 
-    form.parse(req, async (err, fields) => {
+    form.parse(req, (err, fields) => {
         if (err) {
-            res.writeHead(500, { "Content-Type": "application/json" });
             return res.end(JSON.stringify({ message: "Form parse failed", err }));
         }
 
@@ -149,110 +149,103 @@ function updateMenu(req, res, id) {
             relate_menu,
             relate_ingredients,
             get_months,
-            photo  // OPTIONAL (base64)
+            photo
         } = fields;
 
-        if (!name || !prices || !category, !size, !description, !relate_menu, !relate_ingredients, !get_months) {
-            res.writeHead(400, { "Content-Type": "application/json" });
-            return res.end(
-                JSON.stringify({ message: "လိုအပ်ချက်များ မပြည့်စုံပါ" })
-            );
-        }
-
         if (!id) {
-            res.writeHead(400, { "Content-Type": "application/json" });
             return res.end(JSON.stringify({ message: "Menu ID is required" }));
         }
 
-        // === 1. Get existing menu to know old photo name ===
-        db.query(
-            "SELECT photo FROM menu WHERE id = ?",
-            [id],
-            (err, result) => {
-                if (err || result.length === 0) {
-                    res.writeHead(404, { "Content-Type": "application/json" });
-                    return res.end(JSON.stringify({ message: "Menu not found" }));
-                }
+        // ✅ FIX prices
+        let pricesJson;
+        try {
+            const parsed = typeof prices === "string" ? JSON.parse(prices) : prices;
+            if (!Array.isArray(parsed)) throw new Error();
 
-                let oldPhoto = result[0].photo;
-                let newPhotoName = oldPhoto;
+            pricesJson = JSON.stringify(
+                parsed.map(p => ({
+                    size: p.size,
+                    price: Number(p.price)
+                }))
+            );
+        } catch {
+            return res.end(JSON.stringify({ message: "Invalid prices JSON" }));
+        }
 
-                // === 2. If new Base64 photo included → decode + replace ===
-                try {
-                    if (photo && photo.startsWith("data:image")) {
-                        const base64Data = photo.replace(/^data:image\/\w+;base64,/, "");
-                        const ext = photo.substring(
-                            "data:image/".length,
-                            photo.indexOf(";base64")
-                        );
-
-                        newPhotoName = generatePhotoName(id, `photo.${ext}`);
-                        fs.writeFileSync(
-                            path.join(UPLOAD_DIR, newPhotoName),
-                            Buffer.from(base64Data, "base64")
-                        );
-
-                        // delete old photo
-                        if (oldPhoto) {
-                            const oldPath = path.join(UPLOAD_DIR, oldPhoto);
-                            if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-                        }
-                    }
-                } catch (e) {
-                    res.writeHead(400, { "Content-Type": "application/json" });
-                    return res.end(JSON.stringify({ message: "Invalid base64 format", e }));
-                }
-
-                // === 3. JSON fields ===
-                const relateMenuJson = Array.isArray(relate_menu)
-                    ? JSON.stringify(relate_menu)
-                    : null;
-
-                const relateIngredientsJson = Array.isArray(relate_ingredients)
-                    ? JSON.stringify(relate_ingredients)
-                    : null;
-
-                const monthsJson = Array.isArray(get_months)
-                    ? JSON.stringify(get_months)
-                    : null;
-
-                // === 4. Update DB ===
-                const sql = `
-                    UPDATE menu SET
-                        name = ?, prices = ?, category = ?, photo = ?,
-                        size = ?, description = ?, relate_menu = ?, relate_ingredients = ?, get_months = ?
-                    WHERE id = ?
-                `;
-
-                const values = [
-                    name || null,
-                    prices || null,
-                    category || null,
-                    newPhotoName,
-                    size || null,
-                    description || null,
-                    relateMenuJson,
-                    relateIngredientsJson,
-                    monthsJson,
-                    id,
-                ];
-
-                db.query(sql, values, (err, result) => {
-                    if (err) {
-                        res.writeHead(500, { "Content-Type": "application/json" });
-                        return res.end(JSON.stringify({ message: "DB update error", err }));
-                    }
-
-                    res.writeHead(200, { "Content-Type": "application/json" });
-                    res.end(
-                        JSON.stringify({
-                            message: "Menu ကို အောင်မြင်စွာ ပြင်ဆင်ပြီးပါပြီ",
-                            id,
-                        })
-                    );
-                });
+        db.query("SELECT photo FROM menu WHERE id = ?", [id], (err, result) => {
+            if (err || result.length === 0) {
+                return res.end(JSON.stringify({ message: "Menu not found" }));
             }
-        );
+
+            let oldPhoto = result[0].photo;
+            let newPhotoName = oldPhoto;
+
+            try {
+                if (photo && photo.startsWith("data:image")) {
+                    const base64Data = photo.replace(/^data:image\/\w+;base64,/, "");
+                    const ext = photo.substring(
+                        "data:image/".length,
+                        photo.indexOf(";base64")
+                    );
+
+                    newPhotoName = generatePhotoName(id, `photo.${ext}`);
+
+                    fs.writeFileSync(
+                        path.join(UPLOAD_DIR, newPhotoName),
+                        Buffer.from(base64Data, "base64")
+                    );
+
+                    if (oldPhoto && fs.existsSync(path.join(UPLOAD_DIR, oldPhoto))) {
+                        fs.unlinkSync(path.join(UPLOAD_DIR, oldPhoto));
+                    }
+                }
+            } catch {
+                return res.end(JSON.stringify({ message: "Invalid base64 format" }));
+            }
+
+            const relateMenuJson = Array.isArray(relate_menu)
+                ? JSON.stringify(relate_menu)
+                : null;
+
+            const relateIngredientsJson = Array.isArray(relate_ingredients)
+                ? JSON.stringify(relate_ingredients)
+                : null;
+
+            const monthsJson = Array.isArray(get_months)
+                ? JSON.stringify(get_months)
+                : null;
+
+            const sql = `
+                UPDATE menu SET
+                    name = ?, prices = ?, category = ?, photo = ?,
+                    size = ?, description = ?, relate_menu = ?, relate_ingredients = ?, get_months = ?
+                WHERE id = ?
+            `;
+
+            const values = [
+                name || null,
+                pricesJson,
+                category || null,
+                newPhotoName,
+                size || null,
+                description || null,
+                relateMenuJson,
+                relateIngredientsJson,
+                monthsJson,
+                id,
+            ];
+
+            db.query(sql, values, (err) => {
+                if (err) {
+                    return res.end(JSON.stringify({ message: "DB update error", err }));
+                }
+
+                res.end(JSON.stringify({
+                    message: "Menu ကို အောင်မြင်စွာ ပြင်ဆင်ပြီးပါပြီ",
+                    id,
+                }));
+            });
+        });
     });
 }
 
@@ -298,7 +291,6 @@ function deleteMenu(req, res, id) {
 }
 
 function getMenuByShopId(req, res, shopId) {
-  // 1. Get shop information
   const shopSql = `
     SELECT shop_name, shopkeeper_name, photo, phone, address, location 
     FROM shops 
@@ -307,35 +299,29 @@ function getMenuByShopId(req, res, shopId) {
 
   db.query(shopSql, [shopId], (err, shopResult) => {
     if (err) {
-      res.writeHead(500, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({ message: "Shop fetch error" }));
     }
 
     if (!shopResult || shopResult.length === 0) {
-      res.writeHead(404, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({ message: "Shop မရှိသေးပါ" }));
     }
 
     const shopInfo = shopResult[0];
 
-    // 2. Get all categories (for mapping category name)
     const categoriesSql = `SELECT id, name FROM categories`;
 
     db.query(categoriesSql, (err, categories) => {
       if (err) {
-        res.writeHead(500, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({ message: "Category fetch error" }));
       }
 
       const categoryMap = {};
       categories.forEach((c) => (categoryMap[c.id] = c.name));
 
-      // 3. Get all menu from this shop
       const menuSql = `SELECT * FROM menu WHERE shop_id = ? ORDER BY created_at DESC`;
 
       db.query(menuSql, [shopId], (err, menus) => {
         if (err) {
-          res.writeHead(500, { "Content-Type": "application/json" });
           return res.end(JSON.stringify({ message: "Menu fetch error" }));
         }
 
@@ -343,46 +329,35 @@ function getMenuByShopId(req, res, shopId) {
         let pending = menus.length;
 
         if (pending === 0) {
-          res.writeHead(200, { "Content-Type": "application/json" });
           return res.end(JSON.stringify({ shop: shopInfo, menus: [] }));
         }
 
         menus.forEach((menu, index) => {
-          // ===== SAFE PARSE RELATIONS =====
           let relateMenuIds = [];
           let relateIngredientsIds = [];
 
-          if (Array.isArray(menu.relate_menu)) {
-            relateMenuIds = menu.relate_menu;
-          } else if (typeof menu.relate_menu === "string") {
-            try {
-              relateMenuIds = JSON.parse(menu.relate_menu);
-            } catch {
-              relateMenuIds = [];
-            }
-          }
+          try {
+            relateMenuIds = Array.isArray(menu.relate_menu)
+              ? menu.relate_menu
+              : JSON.parse(menu.relate_menu || "[]");
+          } catch {}
 
-          if (Array.isArray(menu.relate_ingredients)) {
-            relateIngredientsIds = menu.relate_ingredients;
-          } else if (typeof menu.relate_ingredients === "string") {
-            try {
-              relateIngredientsIds = JSON.parse(menu.relate_ingredients);
-            } catch {
-              relateIngredientsIds = [];
-            }
-          }
+          try {
+            relateIngredientsIds = Array.isArray(menu.relate_ingredients)
+              ? menu.relate_ingredients
+              : JSON.parse(menu.relate_ingredients || "[]");
+          } catch {}
 
-          // 4. Fetch related menus
           const fetchRelateMenu = new Promise((resolve) => {
             if (relateMenuIds.length === 0) return resolve([]);
 
-            const relatedMenuSql = `
-              SELECT id, name, prices, size, category, photo
+            const sql = `
+              SELECT id, name, prices, category, photo
               FROM menu
               WHERE id IN (${relateMenuIds.map(() => "?").join(",")})
             `;
 
-            db.query(relatedMenuSql, relateMenuIds, (err, result) => {
+            db.query(sql, relateMenuIds, (err, result) => {
               if (err) return resolve([]);
 
               resolve(
@@ -390,7 +365,6 @@ function getMenuByShopId(req, res, shopId) {
                   id: m.id,
                   name: m.name,
                   prices: m.prices,
-                  size: m.size,
                   category: categoryMap[m.category] || m.category,
                   photo: m.photo,
                 }))
@@ -398,17 +372,16 @@ function getMenuByShopId(req, res, shopId) {
             });
           });
 
-          // 5. Fetch related ingredients
           const fetchRelateIngredients = new Promise((resolve) => {
             if (relateIngredientsIds.length === 0) return resolve([]);
 
-            const ingredientSql = `
+            const sql = `
               SELECT id, name, photo, prices
               FROM ingredients
               WHERE id IN (${relateIngredientsIds.map(() => "?").join(",")})
             `;
 
-            db.query(ingredientSql, relateIngredientsIds, (err, result) => {
+            db.query(sql, relateIngredientsIds, (err, result) => {
               if (err) return resolve([]);
 
               resolve(
@@ -422,42 +395,42 @@ function getMenuByShopId(req, res, shopId) {
             });
           });
 
-          // 6. Combine all
           Promise.all([fetchRelateMenu, fetchRelateIngredients]).then(
             ([relatedMenus, relatedIngredients]) => {
               processedMenus[index] = {
                 id: menu.id,
                 shop_id: menu.shop_id,
                 name: menu.name,
-                prices: menu.prices,
+                prices: typeof menu.prices === "string"
+                  ? JSON.parse(menu.prices)
+                  : menu.prices,
                 category_id: menu.category,
                 category: categoryMap[menu.category] || menu.category,
                 photo: menu.photo,
-                size: menu.size,
                 description: menu.description,
                 complete_order: menu.complete_order,
                 rating: menu.rating,
                 rating_count: menu.rating_count,
                 created_at: menu.created_at,
-                get_months:
-                  Array.isArray(menu.get_months)
-                    ? menu.get_months
-                    : typeof menu.get_months === "string"
-                    ? JSON.parse(menu.get_months)
-                    : ["All months"],
+                get_months: (() => {
+                  try {
+                    return Array.isArray(menu.get_months)
+                      ? menu.get_months
+                      : JSON.parse(menu.get_months || '["All months"]');
+                  } catch {
+                    return ["All months"];
+                  }
+                })(),
                 relate_menu: relatedMenus,
                 relate_ingredients: relatedIngredients,
               };
 
               pending--;
               if (pending === 0) {
-                res.writeHead(200, { "Content-Type": "application/json" });
-                res.end(
-                  JSON.stringify({
-                    shop: shopInfo,
-                    menus: processedMenus,
-                  })
-                );
+                res.end(JSON.stringify({
+                  shop: shopInfo,
+                  menus: processedMenus,
+                }));
               }
             }
           );
@@ -468,7 +441,6 @@ function getMenuByShopId(req, res, shopId) {
 }
 
 function getAllShopsWithMenus(req, res) {
-  // 1. Get all shopss
   const shopSql = `
     SELECT id, shop_name, shopkeeper_name, photo, phone, address, location
     FROM shops
@@ -477,21 +449,17 @@ function getAllShopsWithMenus(req, res) {
 
   db.query(shopSql, (err, shops) => {
     if (err) {
-      res.writeHead(500, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({ message: "Shop fetch error" }));
     }
 
     if (!shops || shops.length === 0) {
-      res.writeHead(200, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({ shops: [] }));
     }
 
-    // 2. Get all categories
     const categoriesSql = `SELECT id, name FROM categories`;
 
     db.query(categoriesSql, (err, categories) => {
       if (err) {
-        res.writeHead(500, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({ message: "Category fetch error" }));
       }
 
@@ -502,7 +470,6 @@ function getAllShopsWithMenus(req, res) {
       let shopPending = shops.length;
 
       shops.forEach((shop, shopIndex) => {
-        // 3. Get menus by shop
         const menuSql = `
           SELECT * FROM menu
           WHERE shop_id = ?
@@ -516,17 +483,13 @@ function getAllShopsWithMenus(req, res) {
           let menuPending = menus.length;
 
           if (menuPending === 0) {
-            processedShops[shopIndex] = {
-              shop,
-              menus: []
-            };
+            processedShops[shopIndex] = { shop, menus: [] };
             shopPending--;
             if (shopPending === 0) sendResponse();
             return;
           }
 
           menus.forEach((menu, menuIndex) => {
-            // ===== SAFE PARSE =====
             let relateMenuIds = [];
             let relateIngredientsIds = [];
 
@@ -534,36 +497,31 @@ function getAllShopsWithMenus(req, res) {
               relateMenuIds = Array.isArray(menu.relate_menu)
                 ? menu.relate_menu
                 : JSON.parse(menu.relate_menu || "[]");
-            } catch {
-              relateMenuIds = [];
-            }
+            } catch {}
 
             try {
               relateIngredientsIds = Array.isArray(menu.relate_ingredients)
                 ? menu.relate_ingredients
                 : JSON.parse(menu.relate_ingredients || "[]");
-            } catch {
-              relateIngredientsIds = [];
-            }
+            } catch {}
 
-            // 4. Related menus
             const fetchRelateMenu = new Promise(resolve => {
               if (relateMenuIds.length === 0) return resolve([]);
 
               const sql = `
-                SELECT id, name, prices, size, category, photo
+                SELECT id, name, prices, category, photo
                 FROM menu
                 WHERE id IN (${relateMenuIds.map(() => "?").join(",")})
               `;
 
               db.query(sql, relateMenuIds, (err, result) => {
                 if (err) return resolve([]);
+
                 resolve(
                   result.map(m => ({
                     id: m.id,
                     name: m.name,
                     prices: m.prices,
-                    size: m.size,
                     category: categoryMap[m.category] || m.category,
                     photo: m.photo
                   }))
@@ -571,7 +529,6 @@ function getAllShopsWithMenus(req, res) {
               });
             });
 
-            // 5. Related ingredients
             const fetchRelateIngredients = new Promise(resolve => {
               if (relateIngredientsIds.length === 0) return resolve([]);
 
@@ -583,6 +540,7 @@ function getAllShopsWithMenus(req, res) {
 
               db.query(sql, relateIngredientsIds, (err, result) => {
                 if (err) return resolve([]);
+
                 resolve(
                   result.map(i => ({
                     id: i.id,
@@ -594,18 +552,18 @@ function getAllShopsWithMenus(req, res) {
               });
             });
 
-            // 6. Combine menu
             Promise.all([fetchRelateMenu, fetchRelateIngredients]).then(
               ([relatedMenus, relatedIngredients]) => {
                 processedMenus[menuIndex] = {
                   id: menu.id,
                   shop_id: menu.shop_id,
                   name: menu.name,
-                  prices: menu.prices,
+                  prices: typeof menu.prices === "string"
+                    ? JSON.parse(menu.prices)
+                    : menu.prices,
                   category_id: menu.category,
                   category: categoryMap[menu.category] || menu.category,
                   photo: menu.photo,
-                  size: menu.size,
                   description: menu.description,
                   complete_order: menu.complete_order,
                   rating: menu.rating,
@@ -640,7 +598,6 @@ function getAllShopsWithMenus(req, res) {
       });
 
       function sendResponse() {
-        res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ shops: processedShops }));
       }
     });
