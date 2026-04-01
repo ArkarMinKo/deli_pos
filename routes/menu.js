@@ -292,7 +292,7 @@ function deleteMenu(req, res, id) {
 
 function getMenuByShopId(req, res, shopId) {
   const shopSql = `
-    SELECT shop_name, shopkeeper_name, photo, phone, address, location 
+    SELECT shop_name, shopkeeper_name, photo, phone, address, payment_name, payment_phone, payment_method, location 
     FROM shops 
     WHERE id = ?
   `;
@@ -442,7 +442,7 @@ function getMenuByShopId(req, res, shopId) {
 
 function getAllShopsWithMenus(req, res) {
   const shopSql = `
-    SELECT id, shop_name, shopkeeper_name, photo, phone, address, location
+    SELECT id, shop_name, shopkeeper_name, photo, phone, address, payment_name, payment_phone, payment_method, location
     FROM shops
     ORDER BY id DESC
   `;
