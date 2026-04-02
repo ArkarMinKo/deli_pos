@@ -121,7 +121,7 @@ function createMenu(req, res) {
                 if (err) {
                     return res.end(JSON.stringify({ message: "DB error", err }));
                 }
-
+                res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
                 res.end(JSON.stringify({
                     message: "Menu ကို အောင်မြင်စွာ အသစ်ထည့်သွင်း ပြီးပါပြီ",
                     id: newId,
@@ -152,6 +152,7 @@ function updateMenu(req, res, id) {
         } = fields;
 
         if (!id) {
+            res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
             return res.end(JSON.stringify({ message: "Menu ID is required" }));
         }
 
@@ -168,11 +169,13 @@ function updateMenu(req, res, id) {
                 }))
             );
         } catch {
+            res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
             return res.end(JSON.stringify({ message: "Invalid prices JSON" }));
         }
 
         db.query("SELECT photo FROM menu WHERE id = ?", [id], (err, result) => {
             if (err || result.length === 0) {
+                res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
                 return res.end(JSON.stringify({ message: "Menu not found" }));
             }
 
@@ -199,6 +202,7 @@ function updateMenu(req, res, id) {
                     }
                 }
             } catch {
+                res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
                 return res.end(JSON.stringify({ message: "Invalid base64 format" }));
             }
 
@@ -238,7 +242,7 @@ function updateMenu(req, res, id) {
                 if (err) {
                     return res.end(JSON.stringify({ message: "DB update error", err }));
                 }
-
+                res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
                 res.end(JSON.stringify({
                     message: "Menu ကို အောင်မြင်စွာ ပြင်ဆင်ပြီးပါပြီ",
                     id,
@@ -291,7 +295,7 @@ function deleteMenu(req, res, id) {
 
 function getMenuByShopId(req, res, shopId) {
   const shopSql = `
-    SELECT shop_name, shopkeeper_name, photo, phone, address, payment_name, payment_phone, payment_method, location 
+    SELECT shop_name, shopkeeper_name, photo, phone, address, payment_name, payment_phone, payment_method, have_deliverymen, deli_fees_method, open_shop, location 
     FROM shops 
     WHERE id = ?
   `;
@@ -302,6 +306,7 @@ function getMenuByShopId(req, res, shopId) {
     }
 
     if (!shopResult || shopResult.length === 0) {
+      res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
       return res.end(JSON.stringify({ message: "Shop မရှိသေးပါ" }));
     }
 
@@ -311,6 +316,7 @@ function getMenuByShopId(req, res, shopId) {
 
     db.query(categoriesSql, (err, categories) => {
       if (err) {
+        res.writeHead(500, { "Content-Type": "application/json; charset=utf-8" });
         return res.end(JSON.stringify({ message: "Category fetch error" }));
       }
 
@@ -321,6 +327,7 @@ function getMenuByShopId(req, res, shopId) {
 
       db.query(menuSql, [shopId], (err, menus) => {
         if (err) {
+          res.writeHead(500, { "Content-Type": "application/json; charset=utf-8" });
           return res.end(JSON.stringify({ message: "Menu fetch error" }));
         }
 
@@ -328,6 +335,7 @@ function getMenuByShopId(req, res, shopId) {
         let pending = menus.length;
 
         if (pending === 0) {
+          res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
           return res.end(JSON.stringify({ shop: shopInfo, menus: [] }));
         }
 
@@ -426,6 +434,7 @@ function getMenuByShopId(req, res, shopId) {
 
               pending--;
               if (pending === 0) {
+                res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
                 res.end(JSON.stringify({
                   shop: shopInfo,
                   menus: processedMenus,
@@ -441,17 +450,19 @@ function getMenuByShopId(req, res, shopId) {
 
 function getAllShopsWithMenus(req, res) {
   const shopSql = `
-    SELECT id, shop_name, shopkeeper_name, photo, phone, address, payment_name, payment_phone, payment_method, location
+    SELECT id, shop_name, shopkeeper_name, photo, phone, address, payment_name, payment_phone, payment_method, have_deliverymen, deli_fees_method, open_shop, location
     FROM shops
     ORDER BY id DESC
   `;
 
   db.query(shopSql, (err, shops) => {
     if (err) {
+      res.writeHead(500, { "Content-Type": "application/json; charset=utf-8" });
       return res.end(JSON.stringify({ message: "Shop fetch error" }));
     }
 
     if (!shops || shops.length === 0) {
+      res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
       return res.end(JSON.stringify({ shops: [] }));
     }
 
@@ -459,6 +470,7 @@ function getAllShopsWithMenus(req, res) {
 
     db.query(categoriesSql, (err, categories) => {
       if (err) {
+        res.writeHead(500, { "Content-Type": "application/json; charset=utf-8" });
         return res.end(JSON.stringify({ message: "Category fetch error" }));
       }
 
@@ -597,6 +609,7 @@ function getAllShopsWithMenus(req, res) {
       });
 
       function sendResponse() {
+        res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
         res.end(JSON.stringify({ shops: processedShops }));
       }
     });
