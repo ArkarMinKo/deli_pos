@@ -99,9 +99,9 @@ function createMenu(req, res) {
             const sql = `
                 INSERT INTO menu (
                     id, shop_id, name, prices, category, photo,
-                    size, description, relate_menu, relate_ingredients, get_months
+                    description, relate_menu, relate_ingredients, get_months
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
 
             const values = [
@@ -111,7 +111,6 @@ function createMenu(req, res) {
                 pricesJson,
                 category,
                 photoName,
-                size || null,
                 description || null,
                 relateMenuJson,
                 relateIngredientsJson,
