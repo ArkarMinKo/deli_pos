@@ -195,8 +195,6 @@ function updateMenu(req, res, id) {
                       Buffer.from(base64Data, "base64")
                   );
 
-                  console.log("✅ SAVED:", photoName); // 🔥 DEBUG
-
                   if (oldPhoto && fs.existsSync(path.join(UPLOAD_DIR, oldPhoto))) {
                       fs.unlinkSync(path.join(UPLOAD_DIR, oldPhoto));
                   }

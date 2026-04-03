@@ -214,9 +214,19 @@ const server = http.createServer(async (req, res) => {
         deliverymen.putDeliverymen(req, res, id);
     }
 
+    else if (pathName.startsWith("/deliverymen-shop/") && method === "POST") {
+        const id = pathName.split("/")[2];
+        deliverymen.createDeliverymenForShop(req, res, id);
+    }
+
     else if (pathName.startsWith("/deliverymen/") && method === "GET") {
         const id = pathName.split("/")[2];
         deliverymen.getDeliverymenById(req, res, id);
+    }
+
+    else if (pathName.startsWith("/deliverymen-shop/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        deliverymen.getShopDeliverymen(req, res, id);
     }
 
     else if (pathName === "/online-deliverymen" && method === "GET") deliverymen.getOnlineDeliverymen(req, res);
