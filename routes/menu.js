@@ -131,7 +131,10 @@ function createMenu(req, res) {
 }
 
 function updateMenu(req, res, id) {
-    const form = new formidable.IncomingForm({ multiples: false });
+    const form = new formidable.IncomingForm({
+      multiples: false,
+      maxFileSize: 50 * 1024 * 1024,
+    });
 
     form.parse(req, (err, fields) => {
         if (err) {
