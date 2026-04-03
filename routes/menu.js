@@ -204,9 +204,25 @@ function updateMenu(req, res, id) {
 
                 // 🔥 FORCE FIX OLD DATA
                 else if (oldPhoto && !path.extname(oldPhoto)) {
-                    newPhotoName = oldPhoto + ".jpg";
-                }
 
+                  const possibleExts = [".jpg", ".png", ".jpeg", ".webp"];
+                  let found = false;
+
+                  for (let ext of possibleExts) {
+                      const testPath = path.join(UPLOAD_DIR, oldPhoto + ext);
+
+                      if (fs.existsSync(testPath)) {
+                          newPhotoName = oldPhoto + ext;
+                          found = true;
+                          break;
+                      }
+                  }
+
+                  // 🔥 if not found → default to .jpg
+                  if (!found) {
+                      newPhotoName = oldPhoto + ".jpg";
+                  }
+              }
             } catch (e) {
                 console.log("PHOTO ERROR:", e.message);
                 return res.end(JSON.stringify({ message: "Photo processing failed" }));
