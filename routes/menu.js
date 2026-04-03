@@ -133,7 +133,7 @@ function createMenu(req, res) {
 function updateMenu(req, res, id) {
     const form = new formidable.IncomingForm({
         multiples: false,
-        maxFileSize: 50 * 1024 * 1024, // ✅ prevent base64 cut
+        maxFileSize: 50 * 1024 * 1024,
     });
 
     form.parse(req, (err, fields) => {
@@ -153,7 +153,6 @@ function updateMenu(req, res, id) {
         } = fields;
 
         if (!id) {
-            res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
             return res.end(JSON.stringify({ message: "Menu ID is required" }));
         }
 
@@ -161,14 +160,10 @@ function updateMenu(req, res, id) {
         let pricesJson;
         try {
             const parsed = typeof prices === "string" ? JSON.parse(prices) : prices;
-            if (!Array.isArray(parsed)) throw new Error();
-
-            pricesJson = JSON.stringify(
-                parsed.map(p => ({
-                    size: p.size,
-                    price: Number(p.price)
-                }))
-            );
+            pricesJson = JSON.stringify(parsed.map(p => ({
+                size: p.size,
+                price: Number(p.price)
+            })));
         } catch {
             return res.end(JSON.stringify({ message: "Invalid prices JSON" }));
         }
@@ -181,84 +176,64 @@ function updateMenu(req, res, id) {
             let oldPhoto = result[0].photo;
             let newPhotoName = oldPhoto;
 
-            // ✅ SUPER SAFE BASE64 HANDLER
+            // ✅ FIXED PHOTO LOGIC (same as updateUser)
             try {
-                if (photo && typeof photo === "string") {
+                if (photo && photo.startsWith("data:image")) {
 
-                    // allow both base64 WITH or WITHOUT prefix
-                    let base64Data = photo;
-
-                    if (photo.startsWith("data:image")) {
-                        base64Data = photo.replace(/^data:image\/\w+;base64,/, "");
+                    // remove old photo
+                    if (oldPhoto && fs.existsSync(path.join(UPLOAD_DIR, oldPhoto))) {
+                        fs.unlinkSync(path.join(UPLOAD_DIR, oldPhoto));
                     }
 
-                    base64Data = base64Data.replace(/\s/g, ""); // 🔥 remove spaces/newlines
+                    // extract base64
+                    const matches = photo.match(/^data:(.+);base64,(.+)$/);
 
-                    // validate base64
-                    const buffer = Buffer.from(base64Data, "base64");
-
-                    if (buffer.length > 0) {
-                        const extMatch = photo.match(/^data:image\/(\w+);base64,/);
-                        const ext = extMatch ? extMatch[1] : "jpg"; // default jpg
-
-                        newPhotoName = generatePhotoName(id, `photo.${ext}`);
-
-                        fs.writeFileSync(
-                            path.join(UPLOAD_DIR, newPhotoName),
-                            buffer
-                        );
-
-                        // delete old AFTER success
-                        if (oldPhoto && fs.existsSync(path.join(UPLOAD_DIR, oldPhoto))) {
-                            fs.unlinkSync(path.join(UPLOAD_DIR, oldPhoto));
-                        }
+                    if (!matches) {
+                        return res.end(JSON.stringify({ message: "Invalid base64 format" }));
                     }
+
+                    const mimeType = matches[1];
+                    const base64Data = matches[2];
+                    const ext = mimeType.split("/")[1];
+
+                    const photoName = generatePhotoName(id, `.${ext}`);
+
+                    fs.writeFileSync(
+                        path.join(UPLOAD_DIR, photoName),
+                        Buffer.from(base64Data, "base64")
+                    );
+
+                    newPhotoName = photoName;
                 }
             } catch (e) {
                 console.log("PHOTO ERROR:", e.message);
-                return res.end(JSON.stringify({ message: "Invalid base64 format" }));
+                return res.end(JSON.stringify({ message: "Photo processing failed" }));
             }
-
-            const relateMenuJson = Array.isArray(relate_menu)
-                ? JSON.stringify(relate_menu)
-                : null;
-
-            const relateIngredientsJson = Array.isArray(relate_ingredients)
-                ? JSON.stringify(relate_ingredients)
-                : null;
-
-            const monthsJson = Array.isArray(get_months)
-                ? JSON.stringify(get_months)
-                : null;
 
             const sql = `
                 UPDATE menu SET
-                    name = ?, prices = ?, category = ?, photo = ?,
-                    description = ?, relate_menu = ?, relate_ingredients = ?, get_months = ?
-                WHERE id = ?
+                    name=?, prices=?, category=?, photo=?,
+                    description=?, relate_menu=?, relate_ingredients=?, get_months=?
+                WHERE id=?
             `;
 
-            const values = [
+            db.query(sql, [
                 name || null,
                 pricesJson,
                 category || null,
                 newPhotoName,
                 description || null,
-                relateMenuJson,
-                relateIngredientsJson,
-                monthsJson,
-                id,
-            ];
-
-            db.query(sql, values, (err) => {
+                Array.isArray(relate_menu) ? JSON.stringify(relate_menu) : null,
+                Array.isArray(relate_ingredients) ? JSON.stringify(relate_ingredients) : null,
+                Array.isArray(get_months) ? JSON.stringify(get_months) : null,
+                id
+            ], (err) => {
                 if (err) {
                     return res.end(JSON.stringify({ message: "DB update error", err }));
                 }
 
-                res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
                 res.end(JSON.stringify({
-                    message: "Menu ကို အောင်မြင်စွာ ပြင်ဆင်ပြီးပါပြီ",
-                    id,
+                    message: "Menu updated successfully",
                     photo: newPhotoName
                 }));
             });
