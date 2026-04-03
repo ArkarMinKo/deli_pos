@@ -143,7 +143,6 @@ function updateMenu(req, res, id) {
             name,
             prices,
             category,
-            size,
             description,
             relate_menu,
             relate_ingredients,
@@ -221,7 +220,7 @@ function updateMenu(req, res, id) {
             const sql = `
                 UPDATE menu SET
                     name = ?, prices = ?, category = ?, photo = ?,
-                    size = ?, description = ?, relate_menu = ?, relate_ingredients = ?, get_months = ?
+                    description = ?, relate_menu = ?, relate_ingredients = ?, get_months = ?
                 WHERE id = ?
             `;
 
@@ -230,7 +229,6 @@ function updateMenu(req, res, id) {
                 pricesJson,
                 category || null,
                 newPhotoName,
-                size || null,
                 description || null,
                 relateMenuJson,
                 relateIngredientsJson,
