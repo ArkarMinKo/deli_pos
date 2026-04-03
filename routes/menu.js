@@ -186,9 +186,9 @@ function updateMenu(req, res, id) {
 
                   const mimeType = matches[1];
                   const base64Data = matches[2];
-                  const ext = mimeType.split("/")[1];
+                  const ext = mimeType.split("/")[1].replace("jpeg", "jpg");
 
-                  const photoName = generatePhotoName(id, `.${ext}`);
+                  const photoName = generatePhotoName(id, ext);
 
                   fs.writeFileSync(
                       path.join(UPLOAD_DIR, photoName),
