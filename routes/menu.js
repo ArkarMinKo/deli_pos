@@ -132,8 +132,8 @@ function createMenu(req, res) {
 
 function updateMenu(req, res, id) {
     const form = new formidable.IncomingForm({
-      multiples: false,
-      maxFileSize: 50 * 1024 * 1024,
+        multiples: false,
+        maxFileSize: 50 * 1024 * 1024, // ✅ prevent base64 cut
     });
 
     form.parse(req, (err, fields) => {
@@ -170,40 +170,52 @@ function updateMenu(req, res, id) {
                 }))
             );
         } catch {
-            res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
             return res.end(JSON.stringify({ message: "Invalid prices JSON" }));
         }
 
         db.query("SELECT photo FROM menu WHERE id = ?", [id], (err, result) => {
             if (err || result.length === 0) {
-                res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
                 return res.end(JSON.stringify({ message: "Menu not found" }));
             }
 
             let oldPhoto = result[0].photo;
             let newPhotoName = oldPhoto;
 
+            // ✅ SUPER SAFE BASE64 HANDLER
             try {
-                if (photo && photo.startsWith("data:image")) {
-                    const base64Data = photo.replace(/^data:image\/\w+;base64,/, "");
-                    const ext = photo.substring(
-                        "data:image/".length,
-                        photo.indexOf(";base64")
-                    );
+                if (photo && typeof photo === "string") {
 
-                    newPhotoName = generatePhotoName(id, `photo.${ext}`);
+                    // allow both base64 WITH or WITHOUT prefix
+                    let base64Data = photo;
 
-                    fs.writeFileSync(
-                        path.join(UPLOAD_DIR, newPhotoName),
-                        Buffer.from(base64Data, "base64")
-                    );
+                    if (photo.startsWith("data:image")) {
+                        base64Data = photo.replace(/^data:image\/\w+;base64,/, "");
+                    }
 
-                    if (oldPhoto && fs.existsSync(path.join(UPLOAD_DIR, oldPhoto))) {
-                        fs.unlinkSync(path.join(UPLOAD_DIR, oldPhoto));
+                    base64Data = base64Data.replace(/\s/g, ""); // 🔥 remove spaces/newlines
+
+                    // validate base64
+                    const buffer = Buffer.from(base64Data, "base64");
+
+                    if (buffer.length > 0) {
+                        const extMatch = photo.match(/^data:image\/(\w+);base64,/);
+                        const ext = extMatch ? extMatch[1] : "jpg"; // default jpg
+
+                        newPhotoName = generatePhotoName(id, `photo.${ext}`);
+
+                        fs.writeFileSync(
+                            path.join(UPLOAD_DIR, newPhotoName),
+                            buffer
+                        );
+
+                        // delete old AFTER success
+                        if (oldPhoto && fs.existsSync(path.join(UPLOAD_DIR, oldPhoto))) {
+                            fs.unlinkSync(path.join(UPLOAD_DIR, oldPhoto));
+                        }
                     }
                 }
-            } catch {
-                res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
+            } catch (e) {
+                console.log("PHOTO ERROR:", e.message);
                 return res.end(JSON.stringify({ message: "Invalid base64 format" }));
             }
 
@@ -242,10 +254,12 @@ function updateMenu(req, res, id) {
                 if (err) {
                     return res.end(JSON.stringify({ message: "DB update error", err }));
                 }
+
                 res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
                 res.end(JSON.stringify({
                     message: "Menu ကို အောင်မြင်စွာ ပြင်ဆင်ပြီးပါပြီ",
                     id,
+                    photo: newPhotoName
                 }));
             });
         });
