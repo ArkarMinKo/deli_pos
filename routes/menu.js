@@ -176,18 +176,11 @@ function updateMenu(req, res, id) {
             let oldPhoto = result[0].photo;
             let newPhotoName = oldPhoto;
 
-            // ✅ FIXED PHOTO LOGIC (same as updateUser)
             try {
+                // ✅ CASE 1: New photo uploaded
                 if (photo && photo.startsWith("data:image")) {
 
-                    // remove old photo
-                    if (oldPhoto && fs.existsSync(path.join(UPLOAD_DIR, oldPhoto))) {
-                        fs.unlinkSync(path.join(UPLOAD_DIR, oldPhoto));
-                    }
-
-                    // extract base64
                     const matches = photo.match(/^data:(.+);base64,(.+)$/);
-
                     if (!matches) {
                         return res.end(JSON.stringify({ message: "Invalid base64 format" }));
                     }
@@ -203,8 +196,29 @@ function updateMenu(req, res, id) {
                         Buffer.from(base64Data, "base64")
                     );
 
+                    // delete old AFTER success
+                    if (oldPhoto && fs.existsSync(path.join(UPLOAD_DIR, oldPhoto))) {
+                        fs.unlinkSync(path.join(UPLOAD_DIR, oldPhoto));
+                    }
+
                     newPhotoName = photoName;
                 }
+
+                // ✅ CASE 2: Fix old data (NO EXTENSION)
+                else if (oldPhoto && !path.extname(oldPhoto)) {
+
+                    const possibleExts = [".jpg", ".png", ".jpeg", ".webp"];
+
+                    for (let ext of possibleExts) {
+                        const testPath = path.join(UPLOAD_DIR, oldPhoto + ext);
+
+                        if (fs.existsSync(testPath)) {
+                            newPhotoName = oldPhoto + ext;
+                            break;
+                        }
+                    }
+                }
+
             } catch (e) {
                 console.log("PHOTO ERROR:", e.message);
                 return res.end(JSON.stringify({ message: "Photo processing failed" }));
@@ -233,7 +247,7 @@ function updateMenu(req, res, id) {
                 }
 
                 res.end(JSON.stringify({
-                    message: "Menu updated successfully",
+                    message: "Menu ကို အောင်မြင်စွာ ပြင်ဆင် ပြီးပါပြီ",
                     photo: newPhotoName
                 }));
             });
