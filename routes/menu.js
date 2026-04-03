@@ -177,46 +177,34 @@ function updateMenu(req, res, id) {
             let newPhotoName = oldPhoto;
 
             try {
-                // ✅ CASE 1: New photo uploaded
-                if (photo && photo.startsWith("data:image")) {
+              if (photo && photo.startsWith("data:image")) {
 
-                    const matches = photo.match(/^data:(.+);base64,(.+)$/);
-                    if (!matches) {
-                        return res.end(JSON.stringify({ message: "Invalid base64 format" }));
-                    }
+                  const matches = photo.match(/^data:(.+);base64,(.+)$/);
+                  if (!matches) {
+                      return res.end(JSON.stringify({ message: "Invalid base64 format" }));
+                  }
 
-                    const mimeType = matches[1];
-                    const base64Data = matches[2];
-                    const ext = mimeType.split("/")[1];
+                  const mimeType = matches[1];
+                  const base64Data = matches[2];
+                  const ext = mimeType.split("/")[1];
 
-                    const photoName = generatePhotoName(id, `.${ext}`);
+                  const photoName = generatePhotoName(id, `.${ext}`);
 
-                    fs.writeFileSync(
-                        path.join(UPLOAD_DIR, photoName),
-                        Buffer.from(base64Data, "base64")
-                    );
+                  fs.writeFileSync(
+                      path.join(UPLOAD_DIR, photoName),
+                      Buffer.from(base64Data, "base64")
+                  );
 
-                    // delete old AFTER success
-                    if (oldPhoto && fs.existsSync(path.join(UPLOAD_DIR, oldPhoto))) {
-                        fs.unlinkSync(path.join(UPLOAD_DIR, oldPhoto));
-                    }
+                  if (oldPhoto && fs.existsSync(path.join(UPLOAD_DIR, oldPhoto))) {
+                      fs.unlinkSync(path.join(UPLOAD_DIR, oldPhoto));
+                  }
 
-                    newPhotoName = photoName;
-                }
+                  newPhotoName = photoName;
+              }
 
-                // ✅ CASE 2: Fix old data (NO EXTENSION)
+                // 🔥 FORCE FIX OLD DATA
                 else if (oldPhoto && !path.extname(oldPhoto)) {
-
-                    const possibleExts = [".jpg", ".png", ".jpeg", ".webp"];
-
-                    for (let ext of possibleExts) {
-                        const testPath = path.join(UPLOAD_DIR, oldPhoto + ext);
-
-                        if (fs.existsSync(testPath)) {
-                            newPhotoName = oldPhoto + ext;
-                            break;
-                        }
-                    }
+                    newPhotoName = oldPhoto + ".jpg";
                 }
 
             } catch (e) {
