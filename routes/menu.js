@@ -25,7 +25,6 @@ function createMenu(req, res) {
             name,
             prices,
             category,
-            size,
             description,
             relate_menu,
             relate_ingredients,
