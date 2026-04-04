@@ -575,7 +575,7 @@ function getAllShopsWithMenus(req, res) {
                 processedMenus[menuIndex] = {
                   id: menu.id,
                   shop_id: menu.shop_id,
-                  shop_name: shop.name,
+                  shop_name: shop.shop_name,
                   name: menu.name,
                   prices: typeof menu.prices === "string"
                     ? JSON.parse(menu.prices)
