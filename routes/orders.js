@@ -651,7 +651,9 @@ function getAllOrders(req, res, id) {
       ORDER BY o.id DESC
     `;
 
-    db.query(query, [workType], (err, results) => {
+    const params = workType ? [workType] : [];
+
+    db.query(query, params, (err, results) => {
 
       if (err) {
         res.writeHead(500, { "Content-Type": "application/json" });
