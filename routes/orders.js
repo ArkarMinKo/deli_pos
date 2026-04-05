@@ -640,7 +640,8 @@ function getAllOrders(req, res, id) {
           shop_id VARCHAR(50) PATH '$.shop_id'
         )
       ) jt
-      JOIN shops s ON jt.shop_id = s.id
+      JOIN shops s 
+        ON jt.shop_id COLLATE utf8mb4_unicode_ci = s.id
       WHERE 
         o.orders_done = 0
         AND o.connected_deliveryman = 0
