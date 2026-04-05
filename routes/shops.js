@@ -600,6 +600,74 @@ function offShop(req, res, id) {
   });
 }
 
+function openShopDeli(req, res, id) {
+
+  if (!id) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Shop ID is required" }));
+  }
+
+  const query = `
+    UPDATE shops
+    SET open_shop_deli = 1
+    WHERE id = ?
+  `;
+
+  db.query(query, [id], (err, result) => {
+    if (err) {
+      console.error("Database error:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Database error" }));
+    }
+
+    if (result.affectedRows === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Shop not found" }));
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      success: true,
+      message: "Delivery Service ဖွင့်လိုက်ပါပြီ",
+      deliveryman_id: id
+    }));
+  });
+}
+
+function offShopDeli(req, res, id) {
+
+  if (!id) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Shop ID is required" }));
+  }
+
+  const query = `
+    UPDATE shops
+    SET open_shop = 0
+    WHERE id = ?
+  `;
+
+  db.query(query, [id], (err, result) => {
+    if (err) {
+      console.error("Database error:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Database error" }));
+    }
+
+    if (result.affectedRows === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Shop not found" }));
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      success: true,
+      message: "Delivery Service ပိတ်လိုက်ပါပြီ",
+      deliveryman_id: id
+    }));
+  });
+}
+
 module.exports = {
     loginShop,
     createShops,
@@ -613,5 +681,7 @@ module.exports = {
     getShopsApprove,
     updateShop,
     openShop,
-    offShop
+    offShop,
+    openShopDeli,
+    offShopDeli
 };
