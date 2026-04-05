@@ -601,48 +601,76 @@ function getAllSpecialOrders(req, res) {
 
 }
 
-function getAllOrders(req, res) {
+function getAllOrders(req, res, id) {
 
-  const query = `
-    SELECT 
-      o.*
-    FROM orders o
-    JOIN users u ON o.userId = u.id
-    JOIN JSON_TABLE(
-      o.orders,
-      '$[*]' COLUMNS (
-        status INT PATH '$.status'
-      )
-    ) jt
-    WHERE 
-      o.orders_done = 0
-      AND o.connected_deliveryman = 0
-      AND u.special = 0
-    GROUP BY o.id
-    HAVING COUNT(*) = SUM(CASE WHEN jt.status = 1 THEN 1 ELSE 0 END)
-    ORDER BY o.id DESC
-  `;
+  const deliverySql = `SELECT work_type FROM deliverymen WHERE id = ?`;
 
-  db.query(query, (err, results) => {
+  db.query(deliverySql, [id], (err, deliveryResults) => {
 
     if (err) {
       res.writeHead(500, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({
-        success: false,
-        message: "Database error",
-        error: err.message
-      }));
+      return res.end(JSON.stringify({ success: false, message: "Database error", error: err.message }));
     }
 
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({
-      success: true,
-      count: results.length,
-      data: results
-    }));
+    if (deliveryResults.length === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ success: false, message: "Deliveryman not found" }));
+    }
+
+    const workType = deliveryResults[0].work_type;
+
+    let extraCondition = "";
+
+    if (!workType) {
+      extraCondition = `AND s.open_shop_deli = 0`;
+    }
+    else {
+      extraCondition = `AND o.shop_id = '${workType}' AND s.open_shop_deli = 1`;
+    }
+
+    const query = `
+      SELECT 
+        o.*
+      FROM orders o
+      JOIN users u ON o.userId = u.id
+      JOIN shops s ON o.shop_id = s.id
+      JOIN JSON_TABLE(
+        o.orders,
+        '$[*]' COLUMNS (
+          status INT PATH '$.status'
+        )
+      ) jt
+      WHERE 
+        o.orders_done = 0
+        AND o.connected_deliveryman = 0
+        AND u.special = 0
+        ${extraCondition}
+      GROUP BY o.id
+      HAVING COUNT(*) = SUM(CASE WHEN jt.status = 1 THEN 1 ELSE 0 END)
+      ORDER BY o.id DESC
+    `;
+
+    db.query(query, (err, results) => {
+
+      if (err) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({
+          success: false,
+          message: "Database error",
+          error: err.message
+        }));
+      }
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        success: true,
+        count: results.length,
+        data: results
+      }));
+
+    });
 
   });
-
 }
 
 async function connectedDeliverymen(req, res) {
