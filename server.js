@@ -349,7 +349,11 @@ const server = http.createServer(async (req, res) => {
     // Orders CRUD
     else if (pathName === "/orders" && method === "POST") order.postOrder(req, res);
     else if (pathName === "/orders" && method === "GET") order.getAllSpecialOrders(req, res);
-    else if (pathName === "/all-orders" && method === "GET") order.getAllOrders(req, res);
+
+    else if (pathName.startsWith("/all-orders/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        order.getAllOrders(req, res, id);
+    }
 
     else if (pathName.startsWith("/orders-by-shop/") && method === "GET") {
         const id = pathName.split("/")[2];
