@@ -353,10 +353,24 @@ function putDeliverymen(req, res, id) {
 function getAllDeliverymen(req, res) {
     const sql = `
         SELECT 
-        id, name, email, phone, photo, location, status,
-        work_type, rating, finished_order_count, assign_order, created_at
-        FROM deliverymen
-        ORDER BY created_at DESC
+            d.id, 
+            d.name, 
+            d.email, 
+            d.phone, 
+            d.photo, 
+            d.location, 
+            d.status,
+            CASE 
+                WHEN d.work_type IS NULL THEN NULL
+                ELSE s.shop_name
+            END AS work_type,
+            d.rating, 
+            d.finished_order_count, 
+            d.assign_order, 
+            d.created_at
+        FROM deliverymen d
+        LEFT JOIN shops s ON d.work_type = s.id
+        ORDER BY d.created_at DESC
     `;
 
     db.query(sql, (err, results) => {
