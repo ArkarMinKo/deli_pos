@@ -23,7 +23,7 @@ function loginShop(req, res, body) {
     }
 
     db.query(
-      "SELECT id, shopkeeper_name, shop_name, email, password, permission FROM shops WHERE email=?",
+      "SELECT id, shopkeeper_name, shop_name, email, password, permission, have_deliverymen FROM shops WHERE email=?",
       [email],
       async (err, rows) => {
         if (err) {
@@ -66,7 +66,8 @@ function loginShop(req, res, body) {
         res.end(
           JSON.stringify({
             message: "ဝင်ရောက်မှုအောင်မြင်ပါပြီ ကြိုဆိုပါသည်",
-            id: shop.id
+            id: shop.id,
+            have_deliverymen: shop.have_deliverymen
           })
         );
       }
