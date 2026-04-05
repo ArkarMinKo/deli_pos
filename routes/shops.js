@@ -608,30 +608,52 @@ function openShopDeli(req, res, id) {
     return res.end(JSON.stringify({ error: "Shop ID is required" }));
   }
 
-  const query = `
-    UPDATE shops
-    SET open_shop_deli = 1
-    WHERE id = ?
+  const checkQuery = `
+    SELECT id 
+    FROM deliverymen
+    WHERE work_type = ?
+    LIMIT 1
   `;
 
-  db.query(query, [id], (err, result) => {
+  db.query(checkQuery, [id], (err, result) => {
     if (err) {
       console.error("Database error:", err);
       res.writeHead(500, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({ error: "Database error" }));
     }
 
-    if (result.affectedRows === 0) {
-      res.writeHead(404, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ error: "Shop not found" }));
+    if (result.length === 0) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        error: "ဒီ shop အတွက် deliveryman မရှိပါသဖြင့် ဖွင့်ခွင့်မရှိပါ"
+      }));
     }
 
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({
-      success: true,
-      message: "Delivery Service ဖွင့်လိုက်ပါပြီ",
-      deliveryman_id: id
-    }));
+    const updateQuery = `
+      UPDATE shops
+      SET open_shop_deli = 1
+      WHERE id = ?
+    `;
+
+    db.query(updateQuery, [id], (err, updateResult) => {
+      if (err) {
+        console.error("Database error:", err);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Database error" }));
+      }
+
+      if (updateResult.affectedRows === 0) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Shop not found" }));
+      }
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        success: true,
+        message: "Delivery Service ဖွင့်လိုက်ပါပြီ",
+        shop_id: id
+      }));
+    });
   });
 }
 
