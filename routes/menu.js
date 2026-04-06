@@ -663,11 +663,81 @@ function countByShopId(req, res, shopId) {
   });
 }
 
+function openMenu(req, res, id) {
+
+  if (!id) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Menu ID is required" }));
+  }
+
+  const query = `
+    UPDATE menu
+    SET open_menu = 1
+    WHERE id = ?
+  `;
+
+  db.query(query, [id], (err, result) => {
+    if (err) {
+      console.error("Database error:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Database error" }));
+    }
+
+    if (result.affectedRows === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Menu not found" }));
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      success: true,
+      message: "Menu ဖွင့်လှစ်လိုက်ပါပြီ",
+      deliveryman_id: id
+    }));
+  });
+}
+
+function offMenu(req, res, id) {
+
+  if (!id) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Menu ID is required" }));
+  }
+
+  const query = `
+    UPDATE menu
+    SET open_menu = 0
+    WHERE id = ?
+  `;
+
+  db.query(query, [id], (err, result) => {
+    if (err) {
+      console.error("Database error:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Database error" }));
+    }
+
+    if (result.affectedRows === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Menu not found" }));
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      success: true,
+      message: "Menu ပိတ်လိုက်ပါပြီ",
+      deliveryman_id: id
+    }));
+  });
+}
+
 module.exports = { 
     createMenu,
     updateMenu,
     deleteMenu,
     getMenuByShopId,
     countByShopId,
-    getAllShopsWithMenus
+    getAllShopsWithMenus,
+    openMenu,
+    offMenu
 };

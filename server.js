@@ -346,6 +346,16 @@ const server = http.createServer(async (req, res) => {
         menu.countByShopId(req, res, id);
     }
 
+    else if (pathName.startsWith("/open-menu/") && method === "PATCH") {
+        const id = pathName.split("/")[2];
+        menu.openMenu(req, res, id);
+    }
+
+    else if (pathName.startsWith("/off-menu/") && method === "PATCH") {
+        const id = pathName.split("/")[2];
+        menu.offMenu(req, res, id);
+    }
+
     // Orders CRUD
     else if (pathName === "/orders" && method === "POST") order.postOrder(req, res);
     else if (pathName === "/orders" && method === "GET") order.getAllSpecialOrders(req, res);
