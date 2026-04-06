@@ -214,15 +214,7 @@ function getOrdersByShopId(req, res, shopId) {
       );
 
       return {
-        id: row.id,
-        userId: row.userId,
-        name: row.name,
-        phone: row.phone,
-        type: row.type,
-        timer: row.timer,
-        remark: row.remark,
-        created_at: row.created_at,
-        orders_done: row.orders_done,
+        ...row,
         orders: matchedItems
       };
 
@@ -369,62 +361,6 @@ async function rejectedOrder(req, res) {
     }
   });
 }
-
-// async function approveAllOrderItems(req, res, orderId) {
-//   let body = "";
-
-//   req.on("data", chunk => {
-//     body += chunk;
-//   });
-
-//   req.on("end", async () => {
-//     try {
-//       const { shopId } = JSON.parse(body);
-
-//       if (!orderId || !shopId) {
-//         res.writeHead(400, { "Content-Type": "application/json" });
-//         return res.end(JSON.stringify({ message: "orderId and shopId required" }));
-//       }
-
-//       const [rows] = await db.promise().query(
-//         "SELECT orders FROM orders WHERE id = ?",
-//         [orderId]
-//       );
-
-//       if (rows.length === 0) {
-//         res.writeHead(404, { "Content-Type": "application/json" });
-//         return res.end(JSON.stringify({ message: "Order not found" }));
-//       }
-
-//       let orderItems = rows[0].orders;
-
-//       if (typeof orderItems === "string") {
-//         orderItems = JSON.parse(orderItems);
-//       }
-
-//       // ✅ Only approve items with same shopId
-//       orderItems = orderItems.map(item => {
-//         if (item.shop_id === shopId) {
-//           return { ...item, status: 1 };
-//         }
-//         return item;
-//       });
-
-//       await db.promise().query(
-//         "UPDATE orders SET orders = ? WHERE id = ?",
-//         [JSON.stringify(orderItems), orderId]
-//       );
-
-//       res.writeHead(200, { "Content-Type": "application/json" });
-//       res.end(JSON.stringify({ message: "Shop order items approved successfully" }));
-
-//     } catch (err) {
-//       console.error(err);
-//       res.writeHead(500, { "Content-Type": "application/json" });
-//       res.end(JSON.stringify({ message: "Server error" }));
-//     }
-//   });
-// }
 
 async function approveAllOrderItems(req, res, orderId) {
   let body = "";
