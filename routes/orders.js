@@ -172,16 +172,7 @@ function getOrdersByShopId(req, res, shopId) {
 
   const query = `
     SELECT DISTINCT
-      o.id,
-      o.userId,
-      o.name,
-      o.phone,
-      o.type,
-      o.timer,
-      o.remark,
-      o.orders,
-      o.created_at,
-      o.orders_done
+      o.*
     FROM orders o,
     JSON_TABLE(
       o.orders,
@@ -189,7 +180,7 @@ function getOrdersByShopId(req, res, shopId) {
         shop_id VARCHAR(50) PATH '$.shop_id'
       )
     ) jt
-    WHERE jt.shop_id = ? ORDER BY o.id DESC
+    WHERE jt.shop_id = ? AND o.orders_done = 0 ORDER BY o.id DESC
   `;
 
   db.query(query, [shopId], (err, results) => {
@@ -793,7 +784,7 @@ async function finishOrder(req, res, orderId) {
       // update order
       await db.promise().query(
         `UPDATE orders 
-         SET orders_done = 1, esign = ?
+         SET orders_done = 1, orders_pickup = 1, esign = ?
          WHERE id = ?`,
         [imagePath, orderId]
       );
@@ -884,6 +875,40 @@ async function finishOrder(req, res, orderId) {
   });
 }
 
+function pickupOrder(req, res, id) {
+
+  if (!id) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Order ID is required" }));
+  }
+
+  const query = `
+    UPDATE orders
+    SET orders_pickup = 1
+    WHERE id = ?
+  `;
+
+  db.query(query, [id], (err, result) => {
+    if (err) {
+      console.error("Database error:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Database error" }));
+    }
+
+    if (result.affectedRows === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Order not found" }));
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      success: true,
+      message: "Order ကို Delivery သမားဆီ ထည့်ပေးလိုက်ပါပြီ",
+      deliveryman_id: id
+    }));
+  });
+}
+
 async function getReport(req, res) {
   try {
 
@@ -892,7 +917,6 @@ async function getReport(req, res) {
       "SELECT * FROM orders WHERE orders_done = 1"
     );
 
-    // password မပါအောင် select
     const [deliverymen] = await db.promise().query(`
       SELECT id,name,email,phone
       FROM deliverymen
@@ -948,4 +972,17 @@ async function getReport(req, res) {
   }
 }
 
-module.exports = { postOrder, getOrdersByShopId, approvedOrder, rejectedOrder, approveAllOrderItems, rejectAllOrderItems, getAllSpecialOrders, getAllOrders, connectedDeliverymen, finishOrder, getReport };
+module.exports = {
+  postOrder,
+  getOrdersByShopId,
+  approvedOrder,
+  rejectedOrder,
+  approveAllOrderItems,
+  rejectAllOrderItems,
+  getAllSpecialOrders,
+  getAllOrders,
+  connectedDeliverymen,
+  finishOrder,
+  getReport,
+  pickupOrder
+};
