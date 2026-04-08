@@ -398,7 +398,7 @@ const server = http.createServer(async (req, res) => {
     // --- Report ---
     else if (pathName === "/report" && method === "GET") order.getReport(req, res);
 
-    else if(pathName.startsWith("/report-shops/") && method === "POST") {
+    else if(pathName.startsWith("/report-shops/") && method === "GET") {
         const id = pathName.split("/")[2];
         order.getReportByShop(req, res, id)
     }
