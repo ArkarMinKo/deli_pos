@@ -919,12 +919,6 @@ async function getReport(req, res) {
 
 async function getReportByShop(req, res, id) {
   try {
-
-    // orders_done = 1 orders
-    // const [orders] = await db.promise().query(
-    //   "SELECT * FROM orders WHERE orders_done = 1"
-    // );
-
     const [orders] = await db.promise().query(
         `
           SELECT DISTINCT
@@ -971,6 +965,8 @@ async function getReportByShop(req, res, id) {
         } catch {
           finishedOrders = [];
         }
+        console.log(finishedOrders);
+        console.log(order.id)
 
         if (finishedOrders.includes(order.id)) {
           deliverymanInfo = dm;
