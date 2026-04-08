@@ -949,38 +949,35 @@ async function getReportByShop(req, res, id) {
         LEFT JOIN shops s ON d.work_type = s.id
     `);
 
+    const clean = (v) => String(v || "").trim().toUpperCase();
+
+    const deliveryMap = {};
+
+    for (let dm of deliverymen) {
+      if (!dm.finished_orders) continue;
+
+      let finishedOrders = [];
+
+      try {
+        finishedOrders = JSON.parse(dm.finished_orders);
+      } catch {
+        finishedOrders = [];
+      }
+
+      for (let oid of finishedOrders) {
+        deliveryMap[clean(oid)] = dm;
+      }
+    }
+
     const report = [];
 
     for (let order of orders) {
-
-      let deliverymanInfo = null;
-
-      for (let dm of deliverymen) {
-        console.log(dm.finished_orders);
-        console.log(order.id)
-
-        if (!dm.finished_orders) continue;
-
-        let finishedOrders;
-
-        try {
-          finishedOrders = JSON.parse(dm.finished_orders);
-        } catch {
-          finishedOrders = [];
-        }
-
-        if (finishedOrders.includes(order.id)) {
-          deliverymanInfo = dm;
-          break;
-        }
-
-      }
+      const deliverymanInfo = deliveryMap[clean(order.id)] || null;
 
       report.push({
         order: order,
         deliveryman: deliverymanInfo
       });
-
     }
 
     res.writeHead(200, { "Content-Type": "application/json" });
