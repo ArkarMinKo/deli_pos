@@ -398,6 +398,11 @@ const server = http.createServer(async (req, res) => {
     // --- Report ---
     else if (pathName === "/report" && method === "GET") order.getReport(req, res);
 
+    else if(pathName.startsWith("/report-shops/") && method === "POST") {
+        const id = pathName.split("/")[2];
+        order.getReportByShop(req, res, id)
+    }
+
     // --- 404 fallback ---
     else {
         res.writeHead(404, { "Content-Type": "application/json" });

@@ -908,6 +908,84 @@ async function getReport(req, res) {
   }
 }
 
+async function getReportByShop(req, res, id) {
+  try {
+
+    // orders_done = 1 orders
+    // const [orders] = await db.promise().query(
+    //   "SELECT * FROM orders WHERE orders_done = 1"
+    // );
+
+    const [orders] = await db.promise().query(
+        `
+          SELECT DISTINCT
+        o.*
+        FROM orders o,
+        JSON_TABLE(
+          o.orders,
+          '$[*]' COLUMNS (
+            shop_id VARCHAR(50) PATH '$.shop_id'
+          )
+        ) jt
+        WHERE jt.shop_id = ? AND o.orders_done = 1 ORDER BY o.id DESC
+      `, [id]
+    )
+
+    const [deliverymen] = await db.promise().query(`
+      SELECT id,name,email,phone
+      FROM deliverymen
+    `);
+
+    const report = [];
+
+    for (let order of orders) {
+
+      let deliverymanInfo = null;
+
+      for (let dm of deliverymen) {
+
+        if (!dm.finished_orders) continue;
+
+        let finishedOrders;
+
+        try {
+          finishedOrders = JSON.parse(dm.finished_orders);
+        } catch {
+          finishedOrders = [];
+        }
+
+        if (finishedOrders.includes(order.id)) {
+          deliverymanInfo = dm;
+          break;
+        }
+
+      }
+
+      report.push({
+        order: order,
+        deliveryman: deliverymanInfo
+      });
+
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      success: true,
+      total: report.length,
+      data: report
+    }));
+
+  } catch (err) {
+
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      success: false,
+      error: err.message
+    }));
+
+  }
+}
+
 module.exports = {
   postOrder,
   getOrdersByShopId,
@@ -920,5 +998,6 @@ module.exports = {
   connectedDeliverymen,
   finishOrder,
   getReport,
-  pickupOrder
+  pickupOrder,
+  getReportByShop
 };
