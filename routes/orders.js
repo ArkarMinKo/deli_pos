@@ -850,7 +850,7 @@ async function getReport(req, res) {
 
     // orders_done = 1 orders
     const [orders] = await db.promise().query(
-      "SELECT * FROM orders WHERE orders_done = 1"
+      "SELECT * FROM orders WHERE orders_done = 1 ORDER BY id DESC"
     );
 
     const [deliverymen] = await db.promise().query(`
