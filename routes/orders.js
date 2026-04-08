@@ -854,8 +854,17 @@ async function getReport(req, res) {
     );
 
     const [deliverymen] = await db.promise().query(`
-      SELECT id,name,email,phone
-      FROM deliverymen
+      SELECT 
+            d.id, 
+            d.name, 
+            d.phone, 
+            d.status,
+            CASE 
+                WHEN d.work_type IS NULL THEN NULL
+                ELSE s.shop_name
+            END AS work_type
+        FROM deliverymen d
+        LEFT JOIN shops s ON d.work_type = s.id
     `);
 
     const report = [];
@@ -932,8 +941,17 @@ async function getReportByShop(req, res, id) {
     )
 
     const [deliverymen] = await db.promise().query(`
-      SELECT id,name,email,phone
-      FROM deliverymen
+      SELECT 
+            d.id, 
+            d.name, 
+            d.phone, 
+            d.status,
+            CASE 
+                WHEN d.work_type IS NULL THEN NULL
+                ELSE s.shop_name
+            END AS work_type
+        FROM deliverymen d
+        LEFT JOIN shops s ON d.work_type = s.id
     `);
 
     const report = [];
