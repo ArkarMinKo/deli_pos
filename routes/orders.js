@@ -956,6 +956,8 @@ async function getReportByShop(req, res, id) {
       let deliverymanInfo = null;
 
       for (let dm of deliverymen) {
+        console.log(dm.finishedOrders);
+        console.log(order.id)
 
         if (!dm.finished_orders) continue;
 
