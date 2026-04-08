@@ -958,10 +958,14 @@ async function getReportByShop(req, res, id) {
 
       let finishedOrders = [];
 
-      try {
-        finishedOrders = JSON.parse(dm.finished_orders);
-      } catch {
-        finishedOrders = [];
+      if (Array.isArray(dm.finished_orders)) {
+        finishedOrders = dm.finished_orders;
+      } else {
+        try {
+          finishedOrders = JSON.parse(dm.finished_orders);
+        } catch {
+          finishedOrders = [];
+        }
       }
 
       for (let oid of finishedOrders) {
