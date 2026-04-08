@@ -940,7 +940,7 @@ async function getReportByShop(req, res, id) {
             d.name, 
             d.phone, 
             d.status,
-            d.finished_orders
+            d.finished_orders,
             CASE 
                 WHEN d.work_type IS NULL THEN NULL
                 ELSE s.shop_name
