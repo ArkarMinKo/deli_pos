@@ -353,6 +353,7 @@ function getShops(req, res) {
       have_deliverymen,
       deli_fees_method,
       open_shop,
+      open_shop_deli,
       permission, 
       created_at
     FROM shops
@@ -391,6 +392,7 @@ function getShopsById(req, res, id) {
         have_deliverymen,
         deli_fees_method,
         open_shop,
+        open_shop_deli,
         permission, 
         created_at
         FROM shops
