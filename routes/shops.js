@@ -415,6 +415,30 @@ function getShopsById(req, res, id) {
     })
 }
 
+function getShopDeliOpen(req, res, id) {
+    const sql = `
+        SELECT 
+        open_shop_deli,
+        FROM shops
+        WHERE id = ?
+        LIMIT 1
+    `
+
+    db.query(sql, [id], (err, results) => {
+        if (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Database error" }));
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ error: "Account not found" });
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(results));
+    })
+}
+
 function approveShop(req, res, idParam) {
   const id = idParam || req.url.split("/")[3];
   db.query("SELECT shopkeeper_name, email FROM shops WHERE id=?", [id], (err, rows) => {
@@ -708,5 +732,6 @@ module.exports = {
     openShop,
     offShop,
     openShopDeli,
-    offShopDeli
+    offShopDeli,
+    getShopDeliOpen
 };

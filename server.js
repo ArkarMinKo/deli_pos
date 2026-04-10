@@ -171,6 +171,11 @@ const server = http.createServer(async (req, res) => {
         shops.getShopsById(req, res, id);
     }
 
+    else if (pathName.startsWith("/shops-deli-open/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        shops.getShopDeliOpen(req, res, id);
+    }
+
     else if (pathName.startsWith("/shops/") && method === "PUT") {
         const id = pathName.split("/")[2];
         shops.updateShop(req, res, id);
