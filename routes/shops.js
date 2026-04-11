@@ -418,7 +418,7 @@ function getShopsById(req, res, id) {
 function getShopDeliOpen(req, res, id) {
     const sql = `
         SELECT 
-        open_shop_deli,
+        open_shop_deli
         FROM shops
         WHERE id = ?
         LIMIT 1
