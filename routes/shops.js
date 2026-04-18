@@ -128,11 +128,12 @@ function createShops(req, res) {
         const paymentName = JSON.stringify([fields.payment_name]);
         const paymentPhone = JSON.stringify([fields.payment_phone]);
         const paymentMethod = JSON.stringify([fields.payment_method]);
+        const categories = JSON.stringify(fields.categories);
 
         // --- Insert shop ---
         db.query(
           `INSERT INTO shops
-          (id, shopkeeper_name, shop_name, email, phone, password, photo, items, location, address,
+          (id, shopkeeper_name, shop_name, email, phone, password, photo, items, categories, location, address,
            payment_name, payment_phone, payment_method, have_deliverymen, deli_fees_method)
           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
           [
@@ -144,6 +145,7 @@ function createShops(req, res) {
             hashedPassword,
             photoFile || null,
             parseInt(fields.items) || 0,
+            categories,
             fields.location || null,
             fields.address || null,
             paymentName,
@@ -418,7 +420,7 @@ function getShopsById(req, res, id) {
 function getShopDeliOpen(req, res, id) {
     const sql = `
         SELECT 
-        open_shop_deli
+        open_shop_deli  
         FROM shops
         WHERE id = ?
         LIMIT 1
