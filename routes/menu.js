@@ -303,7 +303,7 @@ function deleteMenu(req, res, id) {
 function getMenuByShopId(req, res, shopId) {
   const shopSql = `
     SELECT shop_name, shopkeeper_name, photo, phone, address, payment_name, payment_phone, payment_method, have_deliverymen, deli_fees_method, open_shop, location 
-    FROM shops 
+    FROM shops WHERE permission = 'approved'
     WHERE id = ?
   `;
 
