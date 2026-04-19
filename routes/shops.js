@@ -135,7 +135,7 @@ function createShops(req, res) {
           `INSERT INTO shops
           (id, shopkeeper_name, shop_name, email, phone, password, photo, items, categories, location, address,
            payment_name, payment_phone, payment_method, have_deliverymen, deli_fees_method)
-          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
           [
             id,
             fields.shopkeeper_name,
@@ -284,7 +284,8 @@ function getShopsPending(req, res) {
       items, 
       address, 
       location, 
-      status, 
+      status,
+      categories,
       permission, 
       created_at
     FROM shops
@@ -316,7 +317,8 @@ function getShopsApprove(req, res) {
       items, 
       address, 
       location, 
-      status, 
+      status,
+      categories,
       permission, 
       created_at
     FROM shops
@@ -348,7 +350,8 @@ function getShops(req, res) {
       items, 
       address, 
       location, 
-      status, 
+      status,
+      categories,
       payment_name,
       payment_phone,
       payment_method,
@@ -388,6 +391,7 @@ function getShopsById(req, res, id) {
         address, 
         location, 
         status,
+        categories,
         payment_name,
         payment_phone,
         payment_method,
