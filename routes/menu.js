@@ -630,7 +630,7 @@ function getAllShopsWithMenus(req, res) {
 function getAllShopsWithMenusByCategories(req, res, category) {
   const shopSql = `
     SELECT id, shop_name, shopkeeper_name, photo, phone, categories, address, payment_name, payment_phone, payment_method, have_deliverymen, deli_fees_method, open_shop, location
-    FROM shops WHERE JSON_CONTAINS(CAST(categories AS JSON), ?, '$')
+    FROM shops WHERE permission = 'approved' AND JSON_CONTAINS(CAST(categories AS JSON), ?, '$')
     ORDER BY id DESC
   `;
 
