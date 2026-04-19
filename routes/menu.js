@@ -627,6 +627,177 @@ function getAllShopsWithMenus(req, res) {
   });
 }
 
+function getAllShopsWithMenusByCategories(req, res, category) {
+  const shopSql = `
+    SELECT id, shop_name, shopkeeper_name, photo, phone, categories, address, payment_name, payment_phone, payment_method, have_deliverymen, deli_fees_method, open_shop, location
+    FROM shops WHERE permission = 'approved' AND JSON_CONTAINS(categories, ?, '$')
+    ORDER BY id DESC
+  `;
+
+  db.query(shopSql, [JSON.stringify(Number(category))], (err, shops) => {
+    if (err) {
+      res.writeHead(500, { "Content-Type": "application/json; charset=utf-8" });
+      return res.end(JSON.stringify({ message: "Shop fetch error" }));
+    }
+
+    if (!shops || shops.length === 0) {
+      res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+      return res.end(JSON.stringify({ shops: [] }));
+    }
+
+    const categoriesSql = `SELECT id, name FROM categories`;
+
+    db.query(categoriesSql, (err, categories) => {
+      if (err) {
+        res.writeHead(500, { "Content-Type": "application/json; charset=utf-8" });
+        return res.end(JSON.stringify({ message: "Category fetch error" }));
+      }
+
+      const categoryMap = {};
+      categories.forEach(c => (categoryMap[c.id] = c.name));
+
+      let processedShops = new Array(shops.length);
+      let shopPending = shops.length;
+
+      shops.forEach((shop, shopIndex) => {
+        const menuSql = `
+          SELECT * FROM menu
+          WHERE shop_id = ?
+          ORDER BY created_at DESC
+        `;
+
+        db.query(menuSql, [shop.id], (err, menus) => {
+          if (err) menus = [];
+
+          let processedMenus = new Array(menus.length);
+          let menuPending = menus.length;
+
+          if (menuPending === 0) {
+            processedShops[shopIndex] = { shop, menus: [] };
+            shopPending--;
+            if (shopPending === 0) sendResponse();
+            return;
+          }
+
+          menus.forEach((menu, menuIndex) => {
+            let relateMenuIds = [];
+            let relateIngredientsIds = [];
+
+            try {
+              relateMenuIds = Array.isArray(menu.relate_menu)
+                ? menu.relate_menu
+                : JSON.parse(menu.relate_menu || "[]");
+            } catch {}
+
+            try {
+              relateIngredientsIds = Array.isArray(menu.relate_ingredients)
+                ? menu.relate_ingredients
+                : JSON.parse(menu.relate_ingredients || "[]");
+            } catch {}
+
+            const fetchRelateMenu = new Promise(resolve => {
+              if (relateMenuIds.length === 0) return resolve([]);
+
+              const sql = `
+                SELECT id, name, prices, category, photo
+                FROM menu
+                WHERE id IN (${relateMenuIds.map(() => "?").join(",")})
+              `;
+
+              db.query(sql, relateMenuIds, (err, result) => {
+                if (err) return resolve([]);
+
+                resolve(
+                  result.map(m => ({
+                    id: m.id,
+                    name: m.name,
+                    prices: m.prices,
+                    category: categoryMap[m.category] || m.category,
+                    photo: m.photo
+                  }))
+                );
+              });
+            });
+
+            const fetchRelateIngredients = new Promise(resolve => {
+              if (relateIngredientsIds.length === 0) return resolve([]);
+
+              const sql = `
+                SELECT id, name, photo, prices
+                FROM ingredients
+                WHERE id IN (${relateIngredientsIds.map(() => "?").join(",")})
+              `;
+
+              db.query(sql, relateIngredientsIds, (err, result) => {
+                if (err) return resolve([]);
+
+                resolve(
+                  result.map(i => ({
+                    id: i.id,
+                    name: i.name,
+                    photo: i.photo,
+                    prices: i.prices
+                  }))
+                );
+              });
+            });
+
+            Promise.all([fetchRelateMenu, fetchRelateIngredients]).then(
+              ([relatedMenus, relatedIngredients]) => {
+                processedMenus[menuIndex] = {
+                  id: menu.id,
+                  shop_id: menu.shop_id,
+                  shop_name: shop.shop_name,
+                  name: menu.name,
+                  prices: typeof menu.prices === "string"
+                    ? JSON.parse(menu.prices)
+                    : menu.prices,
+                  category_id: menu.category,
+                  category: categoryMap[menu.category] || menu.category,
+                  photo: menu.photo,
+                  description: menu.description,
+                  complete_order: menu.complete_order,
+                  rating: menu.rating,
+                  rating_count: menu.rating_count,
+                  open_shop: shop.open_shop,
+                  open_menu: menu.open_menu,
+                  created_at: menu.created_at,
+                  get_months: (() => {
+                    try {
+                      return Array.isArray(menu.get_months)
+                        ? menu.get_months
+                        : JSON.parse(menu.get_months || '["All months"]');
+                    } catch {
+                      return ["All months"];
+                    }
+                  })(),
+                  relate_menu: relatedMenus,
+                  relate_ingredients: relatedIngredients
+                };
+
+                menuPending--;
+                if (menuPending === 0) {
+                  processedShops[shopIndex] = {
+                    shop,
+                    menus: processedMenus
+                  };
+                  shopPending--;
+                  if (shopPending === 0) sendResponse();
+                }
+              }
+            );
+          });
+        });
+      });
+
+      function sendResponse() {
+        res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+        res.end(JSON.stringify({ shops: processedShops }));
+      }
+    });
+  });
+}
+
 function countByShopId(req, res, shopId) {
   const ingredientQuery =
     "SELECT COUNT(*) AS ingredientCount FROM ingredients WHERE shop_id = ?";
@@ -741,6 +912,7 @@ module.exports = {
     getMenuByShopId,
     countByShopId,
     getAllShopsWithMenus,
+    getAllShopsWithMenusByCategories,
     openMenu,
     offMenu
 };
