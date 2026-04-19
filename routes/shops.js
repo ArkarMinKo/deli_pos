@@ -124,11 +124,21 @@ function createShops(req, res) {
         // --- Hash password ---
         const hashedPassword = await bcrypt.hash(fields.password, 10);
 
+        let categories = [];
+
+        try {
+          categories = Array.isArray(fields.category)
+            ? fields.category
+            : JSON.parse(fields.category || "[]");
+        } catch {
+          categories = [];
+        }
+
         // --- Prepare JSON payment (single -> array) ---
         const paymentName = JSON.stringify([fields.payment_name]);
         const paymentPhone = JSON.stringify([fields.payment_phone]);
         const paymentMethod = JSON.stringify([fields.payment_method]);
-        const categories = JSON.stringify(fields.categories);
+        categories = JSON.stringify(categories);
 
         // --- Insert shop ---
         db.query(
