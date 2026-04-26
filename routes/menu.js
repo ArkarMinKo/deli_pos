@@ -427,7 +427,7 @@ function getMenuByShopId(req, res, shopId) {
                 rating_count: menu.rating_count,
                 open_shop: shopResult.open_shop,
                 open_menu: menu.open_menu,
-                shop_location: shopResult.location,
+                shop_location: shopInfo.location,
                 created_at: menu.created_at,
                 get_months: (() => {
                   try {
@@ -592,6 +592,7 @@ function getAllShopsWithMenus(req, res) {
                   rating_count: menu.rating_count,
                   open_shop: shop.open_shop,
                   open_menu: menu.open_menu,
+                  shop_location: shop.location,
                   created_at: menu.created_at,
                   get_months: (() => {
                     try {
