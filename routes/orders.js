@@ -31,6 +31,7 @@ function postOrder(req, res) {
         discount,
         tax,
         extra,
+        delivery_fees,
         grand_total,
         payment_method,
         payment_phone,
@@ -99,13 +100,14 @@ function postOrder(req, res) {
             discount,
             tax,
             extra,
+            delivery_fees,
             grand_total,
             payment_method,
             payment_phone,
             payment_name,
             payment_photo
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
         const values = [
@@ -123,6 +125,7 @@ function postOrder(req, res) {
           discount || 0,
           tax || 0,
           extra || 0,
+          delivery_fees || 0,
           grand_total,
           payment_method,
           payment_phone,
