@@ -380,6 +380,11 @@ const server = http.createServer(async (req, res) => {
         order.getOrdersByShopId(req, res, id);
     }
 
+    else if (pathName.startsWith("/orders-by-user/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        order.getOrdersByUserId(req, res, id);
+    }
+
     else if (pathName === "/orders-approved" && method === "PATCH") order.approvedOrder(req, res);
     else if (pathName === "/orders-rejected" && method === "PATCH") order.rejectedOrder(req, res);
 

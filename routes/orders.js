@@ -1073,6 +1073,7 @@ async function getReportByShop(req, res, id) {
 module.exports = {
   postOrder,
   getOrdersByShopId,
+  getOrdersByUserId,
   approvedOrder,
   rejectedOrder,
   approveAllOrderItems,
