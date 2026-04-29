@@ -257,11 +257,64 @@ function getOrdersByUserId(req, res, userId) {
       }));
     }
 
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({
-      success: true,
-      data: results
-    }));
+    try {
+      // 1. collect all shop_ids
+      let shopIds = new Set();
+
+      results.forEach(order => {
+        if (order.orders) {
+          order.orders.forEach(item => {
+            shopIds.add(item.shop_id);
+          });
+        }
+      });
+
+      shopIds = Array.from(shopIds);
+
+      // 2. get shop locations
+      const shopQuery = `SELECT id, location FROM shops WHERE id IN (?)`;
+
+      db.query(shopQuery, [shopIds], (err2, shops) => {
+
+        if (err2) {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({
+            success: false,
+            message: err2.sqlMessage || "Shop query error"
+          }));
+        }
+
+        // 3. create map
+        const shopMap = {};
+        shops.forEach(shop => {
+          shopMap[shop.id] = shop.location;
+        });
+
+        // 4. inject shop_location into each item
+        results.forEach(order => {
+          if (order.orders) {
+            order.orders.forEach(item => {
+              item.shop_location = shopMap[item.shop_id] || null;
+            });
+          }
+        });
+
+        // 5. response
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({
+          success: true,
+          data: results
+        }));
+
+      });
+
+    } catch (e) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        success: false,
+        message: e.message
+      }));
+    }
 
   });
 
