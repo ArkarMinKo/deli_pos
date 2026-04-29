@@ -732,7 +732,7 @@ function offShopDeli(req, res, id) {
 
   const query = `
     UPDATE shops
-    SET open_shop = 0
+    SET open_shop_deli = 0
     WHERE id = ?
   `;
 
@@ -773,6 +773,5 @@ module.exports = {
     offShop,
     openShopDeli,
     offShopDeli,
-    getShopDeliOpen,
-    getShopOpen
+    getShopDeliOpen
 };
