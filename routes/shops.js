@@ -773,5 +773,6 @@ module.exports = {
     offShop,
     openShopDeli,
     offShopDeli,
-    getShopDeliOpen
+    getShopDeliOpen,
+    getShopOpen
 };
