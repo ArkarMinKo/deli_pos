@@ -233,6 +233,67 @@ function getOrdersByShopId(req, res, shopId) {
 
 }
 
+function getOrdersByUserId(req, res, userId) {
+
+  if (!userId) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({
+      success: false,
+      message: "userId is required"
+    }));
+  }
+
+  const query = `
+    SELECT * FROM orders WHERE userId = ?
+  `;
+
+  db.query(query, [userId], (err, results) => {
+
+    if (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: false,
+        message: err.sqlMessage || "Database error"
+      }));
+    }
+
+    const finalResult = results.map(row => {
+
+      let items = [];
+
+      try {
+        if (typeof row.orders === "string") {
+          items = JSON.parse(row.orders);
+        } else if (Array.isArray(row.orders)) {
+          items = row.orders;
+        } else {
+          items = [];
+        }
+      } catch (e) {
+        items = [];
+      }
+
+      const matchedItems = items.filter(item =>
+        String(item.shop_id).trim() === String(shopId).trim()
+      );
+
+      return {
+        ...row,
+        orders: matchedItems
+      };
+
+    });
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      success: true,
+      data: finalResult
+    }));
+
+  });
+
+}
+
 async function approvedOrder(req, res) {
   let body = "";
 
