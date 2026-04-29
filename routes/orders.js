@@ -257,37 +257,10 @@ function getOrdersByUserId(req, res, userId) {
       }));
     }
 
-    const finalResult = results.map(row => {
-
-      let items = [];
-
-      try {
-        if (typeof row.orders === "string") {
-          items = JSON.parse(row.orders);
-        } else if (Array.isArray(row.orders)) {
-          items = row.orders;
-        } else {
-          items = [];
-        }
-      } catch (e) {
-        items = [];
-      }
-
-      const matchedItems = items.filter(item =>
-        String(item.shop_id).trim() === String(shopId).trim()
-      );
-
-      return {
-        ...row,
-        orders: matchedItems
-      };
-
-    });
-
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({
       success: true,
-      data: finalResult
+      data: results
     }));
 
   });
