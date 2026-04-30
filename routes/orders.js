@@ -296,7 +296,6 @@ function getOrdersByUserId(req, res, userId) {
         const shopMap = {};
         shops.forEach(shop => {
           shopMap[shop.id] = shop.location;
-          shopMap[shop.id] = shop.address;
         });
 
         // 4. inject shop_location into each item
@@ -304,7 +303,6 @@ function getOrdersByUserId(req, res, userId) {
           if (order.orders) {
             order.orders.forEach(item => {
               item.shop_location = shopMap[item.shop_id] || null;
-              item.shop_address = shopMap[item.shop_id] || null;
             });
           }
         });
