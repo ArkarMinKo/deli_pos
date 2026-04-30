@@ -257,6 +257,14 @@ function getOrdersByUserId(req, res, userId) {
       }));
     }
 
+    if(results.length === 0){
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: false,
+        message: "Orders များ မရှိသေးပါ"
+      }));
+    }
+
     try {
       // 1. collect all shop_ids
       let shopIds = new Set();
