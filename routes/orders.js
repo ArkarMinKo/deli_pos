@@ -295,14 +295,18 @@ function getOrdersByUserId(req, res, userId) {
         // 3. create map
         const shopMap = {};
         shops.forEach(shop => {
-          shopMap[shop.id] = shop.location;
+          shopMap[shop.id] = {
+            location: shop.location,
+            address: shop.address
+          };
         });
 
         // 4. inject shop_location into each item
         results.forEach(order => {
           if (order.orders) {
             order.orders.forEach(item => {
-              item.shop_location = shopMap[item.shop_id] || null;
+              item.shop_location = shopMap[item.shop_id]?.location || null;
+              item.shop_address  = shopMap[item.shop_id]?.address || null;
             });
           }
         });
