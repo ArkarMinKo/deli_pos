@@ -244,7 +244,7 @@ function getOrdersByUserId(req, res, userId) {
   }
 
   const query = `
-    SELECT * FROM orders WHERE userId = ?
+    SELECT * FROM orders WHERE userId = ? ORDER BY id DESC
   `;
 
   db.query(query, [userId], (err, results) => {
