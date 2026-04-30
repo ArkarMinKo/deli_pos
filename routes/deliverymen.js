@@ -366,7 +366,8 @@ function getAllDeliverymen(req, res) {
             END AS work_type,
             d.rating, 
             d.finished_order_count, 
-            d.assign_order, 
+            d.assign_order,
+            d.is_online,
             d.created_at
         FROM deliverymen d
         LEFT JOIN shops s ON d.work_type = s.id
