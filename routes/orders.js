@@ -280,7 +280,7 @@ function getOrdersByUserId(req, res, userId) {
       shopIds = Array.from(shopIds);
 
       // 2. get shop locations
-      const shopQuery = `SELECT id, location FROM shops WHERE id IN (?)`;
+      const shopQuery = `SELECT id, location, address FROM shops WHERE id IN (?)`;
 
       db.query(shopQuery, [shopIds], (err2, shops) => {
 
@@ -296,6 +296,7 @@ function getOrdersByUserId(req, res, userId) {
         const shopMap = {};
         shops.forEach(shop => {
           shopMap[shop.id] = shop.location;
+          shopMap[shop.id] = shop.address;
         });
 
         // 4. inject shop_location into each item
@@ -303,6 +304,7 @@ function getOrdersByUserId(req, res, userId) {
           if (order.orders) {
             order.orders.forEach(item => {
               item.shop_location = shopMap[item.shop_id] || null;
+              item.shop_address = shopMap[item.shop_id] || null;
             });
           }
         });
