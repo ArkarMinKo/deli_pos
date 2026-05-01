@@ -702,6 +702,7 @@ function addOrdersToDeliverymen(req, res, id) {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({
         success: true,
+        message: "Order ကို လက်ခံလိုက်ပါပြီ",
         current_orders: currentOrders
       }));
 
