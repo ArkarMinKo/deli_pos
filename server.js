@@ -14,6 +14,7 @@ const ingredients = require("./routes/ingredients");
 const menu = require("./routes/menu");
 const admin = require("./routes/admin");
 const order = require("./routes/orders");
+const mobileNoti = require('./routes/mobileNotification');
 
 // Upload folders
 const INGREDIENTS_UPLOAD_DIR = path.join(__dirname, "ingredients_uploads");
@@ -426,6 +427,12 @@ const server = http.createServer(async (req, res) => {
     else if(pathName.startsWith("/report-shops/") && method === "GET") {
         const id = pathName.split("/")[2];
         order.getReportByShop(req, res, id)
+    }
+
+    // --- Mobile Notification ---
+    else if(pathName.startsWith("/mobile-noti/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        mobileNoti.getNotiUser(req, res, id)
     }
 
     // --- 404 fallback ---
