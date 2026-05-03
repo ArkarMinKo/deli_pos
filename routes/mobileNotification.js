@@ -81,9 +81,9 @@ function getNotiUser(req, res, userId) {
       success: true,
       unseenNofi: unseenCount.toString(),
       data: {
-        "orders": data
-      },
-      system: {}
+        "orders": data,
+        "system": []
+      }
     }));
   });
 }
