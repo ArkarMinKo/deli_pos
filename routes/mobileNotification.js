@@ -80,7 +80,10 @@ function getNotiUser(req, res, userId) {
     res.end(JSON.stringify({
       success: true,
       unseenNofi: unseenCount.toString(),
-      data: data
+      data: {
+        "orders": data
+      },
+      system: {}
     }));
   });
 }
