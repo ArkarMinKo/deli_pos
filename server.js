@@ -435,6 +435,12 @@ const server = http.createServer(async (req, res) => {
         mobileNoti.getNotiUser(req, res, id)
     }
 
+    // --- Mobile Notification ---
+    else if(pathName.startsWith("/mobile-noti/") && method === "PATCH") {
+        const id = pathName.split("/")[2];
+        mobileNoti.mobileNotiSeen(req, res, id)
+    }
+
     // --- 404 fallback ---
     else {
         res.writeHead(404, { "Content-Type": "application/json" });
