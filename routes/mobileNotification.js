@@ -127,7 +127,7 @@ function mobileNotiSeen(req, res, id) {
       }));
     }
 
-    if (seen_type === 'connected_deliveryman_seen' || seen_type === 'orders_pickup_seen' || seen_type === 'orders_done_seen') {
+    if (seen_type !== 'connected_deliveryman_seen' && seen_type !== 'orders_pickup_seen' && seen_type !== 'orders_done_seen') {
       res.writeHead(400, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({
         success: false,
