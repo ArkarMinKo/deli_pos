@@ -1,29 +1,29 @@
 const db = require("../db");
 
 function formatDateLabel(dateString) {
-  const date = new Date(dateString);
   const now = new Date();
+  const date = new Date(dateString);
 
-  console.log(now)
+  // convert both to local (remove timezone diff)
+  const localNow = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
+  );
 
-  const isToday =
-    date.getDate() === now.getDate() &&
-    date.getMonth() === now.getMonth() &&
-    date.getFullYear() === now.getFullYear();
+  const localDate = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate()
+  );
 
-  const yesterday = new Date();
-  yesterday.setDate(now.getDate() - 1);
+  const diffTime = localNow - localDate;
+  const diffDays = diffTime / (1000 * 60 * 60 * 24);
 
-  const isYesterday =
-    date.getDate() === yesterday.getDate() &&
-    date.getMonth() === yesterday.getMonth() &&
-    date.getFullYear() === yesterday.getFullYear();
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
 
-  if (isToday) return "Today";
-  if (isYesterday) return "Yesterday";
-
-  // default format (e.g. 2026-05-05)
-  return date.toISOString().split("T")[0];
+  return localDate.toISOString().split("T")[0];
 }
 
 function getNotiUser(req, res, userId) {
