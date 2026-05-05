@@ -736,6 +736,87 @@ function deleteAgent(req, res, id) {
   });
 }
 
+function openServer(req, res){
+  const form = new formidable.IncomingForm();
+
+  form.parse(req, (err, fields) => {
+    if (err) {
+      res.statusCode = 500;
+      return res.end(JSON.stringify({ error: err.message }));
+    }
+
+    const {server} = fields;
+
+    if (server === undefined) {
+      res.statusCode = 400;
+      return res.end(JSON.stringify({ error: "Server is required" }));
+    }
+
+    const sql = `SELECT * FROM server WHERE id = 1`;
+
+    db.query(sql, (err, rows) => {
+      if (err) {
+        res.statusCode = 500;
+        return res.end(JSON.stringify({ error: err.message }));
+      }
+
+      if(rows.length === 0){
+        const insertSql = `INSERT INTO server (server) VALUES (?)`;
+
+        db.query(insertSql, [parseInt(server)], (err) => {
+          if (err) {
+            res.statusCode = 500;
+            return res.end(JSON.stringify({ error: err.message }));
+          }
+
+          res.setHeader("Content-Type", "application/json; charset=utf-8");
+          res.end(JSON.stringify({
+            message: "Insert server to server successfully",
+            data: server
+          }));
+        });
+      }else{
+        const updateSql = `UPDATE server SET server = ? WHERE id = 1`;
+        const updateServer = parseInt(server);
+
+        db.query(updateSql, [parseInt(updateServer)], (err) => {
+          if (err) {
+            res.statusCode = 500;
+            return res.end(JSON.stringify({ error: err.message }));
+          }
+
+          res.setHeader("Content-Type", "application/json; charset=utf-8");
+          res.end(JSON.stringify({
+            message: "Update server to server successfully",
+            data: server
+          }));
+        });
+      }
+    })
+  })
+}
+
+function getServer(req, res) {
+  const sql = `SELECT * FROM server WHERE id = 1`;
+
+  db.query(sql, (err, rows) => {
+    if (err) {
+      res.statusCode = 500;
+      return res.end(JSON.stringify({ error: err.message }));
+    }
+
+    if (rows.length === 0) {
+      res.statusCode = 404;
+      return res.end(JSON.stringify({ message: "No server found" }));
+    }
+
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.end(JSON.stringify({
+      message: "Get server successfully",
+      data: rows[0]
+    }));
+  });
+}
 
 module.exports = { 
     getAdmins,
@@ -750,5 +831,7 @@ module.exports = {
     verifyOwnerPasscode,
     createAgent,
     getAgents,
-    deleteAgent
+    deleteAgent,
+    openServer,
+    getServer
 };

@@ -155,6 +155,16 @@ const server = http.createServer(async (req, res) => {
     else if(pathName === "/admin/password" && method === "PATCH") admin.updateAdminPassword(req, res);
     else if(pathName === "/admin/passcode" && method === "PATCH") admin.updateAdminPasscode(req, res);
 
+    // --- Post Open Server ---
+    else if (pathName === "/open-server" && method === "GET") {
+        admin.getServer(req, res);
+    }
+
+    // --- Post Open Server ---
+    else if (pathName === "/open-server" && method === "POST") {
+        admin.openServer(req, res);
+    }
+
     // Shops CRUD
     else if (pathName === "/login-shop" && method === "POST") {
         let body = '';
