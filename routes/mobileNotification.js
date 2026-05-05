@@ -1,5 +1,29 @@
 const db = require("../db");
 
+function formatDateLabel(dateString) {
+  const date = new Date(dateString);
+  const now = new Date();
+
+  const isToday =
+    date.getDate() === now.getDate() &&
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear();
+
+  const yesterday = new Date();
+  yesterday.setDate(now.getDate() - 1);
+
+  const isYesterday =
+    date.getDate() === yesterday.getDate() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getFullYear() === yesterday.getFullYear();
+
+  if (isToday) return "Today";
+  if (isYesterday) return "Yesterday";
+
+  // default format (e.g. 2026-05-05)
+  return date.toISOString().split("T")[0];
+}
+
 function getNotiUser(req, res, userId) {
   if (!userId) {
     res.writeHead(400, { "Content-Type": "application/json" });
@@ -17,7 +41,8 @@ function getNotiUser(req, res, userId) {
       orders_pickup,
       orders_pickup_seen,
       orders_done,
-      orders_done_seen
+      orders_done_seen,
+      created_at
     FROM orders
     WHERE userId = ?
     ORDER BY created_at DESC
@@ -46,7 +71,8 @@ function getNotiUser(req, res, userId) {
           id: "N" + String(notiId++).padStart(3, "0"),
           title: "Delivery Confirmed",
           Des: `သင့်အော်ဒါ #${order.id} ကို ဆိုင်မှ လက်ခံလိုက်ပါပြီ။`,
-          connected_deliveryman_seen: order.connected_deliveryman_seen
+          connected_deliveryman_seen: order.connected_deliveryman_seen,
+          date: formatDateLabel(order.created_at)
         });
       }
 
@@ -58,7 +84,8 @@ function getNotiUser(req, res, userId) {
           id: "N" + String(notiId++).padStart(3, "0"),
           title: "Order pickup",
           Des: `သင့်အော်ဒါ #${order.id} ကို Delivery သမားက ဆိုင်မှ ယူဆောင်သွားပါပြီ။`,
-          orders_pickup_seen: order.orders_pickup_seen
+          orders_pickup_seen: order.orders_pickup_seen,
+          date: formatDateLabel(order.created_at)
         });
       }
 
@@ -70,7 +97,8 @@ function getNotiUser(req, res, userId) {
           id: "N" + String(notiId++).padStart(3, "0"),
           title: "Order Done",
           Des: `သင့်အော်ဒါ #${order.id} ကို အောင်မြင်စွာ ပို့ဆောင်ပြီးပါပြီ။`,
-          orders_done_seen: order.orders_done_seen
+          orders_done_seen: order.orders_done_seen,
+          date: formatDateLabel(order.created_at)
         });
       }
 
