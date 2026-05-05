@@ -4,6 +4,8 @@ function formatDateLabel(dateString) {
   const date = new Date(dateString);
   const now = new Date();
 
+  console.log(now)
+
   const isToday =
     date.getDate() === now.getDate() &&
     date.getMonth() === now.getMonth() &&
