@@ -4,6 +4,9 @@ function formatDateLabel(dateString) {
   const now = new Date();
   const date = new Date(dateString);
 
+  console.log("NOW:", now.toString());
+  console.log("DATE:", date.toString());
+
   // convert both to local (remove timezone diff)
   const localNow = new Date(
     now.getFullYear(),
