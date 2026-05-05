@@ -36,7 +36,8 @@ function postOrder(req, res) {
         payment_method,
         payment_phone,
         payment_name,
-        payment_photo
+        payment_photo,
+        kilo
       } = data;
 
       if (!userId || !orders || !grand_total || !payment_photo) {
@@ -105,9 +106,10 @@ function postOrder(req, res) {
             payment_method,
             payment_phone,
             payment_name,
-            payment_photo
+            payment_photo,
+            kilo
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
         const values = [
@@ -130,7 +132,8 @@ function postOrder(req, res) {
           payment_method,
           payment_phone,
           payment_name,
-          relativePath
+          relativePath,
+          kilo
         ];
 
         db.query(insertSql, values, (err) => {
