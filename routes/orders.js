@@ -283,7 +283,7 @@ function getOrdersByUserId(req, res, userId) {
       shopIds = Array.from(shopIds);
 
       // 2. get shop locations
-      const shopQuery = `SELECT id, location, address FROM shops WHERE id IN (?)`;
+      const shopQuery = `SELECT id, name, phone, location, address FROM shops WHERE id IN (?)`;
 
       db.query(shopQuery, [shopIds], (err2, shops) => {
 
