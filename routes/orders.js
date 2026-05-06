@@ -299,6 +299,8 @@ function getOrdersByUserId(req, res, userId) {
         const shopMap = {};
         shops.forEach(shop => {
           shopMap[shop.id] = {
+            name: shop.name,
+            phone: shop.phone,
             location: shop.location,
             address: shop.address
           };
@@ -308,6 +310,8 @@ function getOrdersByUserId(req, res, userId) {
         results.forEach(order => {
           if (order.orders) {
             order.orders.forEach(item => {
+              item.shop_name = shopMap[item.shop_id]?.name || null;
+              item.shop_phone = shopMap[item.shop_id]?.phone || null;
               item.shop_location = shopMap[item.shop_id]?.location || null;
               item.shop_address  = shopMap[item.shop_id]?.address || null;
             });
