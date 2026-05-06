@@ -408,6 +408,179 @@ function getOrdersByUserId(req, res, userId) {
 
 }
 
+function getOrderByOrderId(req, res, id) {
+
+  if (!id) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({
+      success: false,
+      message: "order id is required"
+    }));
+  }
+
+  const query = `
+    SELECT * FROM orders WHERE id = ? LIMIT 1
+  `;
+
+  db.query(query, [id], (err, results) => {
+
+    if (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: false,
+        message: err.sqlMessage || "Database error"
+      }));
+    }
+
+    if (results.length === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: false,
+        message: "Order မတွေ့ပါ"
+      }));
+    }
+
+    try {
+
+      let order = results[0];
+
+      // 🔥 IMPORTANT: parse orders JSON if needed
+      if (order.orders && typeof order.orders === "string") {
+        order.orders = JSON.parse(order.orders);
+      }
+
+      // 1. collect shop_ids
+      let shopIds = new Set();
+
+      if (order.orders) {
+        order.orders.forEach(item => {
+          shopIds.add(item.shop_id);
+        });
+      }
+
+      shopIds = Array.from(shopIds);
+
+      // 2. get shops
+      const shopQuery = `
+        SELECT id, shop_name, phone, location, address 
+        FROM shops 
+        WHERE id IN (?)
+      `;
+
+      db.query(shopQuery, [shopIds], (err2, shops) => {
+
+        if (err2) {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({
+            success: false,
+            message: err2.sqlMessage || "Shop query error"
+          }));
+        }
+
+        // 3. shop map
+        const shopMap = {};
+        shops.forEach(shop => {
+          shopMap[shop.id] = {
+            shop_name: shop.shop_name,
+            phone: shop.phone,
+            location: shop.location,
+            address: shop.address
+          };
+        });
+
+        // 4. inject shop data
+        if (order.orders) {
+          order.orders.forEach(item => {
+            item.shop_name = shopMap[item.shop_id]?.shop_name || null;
+            item.shop_phone = shopMap[item.shop_id]?.phone || null;
+            item.shop_location = shopMap[item.shop_id]?.location || null;
+            item.shop_address = shopMap[item.shop_id]?.address || null;
+          });
+        }
+
+        // 5. get deliverymen
+        const deliveryQuery = `
+          SELECT name, phone, current_orders, finished_orders 
+          FROM deliverymen
+        `;
+
+        db.query(deliveryQuery, (err3, deliverymen) => {
+
+          if (err3) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({
+              success: false,
+              message: err3.sqlMessage || "Deliveryman query error"
+            }));
+          }
+
+          // 6. build map
+          const deliveryMap = {};
+
+          deliverymen.forEach(dm => {
+            let current = [];
+            let finished = [];
+
+            try {
+              if (dm.current_orders) {
+                current = typeof dm.current_orders === "string"
+                  ? JSON.parse(dm.current_orders)
+                  : dm.current_orders;
+              }
+
+              if (dm.finished_orders) {
+                finished = typeof dm.finished_orders === "string"
+                  ? JSON.parse(dm.finished_orders)
+                  : dm.finished_orders;
+              }
+
+            } catch (e) {
+              console.log("JSON parse error:", dm);
+            }
+
+            [...current, ...finished].forEach(orderId => {
+              if (orderId) {
+                deliveryMap[String(orderId).trim()] = {
+                  name: dm.name,
+                  phone: dm.phone
+                };
+              }
+            });
+          });
+
+          // 7. inject deliveryman
+          const delivery = deliveryMap[order.id];
+
+          if (order.orders) {
+            order.orders.forEach(item => {
+              item.deliveryman_name = delivery?.name || null;
+              item.deliveryman_phone = delivery?.phone || null;
+            });
+          }
+
+          // 8. response (same format as yours)
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({
+            success: true,
+            data: order
+          }));
+
+        });
+
+      });
+
+    } catch (e) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        success: false,
+        message: e.message
+      }));
+    }
+
+  });
+
+}
+
 async function approvedOrder(req, res) {
   let body = "";
 
@@ -1188,6 +1361,7 @@ module.exports = {
   postOrder,
   getOrdersByShopId,
   getOrdersByUserId,
+  getOrderByOrderId,
   approvedOrder,
   rejectedOrder,
   approveAllOrderItems,
