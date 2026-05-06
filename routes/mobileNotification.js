@@ -71,6 +71,7 @@ function getNotiUser(req, res, userId) {
 
         data.push({
           id: "N" + String(notiId++).padStart(3, "0"),
+          orderId : order.id,
           title: "Delivery Confirmed",
           Des: `သင့်အော်ဒါ #${order.id} ကို ဆိုင်မှ လက်ခံလိုက်ပါပြီ။`,
           connected_deliveryman_seen: order.connected_deliveryman_seen,
@@ -84,6 +85,7 @@ function getNotiUser(req, res, userId) {
 
         data.push({
           id: "N" + String(notiId++).padStart(3, "0"),
+          orderId : order.id,
           title: "Order pickup",
           Des: `သင့်အော်ဒါ #${order.id} ကို Delivery သမားက ဆိုင်မှ ယူဆောင်သွားပါပြီ။`,
           orders_pickup_seen: order.orders_pickup_seen,
@@ -97,6 +99,7 @@ function getNotiUser(req, res, userId) {
 
         data.push({
           id: "N" + String(notiId++).padStart(3, "0"),
+          orderId : order.id,
           title: "Order Done",
           Des: `သင့်အော်ဒါ #${order.id} ကို အောင်မြင်စွာ ပို့ဆောင်ပြီးပါပြီ။`,
           orders_done_seen: order.orders_done_seen,
