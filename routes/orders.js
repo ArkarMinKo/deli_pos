@@ -260,7 +260,7 @@ function getOrdersByUserId(req, res, userId) {
       }));
     }
 
-    if(results.length === 0){
+    if (results.length === 0) {
       res.writeHead(404, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({
         success: false,
@@ -269,7 +269,8 @@ function getOrdersByUserId(req, res, userId) {
     }
 
     try {
-      // 1. collect all shop_ids
+
+      // 1. collect shop_ids
       let shopIds = new Set();
 
       results.forEach(order => {
@@ -282,8 +283,12 @@ function getOrdersByUserId(req, res, userId) {
 
       shopIds = Array.from(shopIds);
 
-      // 2. get shop locations
-      const shopQuery = `SELECT id, shop_name, phone, location, address FROM shops WHERE id IN (?)`;
+      // 2. get shops
+      const shopQuery = `
+        SELECT id, shop_name, phone, location, address 
+        FROM shops 
+        WHERE id IN (?)
+      `;
 
       db.query(shopQuery, [shopIds], (err2, shops) => {
 
@@ -295,7 +300,7 @@ function getOrdersByUserId(req, res, userId) {
           }));
         }
 
-        // 3. create map
+        // 3. shop map
         const shopMap = {};
         shops.forEach(shop => {
           shopMap[shop.id] = {
@@ -306,24 +311,78 @@ function getOrdersByUserId(req, res, userId) {
           };
         });
 
-        // 4. inject shop_location into each item
+        // 4. inject shop data
         results.forEach(order => {
           if (order.orders) {
             order.orders.forEach(item => {
               item.shop_name = shopMap[item.shop_id]?.shop_name || null;
               item.shop_phone = shopMap[item.shop_id]?.phone || null;
               item.shop_location = shopMap[item.shop_id]?.location || null;
-              item.shop_address  = shopMap[item.shop_id]?.address || null;
+              item.shop_address = shopMap[item.shop_id]?.address || null;
             });
           }
         });
 
-        // 5. response
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({
-          success: true,
-          data: results
-        }));
+        // 5. get deliverymen
+        const deliveryQuery = `
+          SELECT name, phone, current_orders, finished_orders 
+          FROM deliverymen
+        `;
+
+        db.query(deliveryQuery, (err3, deliverymen) => {
+
+          if (err3) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({
+              success: false,
+              message: err3.sqlMessage || "Deliveryman query error"
+            }));
+          }
+
+          // 6. build orderId -> deliveryman map
+          const deliveryMap = {};
+
+          deliverymen.forEach(dm => {
+            let current = [];
+            let finished = [];
+
+            try {
+              if (dm.current_orders) {
+                current = JSON.parse(dm.current_orders);
+              }
+              if (dm.finished_orders) {
+                finished = JSON.parse(dm.finished_orders);
+              }
+            } catch (e) {}
+
+            [...current, ...finished].forEach(orderId => {
+              deliveryMap[orderId] = {
+                name: dm.name,
+                phone: dm.phone
+              };
+            });
+          });
+
+          // 7. inject deliveryman into each item
+          results.forEach(order => {
+            const delivery = deliveryMap[order.id];
+
+            if (order.orders) {
+              order.orders.forEach(item => {
+                item.deliveryman_name = delivery?.name || null;
+                item.deliveryman_phone = delivery?.phone || null;
+              });
+            }
+          });
+
+          // 8. response
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({
+            success: true,
+            data: results
+          }));
+
+        });
 
       });
 
