@@ -348,18 +348,28 @@ function getOrdersByUserId(req, res, userId) {
 
             try {
               if (dm.current_orders) {
-                current = JSON.parse(dm.current_orders);
+                current = typeof dm.current_orders === "string"
+                  ? JSON.parse(dm.current_orders)
+                  : dm.current_orders;
               }
+
               if (dm.finished_orders) {
-                finished = JSON.parse(dm.finished_orders);
+                finished = typeof dm.finished_orders === "string"
+                  ? JSON.parse(dm.finished_orders)
+                  : dm.finished_orders;
               }
-            } catch (e) {}
+
+            } catch (e) {
+              console.log("JSON parse error:", dm);
+            }
 
             [...current, ...finished].forEach(orderId => {
-              deliveryMap[orderId] = {
-                name: dm.name,
-                phone: dm.phone
-              };
+              if (orderId) {
+                deliveryMap[String(orderId).trim()] = {
+                  name: dm.name,
+                  phone: dm.phone
+                };
+              }
             });
           });
 
