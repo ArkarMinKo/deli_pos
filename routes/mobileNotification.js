@@ -174,6 +174,7 @@ async function getNotiUser(req, res, userId) {
           title: "Delivery Confirmed",
           Des: `သင့်အော်ဒါ #${order.id} ကို ဆိုင်မှ လက်ခံလိုက်ပါပြီ။`,
           connected_deliveryman_seen: order.connected_deliveryman_seen,
+          seen_type: 'connected_deliveryman_seen',
           date: formatDateLabel(order.created_at),
           data: fullOrder // ✅ injected
         });
@@ -188,6 +189,7 @@ async function getNotiUser(req, res, userId) {
           title: "Order pickup",
           Des: `သင့်အော်ဒါ #${order.id} ကို Delivery သမားက ဆိုင်မှ ယူဆောင်သွားပါပြီ။`,
           orders_pickup_seen: order.orders_pickup_seen,
+          seen_type: 'orders_pickup_seen',
           date: formatDateLabel(order.created_at),
           data: fullOrder
         });
@@ -202,6 +204,7 @@ async function getNotiUser(req, res, userId) {
           title: "Order Done",
           Des: `သင့်အော်ဒါ #${order.id} ကို အောင်မြင်စွာ ပို့ဆောင်ပြီးပါပြီ။`,
           orders_done_seen: order.orders_done_seen,
+          seen_type: 'orders_done_seen',
           date: formatDateLabel(order.created_at),
           data: fullOrder
         });
