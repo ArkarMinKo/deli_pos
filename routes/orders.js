@@ -1580,14 +1580,14 @@ function getReportByShopSummaries(req, res, shopId) {
 
   // today date => YYYY-MM-DD
   const today = new Date().toLocaleDateString('en-CA');
-  console.log(today)
   const orderQuery = `
     SELECT id, grand_total, orders
     FROM orders
-    WHERE DATE(created_at) = ?
-  `;
 
-  db.query(orderQuery, [today], (err, orderResults) => {
+  `;
+    // WHERE DATE(created_at) = ?
+
+  db.query(orderQuery, (err, orderResults) => {
 
     if (err) {
       res.writeHead(500, { "Content-Type": "application/json" });
