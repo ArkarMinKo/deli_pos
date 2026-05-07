@@ -436,6 +436,8 @@ const server = http.createServer(async (req, res) => {
 
     else if (pathName === "/connected-orders" && method === "GET") order.connectedDeliverymen(req, res);
 
+    else if (pathName === "/orders-confirm" && method === "GET") order.orderConfirm(req, res);
+
     // --- Report ---
     else if (pathName === "/report" && method === "GET") order.getReport(req, res);
 

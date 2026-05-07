@@ -1357,6 +1357,217 @@ async function getReportByShop(req, res, id) {
   }
 }
 
+function orderConfirm(req, res) {
+
+  let body = "";
+
+  req.on("data", chunk => {
+    body += chunk.toString();
+  });
+
+  req.on("end", () => {
+
+    try {
+
+      const data = JSON.parse(body);
+      const menu = data.menu;
+
+      // Validate menu
+      if (!Array.isArray(menu) || menu.length === 0) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({
+          success: false,
+          message: "menu is required"
+        }));
+      }
+
+      // Get Shop IDs and Menu IDs
+      const shopIds = [];
+      const menuIds = [];
+
+      menu.forEach(item => {
+
+        const parts = item.split("_");
+
+        if (parts.length !== 2) return;
+
+        const shopId = parts[0];
+        const menuId = parts[1];
+
+        if (!shopIds.includes(shopId)) {
+          shopIds.push(shopId);
+        }
+
+        if (!menuIds.includes(menuId)) {
+          menuIds.push(menuId);
+        }
+
+      });
+
+      // =========================
+      // 1. Check Server Status
+      // =========================
+
+      const serverQuery = `
+        SELECT server
+        FROM server
+        WHERE id = 1
+        LIMIT 1
+      `;
+
+      db.query(serverQuery, (serverErr, serverResults) => {
+
+        if (serverErr) {
+
+          res.writeHead(500, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({
+            success: false,
+            message: "Database error",
+            error: serverErr
+          }));
+
+        }
+
+        if (
+          serverResults.length === 0 ||
+          serverResults[0].server === 0
+        ) {
+
+          res.writeHead(200, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({
+            success: false,
+            message: "Delivery Server ပိတ်ထားပါသဖြင့် Order များကို မှာယူလို့မရသေးပါ"
+          }));
+
+        }
+
+        // =========================
+        // 2. Check Shop Open Status
+        // =========================
+
+        const shopQuery = `
+          SELECT id, shop_name, open_shop
+          FROM shops
+          WHERE id IN (?)
+        `;
+
+        db.query(shopQuery, [shopIds], (shopErr, shopResults) => {
+
+          if (shopErr) {
+
+            res.writeHead(500, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({
+              success: false,
+              message: "Database error",
+              error: shopErr
+            }));
+
+          }
+
+          // Find closed shop
+          const closedShop = shopResults.find(
+            shop => shop.open_shop === 0
+          );
+
+          if (closedShop) {
+
+            res.writeHead(200, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({
+              success: false,
+              message: `ယခုမှာယူသော ${closedShop.shop_name} ဆိုင်သည် order လက်ခံခြင်းကို ပိတ်လိုက်ပြီ ဖြစ်ပါသဖြင့် order များကို တစ်ခြားဆိုင်မှ ပြောင်း၍ မှာယူပေးပါ။`
+            }));
+
+          }
+
+          // =========================
+          // 3. Check Menu Open Status
+          // =========================
+
+          const menuQuery = `
+            SELECT id, name, open_menu
+            FROM menu
+            WHERE id IN (?)
+          `;
+
+          db.query(menuQuery, [menuIds], (menuErr, menuResults) => {
+
+            if (menuErr) {
+
+              res.writeHead(500, { "Content-Type": "application/json" });
+              return res.end(JSON.stringify({
+                success: false,
+                message: "Database error",
+                error: menuErr
+              }));
+
+            }
+
+            // Closed menus
+            const unavailableMenus = menuResults.filter(
+              item => item.open_menu !== 1
+            );
+
+            if (unavailableMenus.length > 0) {
+
+              const menuNames = unavailableMenus.map(
+                item => `'${item.name}'`
+              );
+
+              let message = "";
+
+              if (menuNames.length === 1) {
+
+                message =
+                  `ယခု မှာယူများထဲမှာ ${menuNames[0]} သည် မရရှိနိုင်တော့ပါသဖြင့် ` +
+                  `တစ်ခြား orders များ ပြောင်း၍ မှာပေးပါ။`;
+
+              } else {
+
+                message =
+                  `ယခု မှာယူများထဲမှာ ${menuNames.join(", ")} များသည် ` +
+                  `မရရှိနိုင်တော့ပါသဖြင့် တစ်ခြား orders များ ပြောင်း၍ မှာပေးပါ။`;
+
+              }
+
+              res.writeHead(200, { "Content-Type": "application/json" });
+              return res.end(JSON.stringify({
+                success: false,
+                message
+              }));
+
+            }
+
+            // =========================
+            // SUCCESS
+            // =========================
+
+            res.writeHead(200, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({
+              success: true,
+              message: "Orders များ အားလုံး ရရှိနိုင်ပါသည်"
+            }));
+
+          });
+
+        });
+
+      });
+
+    } catch (error) {
+
+      res.writeHead(400, { "Content-Type": "application/json" });
+
+      return res.end(JSON.stringify({
+        success: false,
+        message: "Invalid JSON body"
+      }));
+
+    }
+
+  });
+
+}
+
 module.exports = {
   postOrder,
   getOrdersByShopId,
@@ -1372,5 +1583,6 @@ module.exports = {
   finishOrder,
   getReport,
   pickupOrder,
-  getReportByShop
+  getReportByShop,
+  orderConfirm
 };
