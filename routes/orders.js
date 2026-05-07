@@ -305,6 +305,7 @@ function getOrdersByUserId(req, res, userId) {
 
         // 3. shop map
         const shopMap = {};
+
         shops.forEach(shop => {
           shopMap[shop.id] = {
             shop_name: shop.shop_name,
@@ -316,80 +317,103 @@ function getOrdersByUserId(req, res, userId) {
 
         // 4. inject shop data
         results.forEach(order => {
+
           if (order.orders) {
+
             order.orders.forEach(item => {
               item.shop_name = shopMap[item.shop_id]?.shop_name || null;
               item.shop_phone = shopMap[item.shop_id]?.phone || null;
               item.shop_location = shopMap[item.shop_id]?.location || null;
               item.shop_address = shopMap[item.shop_id]?.address || null;
             });
+
+          }
+
+        });
+
+        // 5. collect deliverymen ids
+        let deliveryIds = new Set();
+
+        results.forEach(order => {
+          if (order.deliverymenId) {
+            deliveryIds.add(order.deliverymenId);
           }
         });
 
-        // 5. get deliverymen
+        deliveryIds = Array.from(deliveryIds);
+
+        // no deliverymen assigned
+        if (deliveryIds.length === 0) {
+
+          results.forEach(order => {
+
+            if (order.orders) {
+
+              order.orders.forEach(item => {
+                item.deliveryman_name = null;
+                item.deliveryman_phone = null;
+              });
+
+            }
+
+          });
+
+          res.writeHead(200, { "Content-Type": "application/json" });
+
+          return res.end(JSON.stringify({
+            success: true,
+            data: results
+          }));
+
+        }
+
+        // 6. get deliverymen
         const deliveryQuery = `
-          SELECT name, phone, current_orders, finished_orders 
+          SELECT id, name, phone
           FROM deliverymen
+          WHERE id IN (?)
         `;
 
-        db.query(deliveryQuery, (err3, deliverymen) => {
+        db.query(deliveryQuery, [deliveryIds], (err3, deliverymen) => {
 
           if (err3) {
             res.writeHead(500, { "Content-Type": "application/json" });
+
             return res.end(JSON.stringify({
               success: false,
               message: err3.sqlMessage || "Deliveryman query error"
             }));
           }
 
-          // 6. build orderId -> deliveryman map
+          // 7. deliveryman map
           const deliveryMap = {};
 
           deliverymen.forEach(dm => {
-            let current = [];
-            let finished = [];
-
-            try {
-              if (dm.current_orders) {
-                current = typeof dm.current_orders === "string"
-                  ? JSON.parse(dm.current_orders)
-                  : dm.current_orders;
-              }
-
-              if (dm.finished_orders) {
-                finished = typeof dm.finished_orders === "string"
-                  ? JSON.parse(dm.finished_orders)
-                  : dm.finished_orders;
-              }
-
-            } catch (e) {
-              console.log("JSON parse error:", dm);
-            }
-
-            [...current, ...finished].forEach(orderId => {
-              if (orderId) {
-                deliveryMap[String(orderId).trim()] = {
-                  name: dm.name,
-                  phone: dm.phone
-                };
-              }
-            });
+            deliveryMap[dm.id] = {
+              name: dm.name,
+              phone: dm.phone
+            };
           });
 
-          // 7. inject deliveryman into each item
+          // 8. inject deliveryman
           results.forEach(order => {
-            const delivery = deliveryMap[order.id];
+
+            const delivery = deliveryMap[order.deliverymenId];
 
             if (order.orders) {
+
               order.orders.forEach(item => {
                 item.deliveryman_name = delivery?.name || null;
                 item.deliveryman_phone = delivery?.phone || null;
               });
+
             }
+
           });
 
-          // 8. response
+          // 9. response
           res.writeHead(200, { "Content-Type": "application/json" });
+
           res.end(JSON.stringify({
             success: true,
             data: results
@@ -400,11 +424,14 @@ function getOrdersByUserId(req, res, userId) {
       });
 
     } catch (e) {
+
       res.writeHead(500, { "Content-Type": "application/json" });
+
       res.end(JSON.stringify({
         success: false,
         message: e.message
       }));
+
     }
 
   });

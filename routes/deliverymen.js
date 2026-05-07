@@ -640,7 +640,7 @@ function addOrdersToDeliverymen(req, res, id) {
 
       await connection.beginTransaction();
 
-      // 🔒 try to claim order
+      // try to claim order
       const [orderUpdate] = await connection.query(
         `UPDATE orders 
          SET connected_deliveryman = 1, deliverymenId = ?
@@ -648,7 +648,7 @@ function addOrdersToDeliverymen(req, res, id) {
         [id ,orderId]
       );
 
-      // ❌ already taken
+      // already taken
       if (orderUpdate.affectedRows === 0) {
         await connection.rollback();
         res.writeHead(409, { "Content-Type": "application/json" });
@@ -657,7 +657,7 @@ function addOrdersToDeliverymen(req, res, id) {
         }));
       }
 
-      // 🔒 lock deliveryman row
+      // lock deliveryman row
       const [rows] = await connection.query(
         "SELECT current_orders FROM deliverymen WHERE id = ? FOR UPDATE",
         [id]
