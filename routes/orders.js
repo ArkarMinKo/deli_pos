@@ -19,6 +19,7 @@ function postOrder(req, res) {
 
       const {
         userId,
+        shopId,
         name,
         address,
         location,
@@ -89,6 +90,7 @@ function postOrder(req, res) {
           INSERT INTO orders (
             id,
             userId,
+            shopId,
             name,
             address,
             location,
@@ -109,12 +111,13 @@ function postOrder(req, res) {
             payment_photo,
             kilo
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
         const values = [
           newOrderId,
           userId,
+          shopId,
           name,
           address,
           location,
