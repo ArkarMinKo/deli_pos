@@ -446,6 +446,11 @@ const server = http.createServer(async (req, res) => {
         order.getReportByShop(req, res, id)
     }
 
+    else if(pathName.startsWith("/report-shops-summaries/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        order.getReportByShopSummaries(req, res, id)
+    }
+
     // --- Mobile Notification ---
     else if(pathName.startsWith("/mobile-noti/") && method === "GET") {
         const id = pathName.split("/")[2];
