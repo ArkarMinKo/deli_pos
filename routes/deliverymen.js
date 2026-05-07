@@ -643,9 +643,9 @@ function addOrdersToDeliverymen(req, res, id) {
       // 🔒 try to claim order
       const [orderUpdate] = await connection.query(
         `UPDATE orders 
-         SET connected_deliveryman = 1 
+         SET connected_deliveryman = 1, deliverymenId = ?
          WHERE id = ? AND connected_deliveryman = 0`,
-        [orderId]
+        [id ,orderId]
       );
 
       // ❌ already taken
