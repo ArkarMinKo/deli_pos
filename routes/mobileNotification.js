@@ -27,101 +27,149 @@ function formatDateLabel(dateString) {
 }
 
 function getOrderDetailById(id) {
+
   return new Promise((resolve, reject) => {
 
-    if (!id) return reject(new Error("order id is required"));
+    if (!id) {
+      return reject(new Error("order id is required"));
+    }
 
-    const query = `SELECT * FROM orders WHERE id = ? LIMIT 1`;
+    const query = `
+      SELECT * FROM orders WHERE id = ? LIMIT 1
+    `;
 
     db.query(query, [id], (err, results) => {
-      if (err) return reject(err);
-      if (results.length === 0) return reject(new Error("Order not found"));
+
+      if (err) {
+        return reject(err);
+      }
+
+      if (results.length === 0) {
+        return reject(new Error("Order not found"));
+      }
 
       let order = results[0];
 
       try {
+
+        // parse orders json
         if (order.orders && typeof order.orders === "string") {
           order.orders = JSON.parse(order.orders);
         }
 
-        // collect shop ids
+        // 1. collect shop ids
         let shopIds = new Set();
+
         if (order.orders) {
-          order.orders.forEach(item => shopIds.add(item.shop_id));
+
+          order.orders.forEach(item => {
+            shopIds.add(item.shop_id);
+          });
+
         }
 
         shopIds = Array.from(shopIds);
 
+        // 2. get shops
         const shopQuery = `
-          SELECT id, shop_name, phone, location, address 
-          FROM shops 
+          SELECT id, shop_name, phone, location, address
+          FROM shops
           WHERE id IN (?)
         `;
 
         db.query(shopQuery, [shopIds], (err2, shops) => {
-          if (err2) return reject(err2);
 
-          const shopMap = {};
-          shops.forEach(shop => {
-            shopMap[shop.id] = shop;
-          });
-
-          if (order.orders) {
-            order.orders.forEach(item => {
-              const s = shopMap[item.shop_id] || {};
-              item.shop_name = s.shop_name || null;
-              item.shop_phone = s.phone || null;
-              item.shop_location = s.location || null;
-              item.shop_address = s.address || null;
-            });
+          if (err2) {
+            return reject(err2);
           }
 
-          const deliveryQuery = `
-            SELECT name, phone, current_orders, finished_orders 
-            FROM deliverymen
-          `;
+          // 3. shop map
+          const shopMap = {};
 
-          db.query(deliveryQuery, (err3, deliverymen) => {
-            if (err3) return reject(err3);
+          shops.forEach(shop => {
+            shopMap[shop.id] = {
+              shop_name: shop.shop_name,
+              phone: shop.phone,
+              location: shop.location,
+              address: shop.address
+            };
+          });
 
-            const deliveryMap = {};
+          // 4. inject shop data
+          if (order.orders) {
 
-            deliverymen.forEach(dm => {
-              let current = [];
-              let finished = [];
+            order.orders.forEach(item => {
 
-              try {
-                current = dm.current_orders ? JSON.parse(dm.current_orders) : [];
-                finished = dm.finished_orders ? JSON.parse(dm.finished_orders) : [];
-              } catch {}
+              const shop = shopMap[item.shop_id] || {};
 
-              [...current, ...finished].forEach(orderId => {
-                if (orderId) {
-                  deliveryMap[String(orderId).trim()] = {
-                    name: dm.name,
-                    phone: dm.phone
-                  };
-                }
-              });
+              item.shop_name = shop.shop_name || null;
+              item.shop_phone = shop.phone || null;
+              item.shop_location = shop.location || null;
+              item.shop_address = shop.address || null;
+
             });
 
-            const delivery = deliveryMap[order.id];
+          }
+
+          // 5. no deliveryman assigned
+          if (!order.deliverymenId) {
 
             if (order.orders) {
+
               order.orders.forEach(item => {
-                item.deliveryman_name = delivery?.name || null;
-                item.deliveryman_phone = delivery?.phone || null;
+                item.deliveryman_name = null;
+                item.deliveryman_phone = null;
               });
+
             }
 
-            resolve(order); // ✅ return final data
-          });
+            return resolve(order);
+
+          }
+
+          // 6. get deliveryman by deliverymenId
+          const deliveryQuery = `
+            SELECT id, name, phone
+            FROM deliverymen
+            WHERE id = ?
+            LIMIT 1
+          `;
+
+          db.query(
+            deliveryQuery,
+            [order.deliverymenId],
+            (err3, deliverymen) => {
+
+              if (err3) {
+                return reject(err3);
+              }
+
+              const delivery = deliverymen[0] || {};
+
+              // 7. inject deliveryman
+              if (order.orders) {
+
+                order.orders.forEach(item => {
+                  item.deliveryman_name = delivery.name || null;
+                  item.deliveryman_phone = delivery.phone || null;
+                });
+
+              }
+
+              // 8. return final order
+              resolve(order);
+
+            }
+          );
+
         });
 
       } catch (e) {
         reject(e);
       }
+
     });
+
   });
 }
 
