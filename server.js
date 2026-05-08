@@ -451,7 +451,12 @@ const server = http.createServer(async (req, res) => {
         order.getReportByShopSummaries(req, res, id)
     }
 
-    else if(pathName.startsWith("/report-shops-deliverymen/") && method === "GET") {
+    else if(pathName.startsWith("/report-shops-deliverymen-by-shops/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        deliverymen.getReportShopDeliveymenByShop(req, res, id)
+    }
+
+    else if(pathName.startsWith("/report-system-deliverymen-by-shops/") && method === "GET") {
         const id = pathName.split("/")[2];
         deliverymen.getReportShopDeliveymenByShop(req, res, id)
     }
