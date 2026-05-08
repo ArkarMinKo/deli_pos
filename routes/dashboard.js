@@ -43,41 +43,41 @@ function getDashboardSummariesByShop(req, res, shopId) {
 
     results.forEach(order => {
 
-      // unique users
-      if (order.userId) {
+    // only this shop
+    if (order.shopId !== shopId) {
+        return;
+    }
+
+    // unique users
+    if (order.userId) {
         uniqueUsers.add(order.userId);
-      }
+    }
 
-      // totals
-      today_amount += Number(order.grand_total || 0);
-      today_delivery_fees += Number(order.delivery_fees || 0);
+    // totals
+    today_amount += Number(order.grand_total || 0);
+    today_delivery_fees += Number(order.delivery_fees || 0);
 
-      let orderItems = [];
+    let orderItems = [];
 
     try {
 
         if (typeof order.orders === "string") {
-            orderItems = JSON.parse(order.orders);
+        orderItems = JSON.parse(order.orders);
         } else if (Array.isArray(order.orders)) {
-            orderItems = order.orders;
+        orderItems = order.orders;
         }
 
     } catch (e) {
         orderItems = [];
     }
 
-      orderItems.forEach(item => {
+    orderItems.forEach(item => {
 
-        // only this shop menus
-        if (item.shop_id === shopId) {
-
-          if (item.menu_id) {
-            uniqueMenus.add(item.menu_id);
-          }
-
+        if (item.shop_id === shopId && item.menu_id) {
+        uniqueMenus.add(item.menu_id);
         }
 
-      });
+    });
 
     });
 
