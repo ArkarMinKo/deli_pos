@@ -15,6 +15,7 @@ const menu = require("./routes/menu");
 const admin = require("./routes/admin");
 const order = require("./routes/orders");
 const mobileNoti = require('./routes/mobileNotification');
+const dashboard = require('./routes/dashboard');
 
 // Upload folders
 const INGREDIENTS_UPLOAD_DIR = path.join(__dirname, "ingredients_uploads");
@@ -477,10 +478,16 @@ const server = http.createServer(async (req, res) => {
         mobileNoti.getNotiUser(req, res, id)
     }
 
-    // --- Mobile Notification ---
     else if(pathName.startsWith("/mobile-noti/") && method === "PATCH") {
         const id = pathName.split("/")[2];
         mobileNoti.mobileNotiSeen(req, res, id)
+    }
+
+    // --- Dashboard ---
+
+    else if(pathName.startsWith("/dashboard-summaries-by-shops/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        dashboard.getDashboardSummariesByShop(req, res, id)
     }
 
     // --- 404 fallback ---
