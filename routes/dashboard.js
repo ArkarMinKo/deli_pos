@@ -52,14 +52,19 @@ function getDashboardSummariesByShop(req, res, shopId) {
       today_amount += Number(order.grand_total || 0);
       today_delivery_fees += Number(order.delivery_fees || 0);
 
-      // parse orders json
       let orderItems = [];
 
-      try {
-        orderItems = JSON.parse(order.orders || "[]");
-      } catch (e) {
+    try {
+
+        if (typeof order.orders === "string") {
+            orderItems = JSON.parse(order.orders);
+        } else if (Array.isArray(order.orders)) {
+            orderItems = order.orders;
+        }
+
+    } catch (e) {
         orderItems = [];
-      }
+    }
 
       orderItems.forEach(item => {
 
