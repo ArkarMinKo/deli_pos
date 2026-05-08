@@ -23,7 +23,7 @@ function getDashboardSummariesByShop(req, res, shopId) {
       created_at
     FROM orders
     WHERE shopId = ?
-    AND DATE(CONVERT_TZ(created_at, '+00:00', '+06:30')) = ?
+    AND DATE(created_at) = ?
   `;
 
   db.query(query, [shopId, today], (err, results) => {
