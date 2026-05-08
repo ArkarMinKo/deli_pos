@@ -1067,6 +1067,235 @@ function changeLocation(req, res, id) {
   });
 }
 
+function getReportShopDeliveymenByShop(req, res, shopId) {
+
+  if (!shopId) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({
+      success: false,
+      message: "shopId is required"
+    }));
+  }
+
+  // Get shop info
+  const shopQuery = `
+    SELECT id, shop_name
+    FROM shops
+    WHERE id = ?
+    LIMIT 1
+  `;
+
+  db.query(shopQuery, [shopId], (shopErr, shopResults) => {
+
+    if (shopErr) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: false,
+        message: shopErr.message
+      }));
+    }
+
+    if (shopResults.length === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: false,
+        message: "Shop not found"
+      }));
+    }
+
+    const shop = shopResults[0];
+
+    // Get deliverymen by shop
+    const deliverymenQuery = `
+      SELECT
+        id,
+        name,
+        email,
+        phone,
+        photo,
+        status,
+        work_type,
+        finished_orders,
+        cleared_orders
+      FROM deliverymen
+      WHERE work_type = ?
+      ORDER BY id DESC
+    `;
+
+    db.query(deliverymenQuery, [shopId], async (err, deliverymenResults) => {
+
+      if (err) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({
+          success: false,
+          message: err.message
+        }));
+      }
+
+      try {
+
+        const getOrders = (orderIds) => {
+
+          return new Promise((resolve, reject) => {
+
+            if (!Array.isArray(orderIds) || orderIds.length === 0) {
+              return resolve([]);
+            }
+
+            const placeholders = orderIds.map(() => "?").join(",");
+
+            const orderQuery = `
+              SELECT
+                id,
+                total_order,
+                delivery_fees,
+                kilo
+              FROM orders
+              WHERE id IN (${placeholders})
+            `;
+
+            db.query(orderQuery, orderIds, (orderErr, orderResults) => {
+
+              if (orderErr) return reject(orderErr);
+
+              resolve(orderResults);
+
+            });
+
+          });
+
+        };
+
+        const data = [];
+
+        for (const deliveryman of deliverymenResults) {
+
+          let finishedOrders = [];
+          let clearedOrders = [];
+
+          // Parse finished_orders
+          try {
+
+            if (deliveryman.finished_orders) {
+
+              finishedOrders = JSON.parse(deliveryman.finished_orders);
+
+              if (!Array.isArray(finishedOrders)) {
+                finishedOrders = [];
+              }
+
+            }
+
+          } catch {
+            finishedOrders = [];
+          }
+
+          // Parse cleared_orders
+          try {
+
+            if (deliveryman.cleared_orders) {
+
+              clearedOrders = JSON.parse(deliveryman.cleared_orders);
+
+              if (!Array.isArray(clearedOrders)) {
+                clearedOrders = [];
+              }
+
+            }
+
+          } catch {
+            clearedOrders = [];
+          }
+
+          // Get orders data
+          const finishedOrderData = await getOrders(finishedOrders);
+          const clearedOrderData = await getOrders(clearedOrders);
+
+          // Finished summary
+          const finishedWays = finishedOrderData.map(order => ({
+            orderId: order.id,
+            menu: order.total_order,
+            delivey_fees: Number(order.delivery_fees || 0),
+            kilo: Number(order.kilo || 0)
+          }));
+
+          const finishedTotalDeliveryFees = finishedOrderData.reduce((sum, order) => {
+            return sum + Number(order.delivery_fees || 0);
+          }, 0);
+
+          const finishedTotalKilo = finishedOrderData.reduce((sum, order) => {
+            return sum + Number(order.kilo || 0);
+          }, 0);
+
+          // Cleared summary
+          const clearedWays = clearedOrderData.map(order => ({
+            orderId: order.id,
+            menu: order.total_order,
+            delivey_fees: Number(order.delivery_fees || 0),
+            kilo: Number(order.kilo || 0)
+          }));
+
+          const clearedTotalDeliveryFees = clearedOrderData.reduce((sum, order) => {
+            return sum + Number(order.delivery_fees || 0);
+          }, 0);
+
+          const clearedTotalKilo = clearedOrderData.reduce((sum, order) => {
+            return sum + Number(order.kilo || 0);
+          }, 0);
+
+          data.push({
+            id: deliveryman.id,
+            name: deliveryman.name,
+            email: deliveryman.email,
+            phone: deliveryman.phone,
+            photo: deliveryman.photo,
+            status: deliveryman.status,
+
+            // shop name
+            work_type: shop.shop_name,
+
+            not_cleared_orders: {
+              total_way: finishedOrderData.length,
+              total_delivy_fees: finishedTotalDeliveryFees,
+              total_kilo: finishedTotalKilo,
+              ways: finishedWays
+            },
+
+            cleared_orders: {
+              total_way: clearedOrderData.length,
+              total_delivy_fees: clearedTotalDeliveryFees,
+              total_kilo: clearedTotalKilo,
+              ways: clearedWays
+            }
+
+          });
+
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+
+        return res.end(JSON.stringify({
+          success: true,
+          data
+        }));
+
+      } catch (error) {
+
+        res.writeHead(500, { "Content-Type": "application/json" });
+
+        return res.end(JSON.stringify({
+          success: false,
+          message: error.message
+        }));
+
+      }
+
+    });
+
+  });
+
+}
+
 module.exports = { 
     loginDeliverymen,
     createDeliverymen,
@@ -1085,5 +1314,6 @@ module.exports = {
     connectedOrdersBySpecialUsers,
     connectedOrdersByNonSpecialUsers,
     ordersHistoryByDeliveryman,
-    changeLocation
+    changeLocation,
+    getReportShopDeliveymenByShop
 };
