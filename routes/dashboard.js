@@ -10,7 +10,6 @@ function getDashboardSummariesByShop(req, res, shopId) {
     }));
   }
 
-  // Myanmar local date
   const today = new Date().toLocaleDateString("en-CA");
 
   const query = `
@@ -20,12 +19,14 @@ function getDashboardSummariesByShop(req, res, shopId) {
       grand_total,
       userId,
       delivery_fees,
+      shopId,
       created_at
     FROM orders
-    WHERE DATE(CONVERT_TZ(created_at, '+00:00', '+06:30')) = ?
+    WHERE shopId = ?
+    AND DATE(CONVERT_TZ(created_at, '+00:00', '+06:30')) = ?
   `;
 
-  db.query(query, [today], (err, results) => {
+  db.query(query, [shopId, today], (err, results) => {
 
     if (err) {
       res.writeHead(500, { "Content-Type": "application/json" });
@@ -43,41 +44,38 @@ function getDashboardSummariesByShop(req, res, shopId) {
 
     results.forEach(order => {
 
-    // only this shop
-    if (order.shopId !== shopId) {
-        return;
-    }
-
-    // unique users
-    if (order.userId) {
+      // users
+      if (order.userId) {
         uniqueUsers.add(order.userId);
-    }
+      }
 
-    // totals
-    today_amount += Number(order.grand_total || 0);
-    today_delivery_fees += Number(order.delivery_fees || 0);
+      // totals
+      today_amount += Number(order.grand_total || 0);
+      today_delivery_fees += Number(order.delivery_fees || 0);
 
-    let orderItems = [];
+      // orders json
+      let orderItems = [];
 
-    try {
+      try {
 
         if (typeof order.orders === "string") {
-        orderItems = JSON.parse(order.orders);
+          orderItems = JSON.parse(order.orders);
         } else if (Array.isArray(order.orders)) {
-        orderItems = order.orders;
+          orderItems = order.orders;
         }
 
-    } catch (e) {
+      } catch (e) {
         orderItems = [];
-    }
+      }
 
-    orderItems.forEach(item => {
+      // menus
+      orderItems.forEach(item => {
 
-        if (item.shop_id === shopId && item.menu_id) {
-        uniqueMenus.add(item.menu_id);
+        if (item.menu_id) {
+          uniqueMenus.add(item.menu_id);
         }
 
-    });
+      });
 
     });
 
