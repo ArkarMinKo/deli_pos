@@ -1608,122 +1608,115 @@ function getReportByShopSummaries(req, res, shopId) {
     }));
   }
 
-  // today date => YYYY-MM-DD
-  const today = new Date().toLocaleDateString('en-CA');
+  // totay date (YYYY-MM-DD)
+  const today = new Date().toLocaleDateString("en-CA");
+
+  // 1. Today's total orders + amount
   const orderQuery = `
-    SELECT id, grand_total, orders
+    SELECT 
+      COUNT(*) AS total_orders,
+      COALESCE(SUM(grand_total), 0) AS total_amount
     FROM orders
-
+    WHERE shopId = ?
+      AND DATE(created_at) = ?
   `;
-    // WHERE DATE(created_at) = ?
 
-  db.query(orderQuery, (err, orderResults) => {
+  db.query(orderQuery, [shopId, today], (err, orderResults) => {
 
     if (err) {
       res.writeHead(500, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({
         success: false,
-        message: "Database error",
-        error: err
+        message: err.message
       }));
     }
 
-    let total_orders = 0;
-    let total_amount = 0;
+    const total_orders = orderResults[0].total_orders || 0;
+    const total_amount = Number(orderResults[0].total_amount || 0);
 
-    // shop's order ids
-    let shopOrderIds = [];
-
-    orderResults.forEach(order => {
-
-      let orderItems = [];
-
-      try {
-        orderItems = JSON.parse(order.orders || "[]");
-      } catch (e) {
-        orderItems = [];
-      }
-
-      // check this order has this shopId
-      const hasShop = orderItems.some(
-        item => item.shop_id === shopId
-      );
-
-      if (hasShop) {
-        total_orders += 1;
-        total_amount += Number(order.grand_total || 0);
-        shopOrderIds.push(order.id);
-      }
-
-    });
-
-    // get deliverymen
-    const deliveryQuery = `
+    // 2. Get all deliverymen
+    const deliverymenQuery = `
       SELECT id, finished_orders, work_type
       FROM deliverymen
     `;
 
-    db.query(deliveryQuery, (deliveryErr, deliveryResults) => {
+    db.query(deliverymenQuery, (err2, deliverymenResults) => {
 
-      if (deliveryErr) {
+      if (err2) {
         res.writeHead(500, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({
           success: false,
-          message: "Database error",
-          error: deliveryErr
+          message: err2.message
         }));
       }
 
       let total_way_shopDeliverymen = 0;
       let total_way_systemDeliverymen = 0;
 
-      deliveryResults.forEach(deliveryman => {
+      // collect all order ids from this shop
+      const shopOrderIdsQuery = `
+        SELECT id
+        FROM orders
+        WHERE shopId = ?
+      `;
 
-        let finishedOrders = [];
+      db.query(shopOrderIdsQuery, [shopId], (err3, shopOrders) => {
 
-        try {
-          finishedOrders = JSON.parse(
-            deliveryman.finished_orders || "[]"
-          );
-        } catch (e) {
-          finishedOrders = [];
+        if (err3) {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({
+            success: false,
+            message: err3.message
+          }));
         }
 
-        finishedOrders.forEach(orderId => {
+        const shopOrderIds = shopOrders.map(order => order.id);
 
-          // only count this shop orders
-          if (shopOrderIds.includes(orderId)) {
+        deliverymenResults.forEach(deliveryman => {
 
-            // shop deliveryman
-            if (deliveryman.work_type === shopId) {
-              total_way_shopDeliverymen += 1;
-            }
+          let finishedOrders = [];
 
-            // system deliveryman
-            if (
-              deliveryman.work_type === null ||
-              deliveryman.work_type === ""
-            ) {
-              total_way_systemDeliverymen += 1;
-            }
+          try {
+            finishedOrders = JSON.parse(deliveryman.finished_orders || "[]");
+          } catch (e) {
+            finishedOrders = [];
+          }
 
+          // Shop own deliverymen
+          if (deliveryman.work_type === shopId) {
+            total_way_shopDeliverymen += finishedOrders.length;
+          }
+
+          // System deliverymen
+          if (
+            deliveryman.work_type === null ||
+            deliveryman.work_type === ""
+          ) {
+
+            finishedOrders.forEach(orderId => {
+
+              if (shopOrderIds.includes(orderId)) {
+                total_way_systemDeliverymen++;
+              }
+
+            });
           }
 
         });
 
+        res.writeHead(200, { "Content-Type": "application/json" });
+
+        return res.end(JSON.stringify({
+          success: true,
+          data: {
+            total_orders,
+            total_amount,
+            total_way_shopDeliverymen,
+            total_way_systemDeliverymen
+          }
+        }));
+
       });
-
-      res.writeHead(200, { "Content-Type": "application/json" });
-
-      return res.end(JSON.stringify({
-        success: true,
-        data: {
-          total_orders,
-          total_amount,
-          total_way_shopDeliverymen,
-          total_way_systemDeliverymen
-        }
-      }));
 
     });
 
