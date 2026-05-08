@@ -6,6 +6,7 @@ const fs = require("fs");
 const db = require("../db");
 const bcrypt = require("bcrypt");
 const { off } = require("process");
+const { clear } = require("console");
 
 const UPLOAD_DIR = path.join(__dirname, "../deliverymen_uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
@@ -1511,6 +1512,330 @@ function getReportSystemDeliveymenByShop(req, res, shopId) {
 
 }
 
+function clearedOrders(req, res, deliverymenId) {
+
+  if (req.method !== "PATCH") {
+    res.writeHead(405, { "Content-Type": "application/json" });
+
+    return res.end(JSON.stringify({
+      success: false,
+      message: "Method Not Allowed"
+    }));
+  }
+
+  if (!deliverymenId) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+
+    return res.end(JSON.stringify({
+      success: false,
+      message: "deliverymenId is required"
+    }));
+  }
+
+  let body = "";
+
+  req.on("data", chunk => {
+    body += chunk.toString();
+  });
+
+  req.on("end", () => {
+
+    try {
+
+      const parsedBody = JSON.parse(body);
+
+      const shop_id = parsedBody.shop_id;
+
+      if (!shop_id) {
+
+        res.writeHead(400, { "Content-Type": "application/json" });
+
+        return res.end(JSON.stringify({
+          success: false,
+          message: "shop_id is required"
+        }));
+
+      }
+
+      // Get deliveryman
+      const query = `
+        SELECT
+          id,
+          work_type,
+          finished_orders,
+          cleared_orders
+        FROM deliverymen
+        WHERE id = ?
+        LIMIT 1
+      `;
+
+      db.query(query, [deliverymenId], async (err, results) => {
+
+        if (err) {
+
+          res.writeHead(500, { "Content-Type": "application/json" });
+
+          return res.end(JSON.stringify({
+            success: false,
+            message: err.message
+          }));
+
+        }
+
+        if (results.length === 0) {
+
+          res.writeHead(404, { "Content-Type": "application/json" });
+
+          return res.end(JSON.stringify({
+            success: false,
+            message: "Deliveryman not found"
+          }));
+
+        }
+
+        const deliveryman = results[0];
+
+        let finishedOrders = [];
+        let clearedOrders = [];
+
+        // Parse finished_orders
+        try {
+
+          if (deliveryman.finished_orders) {
+
+            finishedOrders = JSON.parse(deliveryman.finished_orders);
+
+            if (!Array.isArray(finishedOrders)) {
+              finishedOrders = [];
+            }
+
+          }
+
+        } catch {
+          finishedOrders = [];
+        }
+
+        // Parse cleared_orders
+        try {
+
+          if (deliveryman.cleared_orders) {
+
+            clearedOrders = JSON.parse(deliveryman.cleared_orders);
+
+            if (!Array.isArray(clearedOrders)) {
+              clearedOrders = [];
+            }
+
+          }
+
+        } catch {
+          clearedOrders = [];
+        }
+
+        // Nothing to clear
+        if (finishedOrders.length === 0) {
+
+          res.writeHead(400, { "Content-Type": "application/json" });
+
+          return res.end(JSON.stringify({
+            success: false,
+            message: "No finished orders found"
+          }));
+
+        }
+
+        // SYSTEM DELIVERYMAN
+        if (!deliveryman.work_type) {
+
+          const placeholders = finishedOrders.map(() => "?").join(",");
+
+          const orderQuery = `
+            SELECT id
+            FROM orders
+            WHERE id IN (${placeholders})
+            AND shopId = ?
+          `;
+
+          db.query(
+            orderQuery,
+            [...finishedOrders, shop_id],
+            (orderErr, orderResults) => {
+
+              if (orderErr) {
+
+                res.writeHead(500, { "Content-Type": "application/json" });
+
+                return res.end(JSON.stringify({
+                  success: false,
+                  message: orderErr.message
+                }));
+
+              }
+
+              const matchedOrderIds = orderResults.map(order => order.id);
+
+              if (matchedOrderIds.length === 0) {
+
+                res.writeHead(400, { "Content-Type": "application/json" });
+
+                return res.end(JSON.stringify({
+                  success: false,
+                  message: "No matching shop orders found"
+                }));
+
+              }
+
+              // Remove from finished_orders
+              const updatedFinishedOrders = finishedOrders.filter(
+                orderId => !matchedOrderIds.includes(orderId)
+              );
+
+              // Push into cleared_orders
+              const updatedClearedOrders = [
+                ...new Set([
+                  ...clearedOrders,
+                  ...matchedOrderIds
+                ])
+              ];
+
+              const updateQuery = `
+                UPDATE deliverymen
+                SET
+                  finished_orders = ?,
+                  cleared_orders = ?
+                WHERE id = ?
+              `;
+
+              db.query(
+                updateQuery,
+                [
+                  JSON.stringify(updatedFinishedOrders),
+                  JSON.stringify(updatedClearedOrders),
+                  deliverymenId
+                ],
+                (updateErr) => {
+
+                  if (updateErr) {
+
+                    res.writeHead(500, { "Content-Type": "application/json" });
+
+                    return res.end(JSON.stringify({
+                      success: false,
+                      message: updateErr.message
+                    }));
+
+                  }
+
+                  res.writeHead(200, {
+                    "Content-Type": "application/json"
+                  });
+
+                  return res.end(JSON.stringify({
+                    success: true,
+                    message: "Orders cleared successfully",
+                    data: {
+                      moved_orders: matchedOrderIds,
+                      finished_orders: updatedFinishedOrders,
+                      cleared_orders: updatedClearedOrders
+                    }
+                  }));
+
+                }
+              );
+
+            }
+          );
+
+        }
+
+        // SHOP DELIVERYMAN
+        else if (deliveryman.work_type === shop_id) {
+
+          const updatedClearedOrders = [
+            ...new Set([
+              ...clearedOrders,
+              ...finishedOrders
+            ])
+          ];
+
+          const updatedFinishedOrders = [];
+
+          const updateQuery = `
+            UPDATE deliverymen
+            SET
+              finished_orders = ?,
+              cleared_orders = ?
+            WHERE id = ?
+          `;
+
+          db.query(
+            updateQuery,
+            [
+              JSON.stringify(updatedFinishedOrders),
+              JSON.stringify(updatedClearedOrders),
+              deliverymenId
+            ],
+            (updateErr) => {
+
+              if (updateErr) {
+
+                res.writeHead(500, { "Content-Type": "application/json" });
+
+                return res.end(JSON.stringify({
+                  success: false,
+                  message: updateErr.message
+                }));
+
+              }
+
+              res.writeHead(200, {
+                "Content-Type": "application/json"
+              });
+
+              return res.end(JSON.stringify({
+                success: true,
+                message: "Orders cleared successfully",
+                data: {
+                  moved_orders: finishedOrders,
+                  finished_orders: updatedFinishedOrders,
+                  cleared_orders: updatedClearedOrders
+                }
+              }));
+
+            }
+          );
+
+        }
+
+        // INVALID SHOP ACCESS
+        else {
+
+          res.writeHead(403, { "Content-Type": "application/json" });
+
+          return res.end(JSON.stringify({
+            success: false,
+            message: "This deliveryman does not belong to this shop"
+          }));
+
+        }
+
+      });
+
+    } catch (error) {
+
+      res.writeHead(400, { "Content-Type": "application/json" });
+
+      return res.end(JSON.stringify({
+        success: false,
+        message: "Invalid JSON body"
+      }));
+
+    }
+
+  });
+
+}
+
 module.exports = { 
     loginDeliverymen,
     createDeliverymen,
@@ -1531,5 +1856,6 @@ module.exports = {
     ordersHistoryByDeliveryman,
     changeLocation,
     getReportShopDeliveymenByShop,
-    getReportSystemDeliveymenByShop
+    getReportSystemDeliveymenByShop,
+    clearedOrders
 };
