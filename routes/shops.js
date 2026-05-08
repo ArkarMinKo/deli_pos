@@ -758,6 +758,107 @@ function offShopDeli(req, res, id) {
   });
 }
 
+function updateShopsCategories(req, res, shopId) {
+
+  if (!shopId) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({
+      success: false,
+      message: "shopId is required"
+    }));
+  }
+
+  let body = "";
+
+  req.on("data", chunk => {
+    body += chunk.toString();
+
+    // protect large request
+    if (body.length > 1e6) {
+      req.connection.destroy();
+    }
+  });
+
+  req.on("end", () => {
+
+    let parsedBody;
+
+    try {
+      parsedBody = JSON.parse(body);
+    } catch (err) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: false,
+        message: "Invalid JSON body"
+      }));
+    }
+
+    const { categories } = parsedBody;
+
+    // validation
+    if (!Array.isArray(categories)) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: false,
+        message: "categories must be an array"
+      }));
+    }
+
+    // only allow numbers
+    const invalid = categories.some(item => typeof item !== "number");
+
+    if (invalid) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: false,
+        message: "categories must contain only numbers"
+      }));
+    }
+
+    // replace old categories completely
+    const query = `
+      UPDATE shops
+      SET categories = ?
+      WHERE id = ?
+    `;
+
+    db.query(
+      query,
+      [JSON.stringify(categories), shopId],
+      (err, result) => {
+
+        if (err) {
+          console.error(err);
+
+          res.writeHead(500, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({
+            success: false,
+            message: "Database error"
+          }));
+        }
+
+        if (result.affectedRows === 0) {
+          res.writeHead(404, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({
+            success: false,
+            message: "Shop not found"
+          }));
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({
+          success: true,
+          message: "Shop categories updated successfully",
+          data: {
+            shop_id: shopId,
+            categories: categories
+          }
+        }));
+      }
+    );
+  });
+}
+
 module.exports = {
     loginShop,
     createShops,
@@ -775,5 +876,6 @@ module.exports = {
     openShopDeli,
     offShopDeli,
     getShopDeliOpen,
-    getShopOpen
+    getShopOpen,
+    updateShopsCategories
 };
