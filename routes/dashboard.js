@@ -102,6 +102,7 @@ function getReportRvenueByShopId(req, res, shopId) {
 
   if (!shopId) {
     res.writeHead(400, { "Content-Type": "application/json" });
+
     return res.end(JSON.stringify({
       success: false,
       message: "shopId is required"
@@ -117,7 +118,9 @@ function getReportRvenueByShopId(req, res, shopId) {
   db.query(query, [shopId], (err, results) => {
 
     if (err) {
+
       res.writeHead(500, { "Content-Type": "application/json" });
+
       return res.end(JSON.stringify({
         success: false,
         message: "Database error",
@@ -126,12 +129,11 @@ function getReportRvenueByShopId(req, res, shopId) {
     }
 
     // =========================
-    // HOURLY REPORT (Today)
+    // HOURLY REPORT
     // =========================
 
     const hourMap = {};
 
-    // 6 AM to 8 PM
     for (let hour = 6; hour <= 20; hour++) {
 
       let label = "";
@@ -168,7 +170,7 @@ function getReportRvenueByShopId(req, res, shopId) {
 
     // =========================
     // YEARLY REPORT
-    // Last 5 months + current month
+    // Jan -> Dec
     // =========================
 
     const monthNames = [
@@ -178,27 +180,16 @@ function getReportRvenueByShopId(req, res, shopId) {
 
     const yearlyMap = {};
 
-    const currentDate = new Date();
+    for (let i = 0; i < 12; i++) {
 
-    // create last 5 months + current month
-    for (let i = 5; i >= 0; i--) {
-
-      const d = new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth() - i,
-        1
-      );
-
-      const key = `${d.getFullYear()}-${d.getMonth()}`;
-
-      yearlyMap[key] = {
-        time: monthNames[d.getMonth()],
+      yearlyMap[i] = {
+        time: monthNames[i],
         value: 0
       };
     }
 
     // =========================
-    // TODAY DATE
+    // TODAY
     // =========================
 
     const today = new Date();
@@ -206,6 +197,8 @@ function getReportRvenueByShopId(req, res, shopId) {
     const todayYear = today.getFullYear();
     const todayMonth = today.getMonth();
     const todayDate = today.getDate();
+
+    const currentYear = today.getFullYear();
 
     // =========================
     // LOOP ORDERS
@@ -250,16 +243,17 @@ function getReportRvenueByShopId(req, res, shopId) {
       // YEARLY
       // =====================
 
-      const monthKey = `${created.getFullYear()}-${created.getMonth()}`;
+      if (created.getFullYear() === currentYear) {
 
-      if (yearlyMap[monthKey]) {
-        yearlyMap[monthKey].value += revenue;
+        const monthIndex = created.getMonth();
+
+        yearlyMap[monthIndex].value += revenue;
       }
 
     });
 
     // =========================
-    // FINAL RESPONSE
+    // RESPONSE
     // =========================
 
     const response = {
