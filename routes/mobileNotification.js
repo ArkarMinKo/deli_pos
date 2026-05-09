@@ -213,19 +213,20 @@ async function getNotiUser(req, res, userId) {
         fullOrder = null;
       }
 
-      if (order.connected_deliveryman == 1) {
-        if (order.connected_deliveryman_seen == 0) unseenCount++;
+      if (order.orders_done == 1) {
+          if (order.orders_done_seen == 0) unseenCount++;
 
-        data.push({
-          id: "N" + String(notiId++).padStart(3, "0"),
-          orderId: order.id,
-          title: "Delivery Confirmed",
-          Des: `သင့်အော်ဒါ #${order.id} ကို ဆိုင်မှ လက်ခံလိုက်ပါပြီ။`,
-          seen: order.connected_deliveryman_seen,
-          seen_type: 'connected_deliveryman_seen',
-          date: formatDateLabel(order.created_at),
-          data: fullOrder // ✅ injected
-        });
+          data.push({
+            id: "N" + String(notiId++).padStart(3, "0"),
+            orderId: order.id,
+            title: "Order Done",
+            Des: `သင့်အော်ဒါ #${order.id} ကို အောင်မြင်စွာ ပို့ဆောင်ပြီးပါပြီ။`,
+            seen: order.orders_done_seen,
+            seen_type: 'orders_done_seen',
+            date: formatDateLabel(order.created_at),
+            data: fullOrder
+          });
+        }
       }
 
       if (order.orders_pickup == 1) {
@@ -243,21 +244,20 @@ async function getNotiUser(req, res, userId) {
         });
       }
 
-      if (order.orders_done == 1) {
-        if (order.orders_done_seen == 0) unseenCount++;
+      if (order.connected_deliveryman == 1) {
+        if (order.connected_deliveryman_seen == 0) unseenCount++;
 
         data.push({
           id: "N" + String(notiId++).padStart(3, "0"),
           orderId: order.id,
-          title: "Order Done",
-          Des: `သင့်အော်ဒါ #${order.id} ကို အောင်မြင်စွာ ပို့ဆောင်ပြီးပါပြီ။`,
-          seen: order.orders_done_seen,
-          seen_type: 'orders_done_seen',
+          title: "Delivery Confirmed",
+          Des: `သင့်အော်ဒါ #${order.id} ကို ဆိုင်မှ လက်ခံလိုက်ပါပြီ။`,
+          seen: order.connected_deliveryman_seen,
+          seen_type: 'connected_deliveryman_seen',
           date: formatDateLabel(order.created_at),
-          data: fullOrder
+          data: fullOrder // ✅ injected
         });
       }
-    }
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({
