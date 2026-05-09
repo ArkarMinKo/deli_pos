@@ -490,6 +490,11 @@ const server = http.createServer(async (req, res) => {
         dashboard.getDashboardSummariesByShop(req, res, id)
     }
 
+    else if(pathName.startsWith("/report-revenuecharts-by-shops/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        dashboard.getReportRvenueByShopId(req, res, id)
+    }
+
     // --- 404 fallback ---
     else {
         res.writeHead(404, { "Content-Type": "application/json" });
