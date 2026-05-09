@@ -283,7 +283,150 @@ function getReportRvenueByShopId(req, res, shopId) {
 
 }
 
+function getReportCategoriesChartByShopId(req, res, shopId) {
+  if (!shopId) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(
+      JSON.stringify({
+        success: false,
+        message: "shopId is required",
+      })
+    );
+  }
+
+  // 1. Get all orders for this shop
+  const ordersSql = `
+    SELECT id, orders
+    FROM orders
+    WHERE shopId = ?
+  `;
+
+  db.query(ordersSql, [shopId], (err, orderResults) => {
+    if (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(
+        JSON.stringify({
+          success: false,
+          message: "Database error",
+          error: err.message,
+        })
+      );
+    }
+
+    // 2. Get all menu categories
+    const menuSql = `
+      SELECT id, category
+      FROM menu
+    `;
+
+    db.query(menuSql, (menuErr, menuResults) => {
+      if (menuErr) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        return res.end(
+          JSON.stringify({
+            success: false,
+            message: "Database error",
+            error: menuErr.message,
+          })
+        );
+      }
+
+      // 3. Get category names
+      const categoriesSql = `
+        SELECT id, name
+        FROM categories
+      `;
+
+      db.query(categoriesSql, (catErr, categoryResults) => {
+        if (catErr) {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          return res.end(
+            JSON.stringify({
+              success: false,
+              message: "Database error",
+              error: catErr.message,
+            })
+          );
+        }
+
+        // =========================
+        // Create menu -> category map
+        // =========================
+        const menuCategoryMap = {};
+
+        menuResults.forEach((menu) => {
+          menuCategoryMap[menu.id] = menu.category;
+        });
+
+        // =========================
+        // Create categoryId -> name map
+        // =========================
+        const categoryNameMap = {};
+
+        categoryResults.forEach((cat) => {
+          categoryNameMap[cat.id] = cat.name;
+        });
+
+        // =========================
+        // Final category totals
+        // =========================
+        const categoryChart = {};
+
+        orderResults.forEach((orderRow) => {
+          let orderItems = [];
+
+          try {
+            orderItems =
+              typeof orderRow.orders === "string"
+                ? JSON.parse(orderRow.orders)
+                : orderRow.orders;
+          } catch (e) {
+            orderItems = [];
+          }
+
+          if (!Array.isArray(orderItems)) return;
+
+          orderItems.forEach((item) => {
+            const menuId = item.menu_id;
+            const quantity = Number(item.quantity || 0);
+
+            // Get category id from menu table
+            const categoryId = menuCategoryMap[menuId];
+
+            if (!categoryId) return;
+
+            // Get category name
+            const categoryName = categoryNameMap[categoryId];
+
+            if (!categoryName) return;
+
+            // Add quantity count
+            if (!categoryChart[categoryName]) {
+              categoryChart[categoryName] = 0;
+            }
+
+            categoryChart[categoryName] += quantity;
+          });
+        });
+
+        // =========================
+        // Response
+        // =========================
+        res.writeHead(200, { "Content-Type": "application/json" });
+
+        return res.end(
+          JSON.stringify({
+            success: true,
+            data: categoryChart,
+          })
+        );
+      });
+    });
+  });
+}
+
 module.exports = { 
     getDashboardSummariesByShop,
-    getReportRvenueByShopId
+    getReportRvenueByShopId,
+    getReportCategoriesChartByShopId
 };
