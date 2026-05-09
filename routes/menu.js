@@ -487,7 +487,7 @@ function getAllShopsWithMenus(req, res) {
       const serverSql = `SELECT server FROM server LIMIT 1`;
 
       db.query(serverSql, (err, serverResult) => {
-        const openDeli = serverResult[0];
+        const openDeli = serverResult[0].server;
 
         const categoryMap = {};
         categories.forEach(c => (categoryMap[c.id] = c.name));
