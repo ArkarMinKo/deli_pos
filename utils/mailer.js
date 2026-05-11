@@ -89,7 +89,7 @@ async function sendMail(to, name, type, data = {}) {
 
   try {
     const info = await transporter.sendMail({
-      from: `"DELIVERY SYSTEM" <jairo223555@gmail.com>`,
+      from: `"DELIVERY SYSTEM" <delivery.system.admin@gmail.com>`,
       to,
       subject,
       html,
