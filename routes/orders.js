@@ -1049,7 +1049,7 @@ async function connectedDeliverymen(req, res) {
   }
 }
 
- finishOrder(req, res, orderId) {
+function finishOrder(req, res, orderId) {
   let body = "";
 
   // Receive body data
