@@ -1079,7 +1079,7 @@ function finishOrder(req, res, orderId) {
       }
 
       // Create uploads folder
-      const uploadDir = path.join(__dirname, "orders-uploads");
+      const uploadDir = path.join(__dirname, "../orders_uploads");
 
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
