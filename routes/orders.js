@@ -1146,7 +1146,6 @@ function finishOrder(req, res, orderId) {
               );
             }
 
-            // Get deliveryman
             const getDeliverymanSql = `
               SELECT
                 current_orders,
@@ -1195,24 +1194,58 @@ function finishOrder(req, res, orderId) {
                 let finishedOrders = [];
 
                 try {
-                  currentOrders = JSON.parse(
-                    deliveryman.current_orders || "[]"
-                  );
 
-                  finishedOrders = JSON.parse(
-                    deliveryman.finished_orders || "[]"
-                  );
+                  // current_orders
+                  if (deliveryman.current_orders) {
+
+                    // mysql2 may already return array
+                    if (Array.isArray(deliveryman.current_orders)) {
+                      currentOrders = deliveryman.current_orders;
+                    }
+
+                    // string JSON
+                    else if (
+                      typeof deliveryman.current_orders === "string"
+                    ) {
+                      currentOrders = JSON.parse(
+                        deliveryman.current_orders
+                      );
+                    }
+                  }
+
+                  // finished_orders
+                  if (deliveryman.finished_orders) {
+
+                    // mysql2 may already return array
+                    if (Array.isArray(deliveryman.finished_orders)) {
+                      finishedOrders = deliveryman.finished_orders;
+                    }
+
+                    // string JSON
+                    else if (
+                      typeof deliveryman.finished_orders === "string"
+                    ) {
+                      finishedOrders = JSON.parse(
+                        deliveryman.finished_orders
+                      );
+                    }
+                  }
+
                 } catch (e) {
                   console.log(e);
                 }
 
-                // Remove current order
+                // Remove current order only
                 currentOrders = currentOrders.filter(
-                  (id) => id !== orderId
+                  (id) => String(id) !== String(orderId)
                 );
 
-                // Add to finished orders
-                if (!finishedOrders.includes(orderId)) {
+                // Add finished order only if not exists
+                if (
+                  !finishedOrders.some(
+                    (id) => String(id) === String(orderId)
+                  )
+                ) {
                   finishedOrders.push(orderId);
                 }
 
