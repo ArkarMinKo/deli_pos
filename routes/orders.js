@@ -929,6 +929,8 @@ function getAllOrders(req, res, id) {
 
     let extraCondition = "";
 
+    console.log(workType)
+
     if (!workType) {
       extraCondition = `AND s.open_shop_deli = 0`;
     }
