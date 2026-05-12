@@ -1049,146 +1049,202 @@ async function connectedDeliverymen(req, res) {
   }
 }
 
-async function finishOrder(req, res, orderId) {
-  let body = "";
+function finishOrder(req, res, orderId) {
+  const { esign, deliverymanId } = req.body || {};
 
-  req.on("data", chunk => {
-    body += chunk.toString();
-  });
-
-  req.on("end", async () => {
-
-    // JSON parse safe
-    let data;
-    try {
-      data = JSON.parse(body);
-    } catch (err) {
-      res.writeHead(400, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({
+  // Validate
+  if (!esign || !deliverymanId) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(
+      JSON.stringify({
         success: false,
-        error: "Invalid JSON body"
-      }));
-    }
+        message: "esign and deliverymanId are required",
+      })
+    );
+  }
 
-    const { esign, deliverymanId } = data;
+  // Base64 image validation
+  const matches = esign.match(/^data:image\/(\w+);base64,(.+)$/);
 
-    if (!esign || !deliverymanId) {
-      res.writeHead(400, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({
+  if (!matches) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(
+      JSON.stringify({
         success: false,
-        error: "esign and deliverymanId required"
-      }));
-    }
+        message: "Invalid base64 image format",
+      })
+    );
+  }
 
-    try {
+  const ext = matches[1];
+  const base64Data = matches[2];
 
-      // base64 → image
-      const base64Data = esign.replace(/^data:image\/\w+;base64,/, "");
+  // Create uploads folder if not exists
+  const uploadDir = path.join(__dirname, "orders-uploads");
 
-      const fileName = `esign_${Date.now()}.png`;
-      const uploadDir = path.join(__dirname, "../orders_uploads");
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
 
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
+  // File name
+  const fileName = `esign_${Date.now()}.${ext}`;
+  const filePath = path.join(uploadDir, fileName);
 
-      const filePath = path.join(uploadDir, fileName);
-
-      fs.writeFileSync(filePath, base64Data, "base64");
-
-      const imagePath = `/orders-uploads/${fileName}`;
-
-      // update order
-      await db.promise().query(
-        `UPDATE orders 
-         SET orders_done = 1, orders_pickup = 1, esign = ?
-         WHERE id = ?`,
-        [imagePath, orderId]
-      );
-
-      // get deliveryman
-      const [rows] = await db.promise().query(
-        `SELECT current_orders, finished_orders 
-         FROM deliverymen 
-         WHERE id = ?`,
-        [deliverymanId]
-      );
-
-      if (rows.length === 0) {
-        res.writeHead(404, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({
-          success: false,
-          error: "Deliveryman not found"
-        }));
-      }
-
-      const deliveryman = rows[0];
-
-      let currentOrders = [];
-      let finishedOrders = [];
-
-      // parse current_orders safely
-      if (deliveryman.current_orders) {
-        try {
-          currentOrders = JSON.parse(deliveryman.current_orders);
-        } catch {
-          currentOrders = [];
-        }
-      }
-
-      // parse finished_orders safely
-      if (deliveryman.finished_orders) {
-        try {
-          finishedOrders = JSON.parse(deliveryman.finished_orders);
-        } catch {
-          finishedOrders = [];
-        }
-      }
-
-      // remove from current_orders
-      currentOrders = currentOrders.filter(id => id !== orderId);
-
-      // add to finished_orders
-      finishedOrders.push(orderId);
-
-      const currentOrdersValue =
-        currentOrders.length === 0 ? null : JSON.stringify(currentOrders);
-
-      const finishedOrdersValue = JSON.stringify(finishedOrders);
-
-      // update deliveryman
-      await db.promise().query(
-        `UPDATE deliverymen 
-         SET current_orders = ?, 
-             finished_orders = ?, 
-             finished_order_count = finished_order_count + 1,
-             assign_order = GREATEST(assign_order - 1, 0)
-         WHERE id = ?`,
-        [
-          currentOrdersValue,
-          finishedOrdersValue,
-          deliverymanId
-        ]
-      );
-
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({
-        success: true,
-        message: "Order finished successfully"
-      }));
-
-    } catch (error) {
-
-      console.error(error);
+  // Save image
+  fs.writeFile(filePath, base64Data, "base64", (err) => {
+    if (err) {
+      console.log(err);
 
       res.writeHead(500, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({
-        success: false,
-        error: "Server error"
-      }));
-
+      return res.end(
+        JSON.stringify({
+          success: false,
+          message: "Failed to save esign image",
+        })
+      );
     }
 
+    const imagePath = `/orders-uploads/${fileName}`;
+
+    // Update order
+    const orderSql = `
+      UPDATE orders 
+      SET 
+        orders_done = 1,
+        orders_pickup = 1,
+        esign = ?
+      WHERE id = ?
+    `;
+
+    db.query(orderSql, [imagePath, orderId], (orderErr, orderResult) => {
+      if (orderErr) {
+        console.log(orderErr);
+
+        res.writeHead(500, { "Content-Type": "application/json" });
+        return res.end(
+          JSON.stringify({
+            success: false,
+            message: "Failed to update order",
+          })
+        );
+      }
+
+      // Get deliveryman data
+      const deliverySql = `
+        SELECT current_orders, finished_orders, finished_order_count, assign_order
+        FROM deliverymen
+        WHERE id = ?
+      `;
+
+      db.query(deliverySql, [deliverymanId], (deliveryErr, deliveryResult) => {
+        if (deliveryErr) {
+          console.log(deliveryErr);
+
+          res.writeHead(500, { "Content-Type": "application/json" });
+          return res.end(
+            JSON.stringify({
+              success: false,
+              message: "Failed to get deliveryman",
+            })
+          );
+        }
+
+        if (deliveryResult.length === 0) {
+          res.writeHead(404, { "Content-Type": "application/json" });
+          return res.end(
+            JSON.stringify({
+              success: false,
+              message: "Deliveryman not found",
+            })
+          );
+        }
+
+        const deliveryman = deliveryResult[0];
+
+        let currentOrders = [];
+        let finishedOrders = [];
+
+        try {
+          currentOrders = JSON.parse(deliveryman.current_orders || "[]");
+          finishedOrders = JSON.parse(deliveryman.finished_orders || "[]");
+        } catch (e) {
+          console.log(e);
+        }
+
+        // Remove order from current_orders
+        currentOrders = currentOrders.filter(
+          (id) => id !== orderId
+        );
+
+        // Add to finished_orders if not exists
+        if (!finishedOrders.includes(orderId)) {
+          finishedOrders.push(orderId);
+        }
+
+        const finishedOrderCount =
+          (deliveryman.finished_order_count || 0) + 1;
+
+        let assignOrder = (deliveryman.assign_order || 0) - 1;
+
+        // Not less than 0
+        if (assignOrder < 0) {
+          assignOrder = 0;
+        }
+
+        // Update deliveryman
+        const updateDeliverySql = `
+          UPDATE deliverymen
+          SET
+            current_orders = ?,
+            finished_orders = ?,
+            finished_order_count = ?,
+            assign_order = ?
+          WHERE id = ?
+        `;
+
+        db.query(
+          updateDeliverySql,
+          [
+            JSON.stringify(currentOrders),
+            JSON.stringify(finishedOrders),
+            finishedOrderCount,
+            assignOrder,
+            deliverymanId,
+          ],
+          (updateErr) => {
+            if (updateErr) {
+              console.log(updateErr);
+
+              res.writeHead(500, {
+                "Content-Type": "application/json",
+              });
+
+              return res.end(
+                JSON.stringify({
+                  success: false,
+                  message: "Failed to update deliveryman",
+                })
+              );
+            }
+
+            res.writeHead(200, {
+              "Content-Type": "application/json",
+            });
+
+            return res.end(
+              JSON.stringify({
+                success: true,
+                message: "Order finished successfully",
+                data: {
+                  orderId,
+                  esign: imagePath,
+                },
+              })
+            );
+          }
+        );
+      });
+    });
   });
 }
 
