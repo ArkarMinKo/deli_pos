@@ -1261,6 +1261,13 @@ function finishOrder(req, res, orderId) {
                   assignOrder = 0;
                 }
 
+                // Prepare DB values (IMPORTANT: convert empty arrays to NULL)
+                const currentOrdersValue =
+                  currentOrders.length > 0 ? JSON.stringify(currentOrders) : null;
+
+                const finishedOrdersValue =
+                  finishedOrders.length > 0 ? JSON.stringify(finishedOrders) : null;
+
                 // Update deliveryman
                 const updateDeliverymanSql = `
                   UPDATE deliverymen
@@ -1275,8 +1282,8 @@ function finishOrder(req, res, orderId) {
                 db.query(
                   updateDeliverymanSql,
                   [
-                    JSON.stringify(currentOrders),
-                    JSON.stringify(finishedOrders),
+                    currentOrdersValue,
+                    finishedOrdersValue,
                     finishedOrderCount,
                     assignOrder,
                     deliverymanId,
@@ -1292,13 +1299,11 @@ function finishOrder(req, res, orderId) {
                       return res.end(
                         JSON.stringify({
                           success: false,
-                          message:
-                            "Failed to update deliveryman",
+                          message: "Failed to update deliveryman",
                         })
                       );
                     }
 
-                    // Success
                     res.writeHead(200, {
                       "Content-Type": "application/json",
                     });
