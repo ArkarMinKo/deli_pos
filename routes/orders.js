@@ -1146,7 +1146,7 @@ function finishOrder(req, res, orderId) {
               );
             }
 
-             // Get deliveryman
+            // Get deliveryman
             const getDeliverymanSql = `
               SELECT
                 current_orders,
@@ -1194,63 +1194,29 @@ function finishOrder(req, res, orderId) {
                 let currentOrders = [];
                 let finishedOrders = [];
 
-                // Parse current_orders safely
-                if (
-                  deliveryman.current_orders &&
-                  deliveryman.current_orders !== "NULL"
-                ) {
-                  try {
-                    const parsed = JSON.parse(
-                      deliveryman.current_orders
-                    );
+                try {
+                  currentOrders = JSON.parse(
+                    deliveryman.current_orders || "[]"
+                  );
 
-                    if (Array.isArray(parsed)) {
-                      currentOrders = parsed;
-                    }
-                  } catch (e) {
-                    console.log(
-                      "current_orders parse error:",
-                      e
-                    );
-                  }
+                  finishedOrders = JSON.parse(
+                    deliveryman.finished_orders || "[]"
+                  );
+                } catch (e) {
+                  console.log(e);
                 }
 
-                // Parse finished_orders safely
-                if (
-                  deliveryman.finished_orders &&
-                  deliveryman.finished_orders !== "NULL"
-                ) {
-                  try {
-                    const parsed = JSON.parse(
-                      deliveryman.finished_orders
-                    );
-
-                    if (Array.isArray(parsed)) {
-                      finishedOrders = parsed;
-                    }
-                  } catch (e) {
-                    console.log(
-                      "finished_orders parse error:",
-                      e
-                    );
-                  }
-                }
-
-                // Remove only current order
+                // Remove current order
                 currentOrders = currentOrders.filter(
-                  (id) => String(id) !== String(orderId)
+                  (id) => id !== orderId
                 );
 
-                // Add finished order if not exists
-                if (
-                  !finishedOrders.some(
-                    (id) => String(id) === String(orderId)
-                  )
-                ) {
+                // Add to finished orders
+                if (!finishedOrders.includes(orderId)) {
                   finishedOrders.push(orderId);
                 }
 
-                // Finished count
+                // Count
                 const finishedOrderCount =
                   Number(deliveryman.finished_order_count || 0) + 1;
 
@@ -1307,8 +1273,7 @@ function finishOrder(req, res, orderId) {
                     return res.end(
                       JSON.stringify({
                         success: true,
-                        message:
-                          "Order finished successfully",
+                        message: "Order finished successfully",
                         data: {
                           orderId,
                           esign: imagePath,
