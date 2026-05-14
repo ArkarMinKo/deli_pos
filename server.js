@@ -198,6 +198,11 @@ const server = http.createServer(async (req, res) => {
         shops.getShopOpen(req, res, id);
     }
 
+    else if (pathName.startsWith("/get-sidebar/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        shops.getSidebar(req, res, id);
+    }
+
     else if (pathName.startsWith("/shops/") && method === "PUT") {
         const id = pathName.split("/")[2];
         shops.updateShop(req, res, id);
@@ -229,6 +234,11 @@ const server = http.createServer(async (req, res) => {
     else if (pathName.startsWith("/off-shop/") && method === "PATCH") {
         const id = pathName.split("/")[2];
         shops.offShop(req, res, id);
+    }
+
+    else if (pathName.startsWith("/change-sidebar/") && method === "PATCH") {
+        const id = pathName.split("/")[2];
+        shops.changeSidebar(req, res, id);
     }
 
     else if (pathName.startsWith("/open-shop-deli/") && method === "PATCH") {
