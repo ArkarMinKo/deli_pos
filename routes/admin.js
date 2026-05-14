@@ -818,6 +818,53 @@ function getServer(req, res) {
   });
 }
 
+function updateDeliFees(req, res) {
+  let body = "";
+
+  // Receive request body
+  req.on("data", (chunk) => {
+    body += chunk.toString();
+  });
+
+  req.on("end", () => {
+    try {
+      const data = JSON.parse(body);
+      const { deli_fees } = data;
+
+      // Validate
+      if (deli_fees === undefined || isNaN(deli_fees)) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(
+          JSON.stringify({ error: "Valid deli_fees is required" })
+        );
+      }
+
+      // Update only id = 1
+      db.query(
+        "UPDATE server SET deli_fees = ? WHERE id = 1",
+        [deli_fees],
+        (err, result) => {
+          if (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: err.message }));
+          }
+
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(
+            JSON.stringify({
+              message: "Delivery fees updated successfully",
+              deli_fees,
+            })
+          );
+        }
+      );
+    } catch (err) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Invalid JSON body" }));
+    }
+  });
+}
+
 module.exports = { 
     getAdmins,
     createAdmin,
@@ -833,5 +880,6 @@ module.exports = {
     getAgents,
     deleteAgent,
     openServer,
-    getServer
+    getServer,
+    updateDeliFees
 };
