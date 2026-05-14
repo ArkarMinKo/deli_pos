@@ -480,6 +480,30 @@ function getShopOpen(req, res, id) {
     })
 }
 
+function getSidebar(req, res, id) {
+    const sql = `
+        SELECT 
+        sidebar
+        FROM shops
+        WHERE id = ?
+        LIMIT 1
+    `
+
+    db.query(sql, [id], (err, results) => {
+        if (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Database error" }));
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ error: "Account not found" });
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(results));
+    })
+}
+
 function approveShop(req, res, idParam) {
   const id = idParam || req.url.split("/")[3];
   db.query("SELECT shopkeeper_name, email FROM shops WHERE id=?", [id], (err, rows) => {
@@ -872,6 +896,52 @@ function updateShopsCategories(req, res, shopId) {
   });
 }
 
+function changeSidebar(req, res, shopId) {
+  const id = shopId || req.url.split("/")[3];
+
+  // Check current sidebar value
+  db.query(
+    "SELECT sidebar FROM shops WHERE id = ?",
+    [id],
+    (err, rows) => {
+      if (err) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: err.message }));
+      }
+
+      if (rows.length === 0) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Shop not found" }));
+      }
+
+      // Toggle value
+      const currentSidebar = rows[0].sidebar;
+      const newSidebar = currentSidebar == 1 ? 0 : 1;
+
+      // Update sidebar
+      db.query(
+        "UPDATE shops SET sidebar = ? WHERE id = ?",
+        [newSidebar, id],
+        (updateErr) => {
+          if (updateErr) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: updateErr.message }));
+          }
+
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(
+            JSON.stringify({
+              success: true,
+              shopId: id,
+              sidebar: newSidebar,
+            })
+          );
+        }
+      );
+    }
+  );
+}
+
 module.exports = {
     loginShop,
     createShops,
@@ -890,5 +960,7 @@ module.exports = {
     offShopDeli,
     getShopDeliOpen,
     getShopOpen,
-    updateShopsCategories
+    getSidebar,
+    updateShopsCategories,
+    changeSidebar
 };
