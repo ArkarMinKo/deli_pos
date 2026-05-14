@@ -1554,11 +1554,14 @@ function orderConfirm(req, res) {
 
       // Validate menu
       if (!Array.isArray(menu) || menu.length === 0) {
+
         res.writeHead(400, { "Content-Type": "application/json" });
+
         return res.end(JSON.stringify({
           success: false,
           message: "menu is required"
         }));
+
       }
 
       // Get Shop IDs and Menu IDs
@@ -1572,7 +1575,9 @@ function orderConfirm(req, res) {
         if (parts.length !== 2) return;
 
         const shopId = parts[0];
-        const menuId = parts[1];
+
+        // FIX
+        const menuId = item;
 
         if (!shopIds.includes(shopId)) {
           shopIds.push(shopId);
@@ -1600,6 +1605,7 @@ function orderConfirm(req, res) {
         if (serverErr) {
 
           res.writeHead(500, { "Content-Type": "application/json" });
+
           return res.end(JSON.stringify({
             success: false,
             message: "Database error",
@@ -1614,6 +1620,7 @@ function orderConfirm(req, res) {
         ) {
 
           res.writeHead(200, { "Content-Type": "application/json" });
+
           return res.end(JSON.stringify({
             success: false,
             message: "Delivery Server ပိတ်ထားပါသဖြင့် Order များကို မှာယူလို့မရသေးပါ"
@@ -1636,6 +1643,7 @@ function orderConfirm(req, res) {
           if (shopErr) {
 
             res.writeHead(500, { "Content-Type": "application/json" });
+
             return res.end(JSON.stringify({
               success: false,
               message: "Database error",
@@ -1652,6 +1660,7 @@ function orderConfirm(req, res) {
           if (closedShop) {
 
             res.writeHead(200, { "Content-Type": "application/json" });
+
             return res.end(JSON.stringify({
               success: false,
               message: `ယခုမှာယူသော ${closedShop.shop_name} ဆိုင်သည် order လက်ခံခြင်းကို ပိတ်လိုက်ပြီ ဖြစ်ပါသဖြင့် order များကို တစ်ခြားဆိုင်မှ ပြောင်း၍ မှာယူပေးပါ။`
@@ -1674,6 +1683,7 @@ function orderConfirm(req, res) {
             if (menuErr) {
 
               res.writeHead(500, { "Content-Type": "application/json" });
+
               return res.end(JSON.stringify({
                 success: false,
                 message: "Database error",
@@ -1710,6 +1720,7 @@ function orderConfirm(req, res) {
               }
 
               res.writeHead(200, { "Content-Type": "application/json" });
+
               return res.end(JSON.stringify({
                 success: false,
                 message
@@ -1722,6 +1733,7 @@ function orderConfirm(req, res) {
             // =========================
 
             res.writeHead(200, { "Content-Type": "application/json" });
+
             return res.end(JSON.stringify({
               success: true,
               message: "Orders များ အားလုံး ရရှိနိုင်ပါသည်"
