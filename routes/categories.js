@@ -45,7 +45,9 @@ function createCategories(req, res) {
                 res.writeHead(201, { "Content-Type": "application/json" });
                 return res.end(
                     JSON.stringify({
-                        message: "Category ကို အောင်မြင်စွာ အသစ်ထည့်သွင်း ပြီးပါပြီ"
+                        success: true,
+                        message: "Category ကို အောင်မြင်စွာ အသစ်ထည့်သွင်း ပြီးပါပြီ",
+                        id: newId
                     })
                 );
             });
@@ -122,8 +124,9 @@ function updateCategories(req, res, id) {
             res.writeHead(200, { "Content-Type": "application/json" });
             return res.end(
                 JSON.stringify({
+                    success: true,
                     message: "Category ကို အောင်မြင်စွာ ပြင်ဆင်ပြီးပါပြီ",
-                    id
+                    id: id
                 })
             );
         });
