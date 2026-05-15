@@ -479,7 +479,7 @@ const server = http.createServer(async (req, res) => {
 
     else if(pathName.startsWith("/report-system-deliverymen-by-shops/") && method === "GET") {
         const id = pathName.split("/")[2];
-        deliverymen.getReportShopDeliveymenByShop(req, res, id)
+        deliverymen.getReportSystemDeliveymenByShop(req, res, id)
     }
 
     else if(pathName.startsWith("/clearedOrders-by-shops/") && method === "PATCH") {
