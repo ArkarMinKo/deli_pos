@@ -1545,327 +1545,285 @@ function getReportSystemDeliveymenByShop(req, res, shopId) {
 }
 
 function clearedOrders(req, res, deliverymenId) {
-
-  if (req.method !== "PATCH") {
-    res.writeHead(405, { "Content-Type": "application/json" });
-
-    return res.end(JSON.stringify({
-      success: false,
-      message: "Method Not Allowed"
-    }));
-  }
-
-  if (!deliverymenId) {
-    res.writeHead(400, { "Content-Type": "application/json" });
-
-    return res.end(JSON.stringify({
-      success: false,
-      message: "deliverymenId is required"
-    }));
-  }
-
   let body = "";
 
-  req.on("data", chunk => {
+  req.on("data", (chunk) => {
     body += chunk.toString();
   });
 
   req.on("end", () => {
-
     try {
+      const data = JSON.parse(body);
+      const { shopId } = data;
 
-      const parsedBody = JSON.parse(body);
-
-      const shop_id = parsedBody.shop_id;
-
-      if (!shop_id) {
-
+      if (!shopId) {
         res.writeHead(400, { "Content-Type": "application/json" });
-
-        return res.end(JSON.stringify({
-          success: false,
-          message: "shop_id is required"
-        }));
-
+        return res.end(
+          JSON.stringify({
+            success: false,
+            message: "shopId is required",
+          })
+        );
       }
 
-      // Get deliveryman
-      const query = `
-        SELECT
-          id,
-          work_type,
-          finished_orders,
-          cleared_orders
-        FROM deliverymen
-        WHERE id = ?
-        LIMIT 1
-      `;
-
-      db.query(query, [deliverymenId], async (err, results) => {
-
-        if (err) {
-
-          res.writeHead(500, { "Content-Type": "application/json" });
-
-          return res.end(JSON.stringify({
-            success: false,
-            message: err.message
-          }));
-
-        }
-
-        if (results.length === 0) {
-
-          res.writeHead(404, { "Content-Type": "application/json" });
-
-          return res.end(JSON.stringify({
-            success: false,
-            message: "Deliveryman not found"
-          }));
-
-        }
-
-        const deliveryman = results[0];
-
-        let finishedOrders = [];
-        let clearedOrders = [];
-
-        // Parse finished_orders
-        try {
-
-          if (deliveryman.finished_orders) {
-
-            finishedOrders = JSON.parse(deliveryman.finished_orders);
-
-            if (!Array.isArray(finishedOrders)) {
-              finishedOrders = [];
-            }
-
+      db.query(
+        `SELECT 
+            id,
+            work_type,
+            finished_orders,
+            cleared_orders,
+            finished_order_count,
+            cleared_order_count
+         FROM deliverymen
+         WHERE id = ?`,
+        [deliverymenId],
+        (err, rows) => {
+          if (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            return res.end(
+              JSON.stringify({
+                success: false,
+                message: "Database error",
+                error: err.message,
+              })
+            );
           }
 
-        } catch {
-          finishedOrders = [];
-        }
-
-        // Parse cleared_orders
-        try {
-
-          if (deliveryman.cleared_orders) {
-
-            clearedOrders = JSON.parse(deliveryman.cleared_orders);
-
-            if (!Array.isArray(clearedOrders)) {
-              clearedOrders = [];
-            }
-
+          if (rows.length === 0) {
+            res.writeHead(404, { "Content-Type": "application/json" });
+            return res.end(
+              JSON.stringify({
+                success: false,
+                message: "Deliveryman not found",
+              })
+            );
           }
 
-        } catch {
-          clearedOrders = [];
-        }
+          const deliveryman = rows[0];
 
-        // Nothing to clear
-        if (finishedOrders.length === 0) {
+          // MySQL JSON may already be parsed
+          let finishedOrders = deliveryman.finished_orders;
+          let clearedOrders = deliveryman.cleared_orders;
 
-          res.writeHead(400, { "Content-Type": "application/json" });
+          if (typeof finishedOrders === "string") {
+            finishedOrders = JSON.parse(finishedOrders);
+          }
 
-          return res.end(JSON.stringify({
-            success: false,
-            message: "No finished orders found"
-          }));
+          if (typeof clearedOrders === "string") {
+            clearedOrders = JSON.parse(clearedOrders);
+          }
 
-        }
+          finishedOrders = Array.isArray(finishedOrders)
+            ? finishedOrders
+            : [];
 
-        // SYSTEM DELIVERYMAN
-        if (!deliveryman.work_type) {
+          clearedOrders = Array.isArray(clearedOrders)
+            ? clearedOrders
+            : [];
 
-          const placeholders = finishedOrders.map(() => "?").join(",");
+          // =====================================================
+          // CASE 1 => work_type exists
+          // =====================================================
+          if (deliveryman.work_type) {
+            const movedOrders = [...finishedOrders];
 
-          const orderQuery = `
-            SELECT id
-            FROM orders
-            WHERE id IN (${placeholders})
-            AND shopId = ?
-          `;
+            clearedOrders.push(...movedOrders);
 
-          db.query(
-            orderQuery,
-            [...finishedOrders, shop_id],
-            (orderErr, orderResults) => {
+            const newFinishedOrders = null;
 
-              if (orderErr) {
+            const movedCount = movedOrders.length;
 
-                res.writeHead(500, { "Content-Type": "application/json" });
+            const newFinishedCount = 0;
 
-                return res.end(JSON.stringify({
-                  success: false,
-                  message: orderErr.message
-                }));
+            const newClearedCount =
+              Number(deliveryman.cleared_order_count || 0) + movedCount;
 
-              }
-
-              const matchedOrderIds = orderResults.map(order => order.id);
-
-              if (matchedOrderIds.length === 0) {
-
-                res.writeHead(400, { "Content-Type": "application/json" });
-
-                return res.end(JSON.stringify({
-                  success: false,
-                  message: "No matching shop orders found"
-                }));
-
-              }
-
-              // Remove from finished_orders
-              const updatedFinishedOrders = finishedOrders.filter(
-                orderId => !matchedOrderIds.includes(orderId)
-              );
-
-              // Push into cleared_orders
-              const updatedClearedOrders = [
-                ...new Set([
-                  ...clearedOrders,
-                  ...matchedOrderIds
-                ])
-              ];
-
-              const updateQuery = `
-                UPDATE deliverymen
-                SET
-                  finished_orders = ?,
-                  cleared_orders = ?
-                WHERE id = ?
-              `;
-
-              db.query(
-                updateQuery,
-                [
-                  JSON.stringify(updatedFinishedOrders),
-                  JSON.stringify(updatedClearedOrders),
-                  deliverymenId
-                ],
-                (updateErr) => {
-
-                  if (updateErr) {
-
-                    res.writeHead(500, { "Content-Type": "application/json" });
-
-                    return res.end(JSON.stringify({
-                      success: false,
-                      message: updateErr.message
-                    }));
-
-                  }
-
-                  res.writeHead(200, {
-                    "Content-Type": "application/json"
+            db.query(
+              `UPDATE deliverymen
+               SET 
+                 finished_orders = ?,
+                 cleared_orders = ?,
+                 finished_order_count = ?,
+                 cleared_order_count = ?
+               WHERE id = ?`,
+              [
+                newFinishedOrders,
+                JSON.stringify(clearedOrders),
+                newFinishedCount,
+                newClearedCount,
+                deliverymenId,
+              ],
+              (updateErr) => {
+                if (updateErr) {
+                  res.writeHead(500, {
+                    "Content-Type": "application/json",
                   });
 
-                  return res.end(JSON.stringify({
+                  return res.end(
+                    JSON.stringify({
+                      success: false,
+                      message: "Update failed",
+                      error: updateErr.message,
+                    })
+                  );
+                }
+
+                res.writeHead(200, {
+                  "Content-Type": "application/json",
+                });
+
+                return res.end(
+                  JSON.stringify({
                     success: true,
                     message: "Orders cleared successfully",
-                    data: {
-                      moved_orders: matchedOrderIds,
-                      finished_orders: updatedFinishedOrders,
-                      cleared_orders: updatedClearedOrders
-                    }
-                  }));
-
-                }
-              );
-
-            }
-          );
-
-        }
-
-        // SHOP DELIVERYMAN
-        else if (deliveryman.work_type === shop_id) {
-
-          const updatedClearedOrders = [
-            ...new Set([
-              ...clearedOrders,
-              ...finishedOrders
-            ])
-          ];
-
-          const updatedFinishedOrders = [];
-
-          const updateQuery = `
-            UPDATE deliverymen
-            SET
-              finished_orders = ?,
-              cleared_orders = ?
-            WHERE id = ?
-          `;
-
-          db.query(
-            updateQuery,
-            [
-              JSON.stringify(updatedFinishedOrders),
-              JSON.stringify(updatedClearedOrders),
-              deliverymenId
-            ],
-            (updateErr) => {
-
-              if (updateErr) {
-
-                res.writeHead(500, { "Content-Type": "application/json" });
-
-                return res.end(JSON.stringify({
-                  success: false,
-                  message: updateErr.message
-                }));
-
+                    moved_orders: movedOrders,
+                    finished_orders: null,
+                    cleared_orders: clearedOrders,
+                  })
+                );
               }
+            );
+          }
 
-              res.writeHead(200, {
-                "Content-Type": "application/json"
+          // =====================================================
+          // CASE 2 => work_type is NULL
+          // =====================================================
+          else {
+            if (finishedOrders.length === 0) {
+              res.writeHead(400, {
+                "Content-Type": "application/json",
               });
 
-              return res.end(JSON.stringify({
-                success: true,
-                message: "Orders cleared successfully",
-                data: {
-                  moved_orders: finishedOrders,
-                  finished_orders: updatedFinishedOrders,
-                  cleared_orders: updatedClearedOrders
-                }
-              }));
-
+              return res.end(
+                JSON.stringify({
+                  success: false,
+                  message: "No finished orders",
+                })
+              );
             }
-          );
 
+            // Get orders that belong to shopId
+            db.query(
+              `SELECT id
+               FROM orders
+               WHERE shopId = ?
+               AND id IN (?)`,
+              [shopId, finishedOrders],
+              (orderErr, orderRows) => {
+                if (orderErr) {
+                  res.writeHead(500, {
+                    "Content-Type": "application/json",
+                  });
+
+                  return res.end(
+                    JSON.stringify({
+                      success: false,
+                      message: "Database error",
+                      error: orderErr.message,
+                    })
+                  );
+                }
+
+                const moveOrderIds = orderRows.map((o) => o.id);
+
+                if (moveOrderIds.length === 0) {
+                  res.writeHead(400, {
+                    "Content-Type": "application/json",
+                  });
+
+                  return res.end(
+                    JSON.stringify({
+                      success: false,
+                      message: "No matching orders for this shop",
+                    })
+                  );
+                }
+
+                // push to cleared_orders
+                clearedOrders.push(...moveOrderIds);
+
+                // remove from finished_orders
+                const remainFinishedOrders = finishedOrders.filter(
+                  (id) => !moveOrderIds.includes(id)
+                );
+
+                const finalFinishedOrders =
+                  remainFinishedOrders.length > 0
+                    ? remainFinishedOrders
+                    : null;
+
+                const movedCount = moveOrderIds.length;
+
+                const newFinishedCount =
+                  Number(deliveryman.finished_order_count || 0) - movedCount;
+
+                const newClearedCount =
+                  Number(deliveryman.cleared_order_count || 0) + movedCount;
+
+                db.query(
+                  `UPDATE deliverymen
+                   SET
+                     finished_orders = ?,
+                     cleared_orders = ?,
+                     finished_order_count = ?,
+                     cleared_order_count = ?
+                   WHERE id = ?`,
+                  [
+                    finalFinishedOrders
+                      ? JSON.stringify(finalFinishedOrders)
+                      : null,
+                    JSON.stringify(clearedOrders),
+                    newFinishedCount,
+                    newClearedCount,
+                    deliverymenId,
+                  ],
+                  (updateErr) => {
+                    if (updateErr) {
+                      res.writeHead(500, {
+                        "Content-Type": "application/json",
+                      });
+
+                      return res.end(
+                        JSON.stringify({
+                          success: false,
+                          message: "Update failed",
+                          error: updateErr.message,
+                        })
+                      );
+                    }
+
+                    res.writeHead(200, {
+                      "Content-Type": "application/json",
+                    });
+
+                    return res.end(
+                      JSON.stringify({
+                        success: true,
+                        message: "Orders cleared successfully",
+                        moved_orders: moveOrderIds,
+                        finished_orders: finalFinishedOrders,
+                        cleared_orders: clearedOrders,
+                      })
+                    );
+                  }
+                );
+              }
+            );
+          }
         }
-
-        // INVALID SHOP ACCESS
-        else {
-
-          res.writeHead(403, { "Content-Type": "application/json" });
-
-          return res.end(JSON.stringify({
-            success: false,
-            message: "This deliveryman does not belong to this shop"
-          }));
-
-        }
-
-      });
-
-    } catch (error) {
-
+      );
+    } catch (e) {
       res.writeHead(400, { "Content-Type": "application/json" });
 
-      return res.end(JSON.stringify({
-        success: false,
-        message: "Invalid JSON body"
-      }));
-
+      return res.end(
+        JSON.stringify({
+          success: false,
+          message: "Invalid JSON",
+          error: e.message,
+        })
+      );
     }
-
   });
-
 }
 
 module.exports = { 
