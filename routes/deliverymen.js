@@ -1179,7 +1179,15 @@ function getReportShopDeliveymenByShop(req, res, shopId) {
 
             if (deliveryman.finished_orders) {
 
-              finishedOrders = JSON.parse(deliveryman.finished_orders);
+              if (typeof deliveryman.finished_orders === "string") {
+
+                finishedOrders = JSON.parse(deliveryman.finished_orders);
+
+              } else if (Array.isArray(deliveryman.finished_orders)) {
+
+                finishedOrders = deliveryman.finished_orders;
+
+              }
 
               if (!Array.isArray(finishedOrders)) {
                 finishedOrders = [];
@@ -1196,7 +1204,15 @@ function getReportShopDeliveymenByShop(req, res, shopId) {
 
             if (deliveryman.cleared_orders) {
 
-              clearedOrders = JSON.parse(deliveryman.cleared_orders);
+              if (typeof deliveryman.cleared_orders === "string") {
+
+                clearedOrders = JSON.parse(deliveryman.cleared_orders);
+
+              } else if (Array.isArray(deliveryman.cleared_orders)) {
+
+                clearedOrders = deliveryman.cleared_orders;
+
+              }
 
               if (!Array.isArray(clearedOrders)) {
                 clearedOrders = [];
