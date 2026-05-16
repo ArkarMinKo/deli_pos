@@ -109,6 +109,11 @@ const server = http.createServer(async (req, res) => {
         users.userInfoForOrders(req, res, id);
     }
 
+    else if (pathName.startsWith("/users-location/") && method === "PATCH") {
+        const id = pathName.split("/")[2];
+        users.userLocation(req, res, id);
+    }
+
     else if (pathName.startsWith("/users/") && method === "DELETE") {
         const id = pathName.split("/")[2];
         users.deleteUser(req, res, id);

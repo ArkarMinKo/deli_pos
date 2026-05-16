@@ -358,6 +358,73 @@ function userInfoForOrders(req, res, userId) {
 
 }
 
+function userLocation(req, res, userId) {
+  let body = "";
+
+  req.on("data", chunk => {
+    body += chunk.toString();
+  });
+
+  req.on("end", () => {
+    try {
+      const data = JSON.parse(body);
+
+      let location = data.location;
+
+      // if no location or empty array => NULL
+      if (
+        !location ||
+        !Array.isArray(location) ||
+        location.length === 0
+      ) {
+        location = null;
+      } else {
+        location = JSON.stringify(location);
+      }
+
+      db.query(
+        "UPDATE users SET location=? WHERE id=?",
+        [location, userId],
+        (err, result) => {
+          if (err) {
+            return res.end(
+              JSON.stringify({
+                success: false,
+                message: "Database error",
+                error: err.message
+              })
+            );
+          }
+
+          if (result.affectedRows === 0) {
+            return res.end(
+              JSON.stringify({
+                success: false,
+                message: "User not found"
+              })
+            );
+          }
+
+          return res.end(
+            JSON.stringify({
+              success: true,
+              message: "Location updated successfully"
+            })
+          );
+        }
+      );
+    } catch (error) {
+      return res.end(
+        JSON.stringify({
+          success: false,
+          message: "Invalid JSON body",
+          error: error.message
+        })
+      );
+    }
+  });
+}
+
 module.exports = {
     loginUser,
     createUsers,
@@ -368,5 +435,6 @@ module.exports = {
     toMakeSpecial,
     getSpecialUsers,
     toMakeNonSpecial,
-    userInfoForOrders
+    userInfoForOrders,
+    userLocation
 };
