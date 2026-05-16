@@ -23,7 +23,6 @@ function postOrder(req, res) {
         name,
         address,
         location,
-        location_df, // NEW
         phone,
         type,
         timer,
@@ -93,22 +92,15 @@ function postOrder(req, res) {
           SET
             name = ?,
             phone = ?,
-            location = ?,
             payment_method = ?,
             payment_name = ?,
             payment_phone = ?
           WHERE id = ?
         `;
 
-        const userLocation =
-          location_df && Array.isArray(location_df) && location_df.length > 0
-            ? JSON.stringify(location_df)
-            : null;
-
         const updateUserValues = [
           name,
           phone,
-          userLocation,
           payment_method,
           payment_name,
           payment_phone,
