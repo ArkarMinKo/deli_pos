@@ -23,6 +23,7 @@ function postOrder(req, res) {
         name,
         address,
         location,
+        location_df, // NEW
         phone,
         type,
         timer,
@@ -49,7 +50,7 @@ function postOrder(req, res) {
         }));
       }
 
-      const ordersArray = orders; // Already array from Flutter
+      const ordersArray = orders;
 
       // ==========================
       // Generate Order ID
@@ -70,6 +71,7 @@ function postOrder(req, res) {
         let extension = "png";
 
         const matches = base64Data.match(/^data:image\/(\w+);base64,/);
+
         if (matches) {
           extension = matches[1];
           base64Data = base64Data.replace(/^data:image\/\w+;base64,/, "");
@@ -84,83 +86,126 @@ function postOrder(req, res) {
         const relativePath = `orders-uploads/${fileName}`;
 
         // ==========================
-        // Insert to Database
+        // UPDATE USER INFO
         // ==========================
-        const insertSql = `
-          INSERT INTO orders (
-            id,
+        const updateUserSql = `
+          UPDATE users
+          SET
+            name = ?,
+            phone = ?,
+            location = ?,
+            payment_method = ?,
+            payment_name = ?,
+            payment_phone = ?
+          WHERE id = ?
+        `;
+
+        const userLocation =
+          location_df && Array.isArray(location_df) && location_df.length > 0
+            ? JSON.stringify(location_df)
+            : null;
+
+        const updateUserValues = [
+          name,
+          phone,
+          userLocation,
+          payment_method,
+          payment_name,
+          payment_phone,
+          userId
+        ];
+
+        db.query(updateUserSql, updateUserValues, (updateErr) => {
+          if (updateErr) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({
+              success: false,
+              message: "User update error",
+              error: updateErr
+            }));
+          }
+
+          // ==========================
+          // Insert to Database
+          // ==========================
+          const insertSql = `
+            INSERT INTO orders (
+              id,
+              userId,
+              shopId,
+              name,
+              address,
+              location,
+              phone,
+              type,
+              timer,
+              remark,
+              orders,
+              total_order,
+              discount,
+              tax,
+              extra,
+              delivery_fees,
+              grand_total,
+              payment_method,
+              payment_phone,
+              payment_name,
+              payment_photo,
+              kilo
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `;
+
+          const values = [
+            newOrderId,
             userId,
             shopId,
             name,
             address,
             location,
             phone,
-            type,
-            timer,
-            remark,
-            orders,
-            total_order,
-            discount,
-            tax,
-            extra,
-            delivery_fees,
+            type || "Normal",
+            timer || null,
+            remark || null,
+            JSON.stringify(ordersArray),
+            total_order || 0,
+            discount || 0,
+            tax || 0,
+            extra || 0,
+            delivery_fees || 0,
             grand_total,
             payment_method,
             payment_phone,
             payment_name,
-            payment_photo,
+            relativePath,
             kilo
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `;
+          ];
 
-        const values = [
-          newOrderId,
-          userId,
-          shopId,
-          name,
-          address,
-          location,
-          phone,
-          type || "Normal",
-          timer || null,
-          remark || null,
-          JSON.stringify(ordersArray),
-          total_order || 0,
-          discount || 0,
-          tax || 0,
-          extra || 0,
-          delivery_fees || 0,
-          grand_total,
-          payment_method,
-          payment_phone,
-          payment_name,
-          relativePath,
-          kilo
-        ];
+          db.query(insertSql, values, (err) => {
+            if (err) {
+              res.writeHead(500, { "Content-Type": "application/json" });
+              return res.end(JSON.stringify({
+                success: false,
+                message: "Database error",
+                error: err
+              }));
+            }
 
-        db.query(insertSql, values, (err) => {
-          if (err) {
-            res.writeHead(500, { "Content-Type": "application/json" });
-            return res.end(JSON.stringify({
-              success: false,
-              message: "Database error",
-              error: err
+            res.writeHead(201, { "Content-Type": "application/json" });
+
+            res.end(JSON.stringify({
+              success: true,
+              message: "သင့် Order အောင်မြင်စွာ မှာယူပြီးပါပြီ ကျေးဇူးပြု၍ ဆိုင်ဘက်မှ reply ကို စောင့်ပေးပါ",
+              orderId: newOrderId,
+              photo: relativePath
             }));
-          }
-
-          res.writeHead(201, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({
-            success: true,
-            message: "သင့် Order အောင်မြင်စွာ မှာယူပြီးပါပြီ ကျေးဇူးပြု၍ ဆိုင်ဘက်မှ reply ကို စောင့်ပေးပါ",
-            orderId: newOrderId,
-            photo: relativePath
-          }));
+          });
         });
       });
 
     } catch (error) {
       res.writeHead(400, { "Content-Type": "application/json" });
+
       res.end(JSON.stringify({
         success: false,
         message: "Invalid JSON format"
