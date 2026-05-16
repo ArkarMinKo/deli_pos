@@ -302,6 +302,62 @@ function getSpecialUsers(req, res) {
   });
 }
 
+function userInfoForOrders(req, res, userId) {
+
+  const id = userId || req.url.split("/")[2];
+
+  const sql = `
+    SELECT 
+      name,
+      phone,
+      location,
+      payment_method,
+      payment_name,
+      payment_phone
+    FROM users
+    WHERE id = ?
+  `;
+
+  db.query(sql, [id], (err, rows) => {
+
+    if (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: false,
+        message: "Database error",
+        error: err.message
+      }));
+    }
+
+    if (rows.length === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: false,
+        message: "User not found"
+      }));
+    }
+
+    const user = rows[0];
+
+    // Parse location JSON if needed
+    if (user.location && typeof user.location === "string") {
+      try {
+        user.location = JSON.parse(user.location);
+      } catch (e) {
+        user.location = null;
+      }
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      success: true,
+      data: user
+    }));
+
+  });
+
+}
+
 module.exports = {
     loginUser,
     createUsers,
@@ -311,5 +367,6 @@ module.exports = {
     getUsersById,
     toMakeSpecial,
     getSpecialUsers,
-    toMakeNonSpecial
+    toMakeNonSpecial,
+    userInfoForOrders
 };
