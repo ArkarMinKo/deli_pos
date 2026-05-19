@@ -266,6 +266,11 @@ const server = http.createServer(async (req, res) => {
         shops.updateShopsCategories(req, res, id);
     }
 
+    else if (pathName.startsWith("/update-payments-shops/") && method === "PATCH") {
+        const id = pathName.split("/")[2];
+        shops.updatePaymentsByShops(req, res, id);
+    }
+
     // deliveryMen CRUD
     else if (pathName === "/login-deliverymen" && method === "POST") deliverymen.loginDeliverymen(req, res);
     else if (pathName === "/deliverymen" && method === "POST") deliverymen.createDeliverymen(req, res);

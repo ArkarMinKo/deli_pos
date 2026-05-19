@@ -948,6 +948,107 @@ function changeSidebar(req, res, shopId) {
   );
 }
 
+function updatePaymentsByShops(req, res, shopId) {
+  let body = "";
+
+  req.on("data", (chunk) => {
+    body += chunk.toString();
+
+    // Prevent large payload attacks
+    if (body.length > 1e6) {
+      req.connection.destroy();
+    }
+  });
+
+  req.on("end", () => {
+    try {
+      const data = JSON.parse(body);
+
+      // Validate payments
+      if (!Array.isArray(data.payments)) {
+        res.writeHead(400, {
+          "Content-Type": "application/json",
+        });
+
+        return res.end(
+          JSON.stringify({
+            success: false,
+            message: "payments must be an array",
+          })
+        );
+      }
+
+      // Clean payments data
+      const payments = data.payments.map((item) => ({
+        method: item.method || "",
+        phone: item.phone || "",
+        name: item.name || "",
+      }));
+
+      // Update DB
+      db.query(
+        `UPDATE shops SET payments = ? WHERE id = ?`,
+        [JSON.stringify(payments), shopId],
+        (err, result) => {
+          if (err) {
+            console.error("Update payments error:", err);
+
+            res.writeHead(500, {
+              "Content-Type": "application/json",
+            });
+
+            return res.end(
+              JSON.stringify({
+                success: false,
+                message: "Database error",
+                error: err.message,
+              })
+            );
+          }
+
+          if (result.affectedRows === 0) {
+            res.writeHead(404, {
+              "Content-Type": "application/json",
+            });
+
+            return res.end(
+              JSON.stringify({
+                success: false,
+                message: "Shop not found",
+              })
+            );
+          }
+
+          res.writeHead(200, {
+            "Content-Type": "application/json",
+          });
+
+          res.end(
+            JSON.stringify({
+              success: true,
+              message: "Payments updated successfully",
+              payments,
+            })
+          );
+        }
+      );
+    } catch (e) {
+      console.error("JSON parse error:", e);
+
+      res.writeHead(400, {
+        "Content-Type": "application/json",
+      });
+
+      res.end(
+        JSON.stringify({
+          success: false,
+          message: "Invalid JSON body",
+        })
+      );
+    }
+  });
+}
+
 module.exports = {
     loginShop,
     createShops,
@@ -968,5 +1069,6 @@ module.exports = {
     getShopOpen,
     getSidebar,
     updateShopsCategories,
-    changeSidebar
+    changeSidebar,
+    updatePaymentsByShops
 };
