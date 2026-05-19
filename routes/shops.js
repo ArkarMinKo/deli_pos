@@ -134,18 +134,26 @@ function createShops(req, res) {
           categories = [];
         }
 
-        // --- Prepare JSON payment (single -> array) ---
-        const paymentName = JSON.stringify([fields.payment_name]);
-        const paymentPhone = JSON.stringify([fields.payment_phone]);
-        const paymentMethod = JSON.stringify([fields.payment_method]);
+        let payments = [];
+
+        try {
+          payments =
+            typeof fields.payments === "string"
+              ? JSON.parse(fields.payments)
+              : fields.payments || [];
+        } catch {
+          payments = [];
+        }
+
+        payments = JSON.stringify(fields.payments)
         categories = JSON.stringify(categories);
 
         // --- Insert shop ---
         db.query(
           `INSERT INTO shops
           (id, shopkeeper_name, shop_name, email, phone, password, photo, items, categories, location, address,
-           payment_name, payment_phone, payment_method, have_deliverymen, deli_fees_method)
-          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+           payments, have_deliverymen, deli_fees_method)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
           [
             id,
             fields.shopkeeper_name,
@@ -158,9 +166,7 @@ function createShops(req, res) {
             categories,
             fields.location || null,
             fields.address || null,
-            paymentName,
-            paymentPhone,
-            paymentMethod,
+            payments,
             fields.have_deliverymen || 0,
             fields.deli_fees_method || 'km'
           ],
