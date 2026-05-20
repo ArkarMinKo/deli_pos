@@ -311,7 +311,9 @@ function userInfoForOrders(req, res, userId) {
       name,
       phone,
       location,
-      payments,
+      payment_method,
+      payment_phone,
+      payment_name
     FROM users
     WHERE id = ?
   `;
