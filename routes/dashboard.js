@@ -428,13 +428,13 @@ function getReportCategoriesChartByShopId(req, res, shopId) {
 const top5MenuByShopId = async (req, res, shopId) => {
     try {
         // Get all orders for this shop
-        const [ordersRows] = await connection.execute(
+        const [ordersRows] = await db.promise().execute(
             `SELECT orders FROM orders WHERE shopId = ?`,
             [shopId]
         );
 
         // Get menu + category info
-        const [menuRows] = await connection.execute(`
+        const [menuRows] = await db.promise().execute(`
             SELECT 
                 m.id,
                 m.name,
