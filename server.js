@@ -530,6 +530,11 @@ const server = http.createServer(async (req, res) => {
         dashboard.getReportCategoriesChartByShopId(req, res, id)
     }
 
+    else if(pathName.startsWith("/top5menu-by-shops/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        dashboard.top5MenuByShopId(req, res, id)
+    }
+
     // --- 404 fallback ---
     else {
         res.writeHead(404, { "Content-Type": "application/json" });
