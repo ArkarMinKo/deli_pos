@@ -832,6 +832,94 @@ const top5LessMenuByShopId = async (req, res, shopId) => {
     }
 };
 
+async function top5CustomerByShopId(req, res, shopId) {
+  try {
+    const sql = `
+      SELECT 
+        u.id,
+        u.name,
+        COUNT(o.id) AS total_orders,
+        o.orders
+      FROM orders o
+      INNER JOIN users u ON u.id = o.userId
+      WHERE o.shopId = ?
+      GROUP BY u.id, u.name
+      ORDER BY total_orders DESC
+      LIMIT 5
+    `;
+
+    db.query(sql, [shopId], (err, results) => {
+      if (err) {
+        return res.end(
+          JSON.stringify({
+            success: false,
+            message: "Database error",
+            error: err.message
+          })
+        );
+      }
+
+      const customers = results.map((customer) => {
+        let menuCount = {};
+
+        try {
+          const orders = JSON.parse(customer.orders || "[]");
+
+          orders.forEach((item) => {
+            const menuName = item.menu_name;
+
+            if (!menuCount[menuName]) {
+              menuCount[menuName] = 0;
+            }
+
+            menuCount[menuName] += item.quantity || 1;
+          });
+        } catch (e) {}
+
+        // Find most ordered menu
+        let mostOrderMenu = null;
+        let highest = 0;
+
+        for (const menu in menuCount) {
+          if (menuCount[menu] > highest) {
+            highest = menuCount[menu];
+            mostOrderMenu = menu;
+          }
+        }
+
+        return {
+          name: customer.name,
+          total_orders: customer.total_orders,
+          most_order_menu: mostOrderMenu
+        };
+      });
+
+      res.writeHead(200, {
+        "Content-Type": "application/json"
+      });
+
+      res.end(
+        JSON.stringify({
+          success: true,
+          customers
+        })
+      );
+    });
+  } catch (error) {
+    res.writeHead(500, {
+      "Content-Type": "application/json"
+    });
+
+    res.end(
+      JSON.stringify({
+        success: false,
+        message: "Server error",
+        error: error.message
+      })
+    );
+  }
+}
+
 module.exports = { 
     getDashboardSummariesByShop,
     getReportRvenueByShopId,
@@ -839,5 +927,6 @@ module.exports = {
     top5MenuByShopId,
     dashboardOrdersValuesChartByShopId,
     top5DeliverymenByShopId,
-    top5LessMenuByShopId
+    top5LessMenuByShopId,
+    top5CustomerByShopId
 };
