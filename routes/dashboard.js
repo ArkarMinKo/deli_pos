@@ -755,11 +755,89 @@ const top5DeliverymenByShopId = async (req, res, shopId) => {
   }
 };
 
+const top5LessMenuByShopId = async (req, res, shopId) => {
+    try {
+        // Get all orders for this shop
+        const [ordersRows] = await db.promise().execute(
+            `SELECT orders FROM orders WHERE shopId = ?`,
+            [shopId]
+        );
+
+        // Get menu + category info
+        const [menuRows] = await db.promise().execute(`
+            SELECT 
+                m.id,
+                m.name,
+                c.name AS category
+            FROM menu m
+            LEFT JOIN categories c 
+                ON m.category = c.id
+            WHERE m.shop_id = ?
+        `, [shopId]);
+
+        // Create menu map
+        const menuMap = {};
+
+        for (const menu of menuRows) {
+            menuMap[menu.id] = {
+                name: menu.name,
+                category: menu.category || "Unknown",
+                orders: 0
+            };
+        }
+
+        // Count menu quantities from orders JSON
+        for (const row of ordersRows) {
+            let orderItems = [];
+
+            try {
+                orderItems =
+                    typeof row.orders === "string"
+                        ? JSON.parse(row.orders)
+                        : row.orders;
+            } catch (err) {
+                continue;
+            }
+
+            if (!Array.isArray(orderItems)) continue;
+
+            for (const item of orderItems) {
+                const menuId = item.menu_id;
+                const quantity = Number(item.quantity || 0);
+
+                if (menuMap[menuId]) {
+                    menuMap[menuId].orders += quantity;
+                }
+            }
+        }
+
+        // Convert object to array, sort ascending (least orders first), and slice 5
+        const result = Object.values(menuMap)
+            .sort((a, b) => a.orders - b.orders)
+            .slice(0, 5);
+
+        return res.end(JSON.stringify({
+            success: true,
+            data: result
+        }));
+
+    } catch (error) {
+        console.error(error);
+
+        return res.end(JSON.stringify({
+            success: false,
+            message: "Database error",
+            error: error.message
+        }));
+    }
+};
+
 module.exports = { 
     getDashboardSummariesByShop,
     getReportRvenueByShopId,
     getReportCategoriesChartByShopId,
     top5MenuByShopId,
     dashboardOrdersValuesChartByShopId,
-    top5DeliverymenByShopId
+    top5DeliverymenByShopId,
+    top5LessMenuByShopId
 };
