@@ -1574,6 +1574,108 @@ async function getReportByShop(req, res, id) {
   }
 }
 
+async function todayOrdersByShop(req, res, id) {
+  try {
+
+    const [orders] = await db.promise().query(
+      `
+      SELECT DISTINCT
+        o.*
+      FROM orders o,
+      JSON_TABLE(
+        o.orders,
+        '$[*]' COLUMNS (
+          shop_id VARCHAR(50) PATH '$.shop_id'
+        )
+      ) jt
+      WHERE 
+        jt.shop_id = ?
+        AND o.orders_done = 1
+        AND DATE(o.created_at) = CURDATE()
+      ORDER BY o.id DESC
+      `,
+      [id]
+    );
+
+    const [deliverymen] = await db.promise().query(`
+      SELECT 
+        d.id, 
+        d.name, 
+        d.phone, 
+        d.status,
+        d.finished_orders,
+        CASE 
+          WHEN d.work_type IS NULL THEN NULL
+          ELSE s.shop_name
+        END AS work_type
+      FROM deliverymen d
+      LEFT JOIN shops s ON d.work_type = s.id
+    `);
+
+    const clean = (v) => String(v || "").trim().toUpperCase();
+
+    const deliveryMap = {};
+
+    for (let dm of deliverymen) {
+
+      if (!dm.finished_orders) continue;
+
+      let finishedOrders = [];
+
+      if (Array.isArray(dm.finished_orders)) {
+        finishedOrders = dm.finished_orders;
+      } else {
+        try {
+          finishedOrders = JSON.parse(dm.finished_orders);
+        } catch {
+          finishedOrders = [];
+        }
+      }
+
+      for (let oid of finishedOrders) {
+        deliveryMap[clean(oid)] = dm;
+      }
+
+    }
+
+    const report = [];
+
+    for (let order of orders) {
+
+      const deliverymanInfo =
+        deliveryMap[clean(order.id)] || null;
+
+      report.push({
+        order: order,
+        deliveryman: deliverymanInfo
+      });
+
+    }
+
+    res.writeHead(200, {
+      "Content-Type": "application/json"
+    });
+
+    res.end(JSON.stringify({
+      success: true,
+      total: report.length,
+      data: report
+    }));
+
+  } catch (err) {
+
+    res.writeHead(500, {
+      "Content-Type": "application/json"
+    });
+
+    res.end(JSON.stringify({
+      success: false,
+      error: err.message
+    }));
+
+  }
+}
+
 function orderConfirm(req, res) {
 
   let body = "";
