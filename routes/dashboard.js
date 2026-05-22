@@ -651,10 +651,115 @@ const dashboardOrdersValuesChartByShopId = async (req, res, shopId) => {
   }
 };
 
+const top5DeliverymenByShopId = async (req, res, shopId) => {
+  try {
+    // Current month range
+    const now = new Date();
+
+    const startOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1
+    );
+
+    const endOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59
+    );
+
+    const query = `
+      SELECT 
+        d.id,
+        d.name,
+        d.phone,
+        d.email,
+        d.location,
+        d.status,
+        d.rating,
+        d.photo,
+
+        (
+          COALESCE(
+            (
+              SELECT COUNT(*)
+              FROM orders o
+              WHERE JSON_CONTAINS(d.cleared_orders, JSON_QUOTE(o.id))
+              AND o.created_at BETWEEN ? AND ?
+            ),
+            0
+          )
+
+          +
+
+          COALESCE(
+            (
+              SELECT COUNT(*)
+              FROM orders o
+              WHERE JSON_CONTAINS(d.finished_orders, JSON_QUOTE(o.id))
+              AND o.created_at BETWEEN ? AND ?
+            ),
+            0
+          )
+        ) AS total_order
+
+      FROM deliverymen d
+      WHERE d.work_type = ?
+      ORDER BY total_order DESC
+      LIMIT 5
+    `;
+
+    db.query(
+      query,
+      [
+        startOfMonth,
+        endOfMonth,
+        startOfMonth,
+        endOfMonth,
+        shopId
+      ],
+      (err, results) => {
+        if (err) {
+          console.error(err);
+
+          return res.end(
+            JSON.stringify({
+              success: false,
+              message: "Database error",
+              error: err.message
+            })
+          );
+        }
+
+        return res.end(
+          JSON.stringify({
+            success: true,
+            data: results
+          })
+        );
+      }
+    );
+  } catch (error) {
+    console.error(error);
+
+    return res.end(
+      JSON.stringify({
+        success: false,
+        message: "Server error",
+        error: error.message
+      })
+    );
+  }
+};
+
 module.exports = { 
     getDashboardSummariesByShop,
     getReportRvenueByShopId,
     getReportCategoriesChartByShopId,
     top5MenuByShopId,
-    dashboardOrdersValuesChartByShopId
+    dashboardOrdersValuesChartByShopId,
+    top5DeliverymenByShopId
 };
