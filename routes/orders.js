@@ -2042,5 +2042,6 @@ module.exports = {
   pickupOrder,
   getReportByShop,
   orderConfirm,
-  getReportByShopSummaries
+  getReportByShopSummaries,
+  todayOrdersByShop
 };
