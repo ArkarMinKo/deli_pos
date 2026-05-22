@@ -870,7 +870,27 @@ async function top5CustomerByShopId(req, res, shopId) {
         customerMap[row.id].total_orders += 1;
 
         try {
-          const orders = JSON.parse(row.orders || "[]");
+          let orders = [];
+
+          try {
+            orders =
+              typeof row.orders === "string"
+                ? JSON.parse(row.orders)
+                : row.orders;
+
+            orders.forEach((item) => {
+              const menuName = item.menu_name;
+              const quantity = item.quantity || 1;
+
+              if (!customerMap[row.id].menuCount[menuName]) {
+                customerMap[row.id].menuCount[menuName] = 0;
+              }
+
+              customerMap[row.id].menuCount[menuName] += quantity;
+            });
+          } catch (e) {
+            console.log("Orders Parse Error:", e);
+          }
 
           orders.forEach((item) => {
             const menuName = item.menu_name;
