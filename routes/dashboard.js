@@ -838,14 +838,11 @@ async function top5CustomerByShopId(req, res, shopId) {
       SELECT 
         u.id,
         u.name,
-        COUNT(o.id) AS total_orders,
         o.orders
       FROM orders o
       INNER JOIN users u ON u.id = o.userId
       WHERE o.shopId = ?
-      GROUP BY u.id, u.name
-      ORDER BY total_orders DESC
-      LIMIT 5
+      ORDER BY u.name ASC
     `;
 
     db.query(sql, [shopId], (err, results) => {
@@ -859,40 +856,55 @@ async function top5CustomerByShopId(req, res, shopId) {
         );
       }
 
-      const customers = results.map((customer) => {
-        let menuCount = {};
+      const customerMap = {};
+
+      results.forEach((row) => {
+        if (!customerMap[row.id]) {
+          customerMap[row.id] = {
+            name: row.name,
+            total_orders: 0,
+            menuCount: {}
+          };
+        }
+
+        customerMap[row.id].total_orders += 1;
 
         try {
-          const orders = JSON.parse(customer.orders || "[]");
+          const orders = JSON.parse(row.orders || "[]");
 
           orders.forEach((item) => {
             const menuName = item.menu_name;
+            const quantity = item.quantity || 1;
 
-            if (!menuCount[menuName]) {
-              menuCount[menuName] = 0;
+            if (!customerMap[row.id].menuCount[menuName]) {
+              customerMap[row.id].menuCount[menuName] = 0;
             }
 
-            menuCount[menuName] += item.quantity || 1;
+            customerMap[row.id].menuCount[menuName] += quantity;
           });
         } catch (e) {}
-
-        // Find most ordered menu
-        let mostOrderMenu = null;
-        let highest = 0;
-
-        for (const menu in menuCount) {
-          if (menuCount[menu] > highest) {
-            highest = menuCount[menu];
-            mostOrderMenu = menu;
-          }
-        }
-
-        return {
-          name: customer.name,
-          total_orders: customer.total_orders,
-          most_order_menu: mostOrderMenu
-        };
       });
+
+      const customers = Object.values(customerMap)
+        .map((customer) => {
+          let mostOrderMenu = null;
+          let highest = 0;
+
+          for (const menu in customer.menuCount) {
+            if (customer.menuCount[menu] > highest) {
+              highest = customer.menuCount[menu];
+              mostOrderMenu = menu;
+            }
+          }
+
+          return {
+            name: customer.name,
+            total_orders: customer.total_orders,
+            most_order_menu: mostOrderMenu
+          };
+        })
+        .sort((a, b) => b.total_orders - a.total_orders)
+        .slice(0, 5);
 
       res.writeHead(200, {
         "Content-Type": "application/json"
