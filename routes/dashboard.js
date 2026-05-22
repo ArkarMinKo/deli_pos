@@ -502,9 +502,159 @@ const top5MenuByShopId = async (req, res, shopId) => {
     }
 };
 
+const dashboardOrdersValuesChartByShopId = async (req, res, shopId) => {
+  try {
+    // Hourly (today)
+    const [hourRows] = await db.promise().query(
+      `
+      SELECT 
+        HOUR(created_at) AS hour,
+        COALESCE(SUM(grand_total), 0) AS total
+      FROM orders
+      WHERE shopId = ?
+        AND DATE(created_at) = CURDATE()
+      GROUP BY HOUR(created_at)
+      ORDER BY hour ASC
+      `,
+      [shopId]
+    );
+
+    // Weekly (current week)
+    const [weeklyRows] = await db.promise().query(
+      `
+      SELECT 
+        DAYOFWEEK(created_at) AS day_number,
+        COALESCE(SUM(grand_total), 0) AS total
+      FROM orders
+      WHERE shopId = ?
+        AND YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)
+      GROUP BY DAYOFWEEK(created_at)
+      ORDER BY day_number ASC
+      `,
+      [shopId]
+    );
+
+    // Yearly (current year)
+    const [yearlyRows] = await db.promise().query(
+      `
+      SELECT 
+        MONTH(created_at) AS month_number,
+        COALESCE(SUM(grand_total), 0) AS total
+      FROM orders
+      WHERE shopId = ?
+        AND YEAR(created_at) = YEAR(CURDATE())
+      GROUP BY MONTH(created_at)
+      ORDER BY month_number ASC
+      `,
+      [shopId]
+    );
+
+    // -------------------------
+    // Hour Labels
+    // -------------------------
+    const hour = [];
+
+    for (let i = 0; i < 24; i++) {
+      const found = hourRows.find((x) => x.hour === i);
+
+      let label = "";
+
+      if (i === 0) {
+        label = "12 AM";
+      } else if (i < 12) {
+        label = `${i} AM`;
+      } else if (i === 12) {
+        label = "12 PM";
+      } else {
+        label = `${i - 12} PM`;
+      }
+
+      hour.push({
+        time: label,
+        value: found ? Number(found.total) : 0,
+      });
+    }
+
+    // -------------------------
+    // Weekly Labels
+    // -------------------------
+    const weekNames = [
+      "Sun",
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat",
+    ];
+
+    const weekly = [];
+
+    for (let i = 1; i <= 7; i++) {
+      const found = weeklyRows.find((x) => x.day_number === i);
+
+      weekly.push({
+        time: weekNames[i - 1],
+        value: found ? Number(found.total) : 0,
+      });
+    }
+
+    // -------------------------
+    // Yearly Labels
+    // -------------------------
+    const monthNames = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+
+    const yearly = [];
+
+    for (let i = 1; i <= 12; i++) {
+      const found = yearlyRows.find((x) => x.month_number === i);
+
+      yearly.push({
+        time: monthNames[i - 1],
+        value: found ? Number(found.total) : 0,
+      });
+    }
+
+    return res.end(
+      JSON.stringify({
+        success: true,
+        data: {
+          hour,
+          weekly,
+          yearly,
+        },
+      })
+    );
+  } catch (error) {
+    console.log(error);
+
+    return res.end(
+      JSON.stringify({
+        success: false,
+        message: "Database error",
+        error,
+      })
+    );
+  }
+};
+
 module.exports = { 
     getDashboardSummariesByShop,
     getReportRvenueByShopId,
     getReportCategoriesChartByShopId,
-    top5MenuByShopId
+    top5MenuByShopId,
+    dashboardOrdersValuesChartByShopId
 };
