@@ -474,7 +474,8 @@ function getShopOpen(req, res, id) {
         }
 
         if (results.length === 0) {
-            return res.status(404).json({ error: "Account not found" });
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Account Not Found" }));
         }
 
         res.writeHead(200, { "Content-Type": "application/json" });
