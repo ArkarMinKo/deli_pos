@@ -1026,6 +1026,71 @@ async function ordersSummaries(req, res, shopId) {
   }
 }
 
+async function deliverymenSummaries(req, res, shopId) {
+  try {
+    const query = `
+      SELECT
+        COUNT(*) AS total_deliverymen,
+
+        SUM(
+          CASE
+            WHEN is_online = 1 THEN 1
+            ELSE 0
+          END
+        ) AS total_online_deliverymen,
+
+        SUM(
+          CASE
+            WHEN is_online = 0 THEN 1
+            ELSE 0
+          END
+        ) AS total_offline_deliverymen,
+
+        SUM(
+          CASE
+            WHEN DATE(created_at) = CURDATE() THEN 1
+            ELSE 0
+          END
+        ) AS today_deliverymen
+
+      FROM deliverymen
+      WHERE work_type = ?
+    `;
+
+    const [rows] = await db.promise().query(query, [shopId]);
+
+    const data = {
+      total_deliverymen: Number(rows[0].total_deliverymen || 0),
+      total_online_deliverymen: Number(rows[0].total_online_deliverymen || 0),
+      total_offline_deliverymen: Number(rows[0].total_offline_deliverymen || 0),
+      today_deliverymen: Number(rows[0].today_deliverymen || 0),
+    };
+
+    res.writeHead(200, {
+      "Content-Type": "application/json",
+    });
+
+    res.end(
+      JSON.stringify({
+        success: true,
+        data,
+      })
+    );
+  } catch (error) {
+    res.writeHead(500, {
+      "Content-Type": "application/json",
+    });
+
+    res.end(
+      JSON.stringify({
+        success: false,
+        message: "Database error",
+        error: error.message,
+      })
+    );
+  }
+}
+
 module.exports = { 
     getDashboardSummariesByShop,
     getReportRvenueByShopId,
@@ -1035,5 +1100,6 @@ module.exports = {
     top5DeliverymenByShopId,
     top5LessMenuByShopId,
     top5CustomerByShopId,
-    ordersSummaries
+    ordersSummaries,
+    deliverymenSummaries
 };

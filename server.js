@@ -565,6 +565,11 @@ const server = http.createServer(async (req, res) => {
         dashboard.ordersSummaries(req, res, id)
     }
 
+    else if(pathName.startsWith("/deliveymen-summaries/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        dashboard.deliverymenSummaries(req, res, id)
+    }
+
     // --- 404 fallback ---
     else {
         res.writeHead(404, { "Content-Type": "application/json" });
