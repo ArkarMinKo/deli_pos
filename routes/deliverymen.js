@@ -1826,6 +1826,158 @@ function clearedOrders(req, res, deliverymenId) {
   });
 }
 
+async function deliverymenHistory(req, res, deliverymenId) {
+  try {
+    // =========================
+    // GET DELIVERYMAN
+    // =========================
+    const [deliverymenRows] = await db.promise().query(
+      `
+      SELECT 
+        d.id,
+        d.name,
+        d.email,
+        d.phone,
+        d.photo,
+        d.status,
+        d.work_type,
+        d.finished_orders,
+        d.cleared_orders,
+        s.shop_name
+      FROM deliverymen d
+      LEFT JOIN shops s ON d.work_type = s.id
+      WHERE d.id = ?
+      `,
+      [deliverymenId]
+    );
+
+    if (deliverymenRows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Deliveryman not found"
+      });
+    }
+
+    const deliveryman = deliverymenRows[0];
+
+    // =========================
+    // WORK TYPE NAME
+    // =========================
+    const workTypeName = deliveryman.shop_name || null;
+
+    // =========================
+    // JSON PARSE
+    // =========================
+    let finishedOrders = [];
+    let clearedOrders = [];
+
+    try {
+      finishedOrders = deliveryman.finished_orders
+        ? JSON.parse(deliveryman.finished_orders)
+        : [];
+    } catch {
+      finishedOrders = [];
+    }
+
+    try {
+      clearedOrders = deliveryman.cleared_orders
+        ? JSON.parse(deliveryman.cleared_orders)
+        : [];
+    } catch {
+      clearedOrders = [];
+    }
+
+    // =========================
+    // FUNCTION TO GET ORDER DATA
+    // =========================
+    async function getOrdersData(orderIds) {
+      if (!orderIds || orderIds.length === 0) {
+        return {
+          total_way: 0,
+          total_delivy_fees: 0,
+          total_kilo: 0,
+          ways: []
+        };
+      }
+
+      const placeholders = orderIds.map(() => "?").join(",");
+
+      const [orders] = await db.promise().query(
+        `
+        SELECT 
+          o.id,
+          o.total_order,
+          o.delivery_fees,
+          o.kilo,
+          s.shop_name
+        FROM orders o
+        LEFT JOIN shops s ON o.shopId = s.id
+        WHERE o.id IN (${placeholders})
+        `,
+        orderIds
+      );
+
+      let totalWay = 0;
+      let totalDeliveryFees = 0;
+      let totalKilo = 0;
+
+      const ways = orders.map((order) => {
+        totalWay += 1;
+        totalDeliveryFees += Number(order.delivery_fees || 0);
+        totalKilo += Number(order.kilo || 0);
+
+        return {
+          orderId: order.id,
+          shop_name: order.shop_name,
+          menu: order.total_order,
+          delivey_fees: Number(order.delivery_fees || 0),
+          kilo: Number(order.kilo || 0)
+        };
+      });
+
+      return {
+        total_way: totalWay,
+        total_delivy_fees: totalDeliveryFees,
+        total_kilo: totalKilo,
+        ways
+      };
+    }
+
+    // =========================
+    // GET DATA
+    // =========================
+    const notClearedOrdersData = await getOrdersData(finishedOrders);
+    const clearedOrdersData = await getOrdersData(clearedOrders);
+
+    // =========================
+    // RESPONSE
+    // =========================
+    return res.status(200).json({
+      success: true,
+      data: {
+        id: deliveryman.id,
+        name: deliveryman.name,
+        email: deliveryman.email,
+        phone: deliveryman.phone,
+        photo: deliveryman.photo,
+        status: deliveryman.status,
+        work_type: workTypeName,
+        not_cleared_orders: notClearedOrdersData,
+        cleared_orders: clearedOrdersData
+      }
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Database error",
+      error: error.message
+    });
+  }
+}
+
 module.exports = { 
     loginDeliverymen,
     createDeliverymen,
@@ -1847,5 +1999,6 @@ module.exports = {
     changeLocation,
     getReportShopDeliveymenByShop,
     getReportSystemDeliveymenByShop,
-    clearedOrders
+    clearedOrders,
+    deliverymenHistory
 };
