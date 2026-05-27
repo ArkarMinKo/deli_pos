@@ -952,6 +952,80 @@ async function top5CustomerByShopId(req, res, shopId) {
   }
 }
 
+async function ordersSummaries(req, res, shopId) {
+  try {
+    const query = `
+      SELECT
+        COUNT(*) AS total_orders_today,
+
+        SUM(
+          CASE
+            WHEN LOWER(type) = 'timer' THEN 1
+            ELSE 0
+          END
+        ) AS time_orders_today,
+
+        SUM(
+          CASE
+            WHEN LOWER(type) != 'timer' THEN 1
+            ELSE 0
+          END
+        ) AS normal_orders_today,
+
+        (
+          SELECT COUNT(DISTINCT o2.id)
+          FROM orders o2
+          JOIN JSON_TABLE(
+            o2.orders,
+            '$[*]' COLUMNS (
+              status INT PATH '$.status'
+            )
+          ) jt
+          ON TRUE
+          WHERE o2.shopId = ?
+            AND DATE(o2.created_at) = CURDATE()
+            AND jt.status = 1
+        ) AS approve_orders_today
+
+      FROM orders
+      WHERE shopId = ?
+        AND DATE(created_at) = CURDATE()
+    `;
+
+    const [rows] = await db.promise().query(query, [shopId, shopId]);
+
+    const data = {
+      total_orders_today: Number(rows[0].total_orders_today || 0),
+      time_orders_today: Number(rows[0].time_orders_today || 0),
+      normal_orders_today: Number(rows[0].normal_orders_today || 0),
+      approve_orders_today: Number(rows[0].approve_orders_today || 0),
+    };
+
+    res.writeHead(200, {
+      "Content-Type": "application/json",
+    });
+
+    res.end(
+      JSON.stringify({
+        success: true,
+        data,
+      })
+    );
+  } catch (error) {
+    res.writeHead(500, {
+      "Content-Type": "application/json",
+    });
+
+    res.end(
+      JSON.stringify({
+        success: false,
+        message: "Database error",
+        error: error.message,
+      })
+    );
+  }
+}
+
 module.exports = { 
     getDashboardSummariesByShop,
     getReportRvenueByShopId,
@@ -960,5 +1034,6 @@ module.exports = {
     dashboardOrdersValuesChartByShopId,
     top5DeliverymenByShopId,
     top5LessMenuByShopId,
-    top5CustomerByShopId
+    top5CustomerByShopId,
+    ordersSummaries
 };
