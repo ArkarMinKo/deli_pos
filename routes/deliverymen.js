@@ -1828,6 +1828,23 @@ function clearedOrders(req, res, deliverymenId) {
 
 async function deliverymenHistory(req, res, deliverymenId) {
   try {
+
+    // =========================
+    // VALIDATION
+    // =========================
+    if (!deliverymenId) {
+      res.writeHead(400, {
+        "Content-Type": "application/json"
+      });
+
+      return res.end(
+        JSON.stringify({
+          success: false,
+          message: "deliverymenId is required"
+        })
+      );
+    }
+
     // =========================
     // GET DELIVERYMAN
     // =========================
@@ -1845,28 +1862,39 @@ async function deliverymenHistory(req, res, deliverymenId) {
         d.cleared_orders,
         s.shop_name
       FROM deliverymen d
-      LEFT JOIN shops s ON d.work_type = s.id
+      LEFT JOIN shops s 
+        ON d.work_type = s.id
       WHERE d.id = ?
       `,
       [deliverymenId]
     );
 
+    // =========================
+    // NOT FOUND
+    // =========================
     if (deliverymenRows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Deliveryman not found"
+
+      res.writeHead(404, {
+        "Content-Type": "application/json"
       });
+
+      return res.end(
+        JSON.stringify({
+          success: false,
+          message: "Deliveryman not found"
+        })
+      );
     }
 
     const deliveryman = deliverymenRows[0];
 
     // =========================
-    // WORK TYPE NAME
+    // WORK TYPE
     // =========================
     const workTypeName = deliveryman.shop_name || null;
 
     // =========================
-    // JSON PARSE
+    // PARSE JSON
     // =========================
     let finishedOrders = [];
     let clearedOrders = [];
@@ -1875,7 +1903,7 @@ async function deliverymenHistory(req, res, deliverymenId) {
       finishedOrders = deliveryman.finished_orders
         ? JSON.parse(deliveryman.finished_orders)
         : [];
-    } catch {
+    } catch (err) {
       finishedOrders = [];
     }
 
@@ -1883,14 +1911,15 @@ async function deliverymenHistory(req, res, deliverymenId) {
       clearedOrders = deliveryman.cleared_orders
         ? JSON.parse(deliveryman.cleared_orders)
         : [];
-    } catch {
+    } catch (err) {
       clearedOrders = [];
     }
 
     // =========================
-    // FUNCTION TO GET ORDER DATA
+    // GET ORDERS DATA
     // =========================
     async function getOrdersData(orderIds) {
+
       if (!orderIds || orderIds.length === 0) {
         return {
           total_way: 0,
@@ -1911,7 +1940,8 @@ async function deliverymenHistory(req, res, deliverymenId) {
           o.kilo,
           s.shop_name
         FROM orders o
-        LEFT JOIN shops s ON o.shopId = s.id
+        LEFT JOIN shops s 
+          ON o.shopId = s.id
         WHERE o.id IN (${placeholders})
         `,
         orderIds
@@ -1922,6 +1952,7 @@ async function deliverymenHistory(req, res, deliverymenId) {
       let totalKilo = 0;
 
       const ways = orders.map((order) => {
+
         totalWay += 1;
         totalDeliveryFees += Number(order.delivery_fees || 0);
         totalKilo += Number(order.kilo || 0);
@@ -1944,7 +1975,7 @@ async function deliverymenHistory(req, res, deliverymenId) {
     }
 
     // =========================
-    // GET DATA
+    // DATA
     // =========================
     const notClearedOrdersData = await getOrdersData(finishedOrders);
     const clearedOrdersData = await getOrdersData(clearedOrders);
@@ -1952,29 +1983,42 @@ async function deliverymenHistory(req, res, deliverymenId) {
     // =========================
     // RESPONSE
     // =========================
-    return res.status(200).json({
-      success: true,
-      data: {
-        id: deliveryman.id,
-        name: deliveryman.name,
-        email: deliveryman.email,
-        phone: deliveryman.phone,
-        photo: deliveryman.photo,
-        status: deliveryman.status,
-        work_type: workTypeName,
-        not_cleared_orders: notClearedOrdersData,
-        cleared_orders: clearedOrdersData
-      }
+    res.writeHead(200, {
+      "Content-Type": "application/json"
     });
+
+    return res.end(
+      JSON.stringify({
+        success: true,
+        data: {
+          id: deliveryman.id,
+          name: deliveryman.name,
+          email: deliveryman.email,
+          phone: deliveryman.phone,
+          photo: deliveryman.photo,
+          status: deliveryman.status,
+          work_type: workTypeName,
+          not_cleared_orders: notClearedOrdersData,
+          cleared_orders: clearedOrdersData
+        }
+      })
+    );
 
   } catch (error) {
+
     console.error(error);
 
-    return res.status(500).json({
-      success: false,
-      message: "Database error",
-      error: error.message
+    res.writeHead(500, {
+      "Content-Type": "application/json"
     });
+
+    return res.end(
+      JSON.stringify({
+        success: false,
+        message: "Database error",
+        error: error.message
+      })
+    );
   }
 }
 
