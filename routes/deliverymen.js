@@ -1896,25 +1896,16 @@ async function deliverymenHistory(req, res, deliverymenId) {
     // =========================
     // PARSE JSON
     // =========================
-    let finishedOrders = [];
-    let clearedOrders = [];
+    // =========================
+    // JSON DATA
+    // =========================
+    const finishedOrders = Array.isArray(deliveryman.finished_orders)
+      ? deliveryman.finished_orders
+      : [];
 
-    try {
-      finishedOrders = deliveryman.finished_orders
-        ? JSON.parse(deliveryman.finished_orders)
-        : [];
-    } catch (err) {
-      finishedOrders = [];
-    }
-
-    try {
-      clearedOrders = deliveryman.cleared_orders
-        ? JSON.parse(deliveryman.cleared_orders)
-        : [];
-    } catch (err) {
-      clearedOrders = [];
-    }
-
+    const clearedOrders = Array.isArray(deliveryman.cleared_orders)
+      ? deliveryman.cleared_orders
+      : [];
     // =========================
     // GET ORDERS DATA
     // =========================
