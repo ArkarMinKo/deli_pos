@@ -1118,6 +1118,48 @@ function changeLocation(req, res, id) {
   });
 }
 
+function getLocationByShop(req, res, shopId) {
+  if (!shopId) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({
+      success: false,
+      message: "Shop id is required"
+    }));
+  }
+
+  const query = `
+    SELECT location, address
+    FROM shops
+    WHERE id = ?
+    LIMIT 1
+  `;
+
+  db.query(query, [shopId], (err, results) => {
+    if (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: false,
+        message: err.message
+      }));
+    }
+
+    if (results.length === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: false,
+        message: "Shop not found"
+      }));
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({
+      success: true,
+      location: results[0].location,
+      address: results[0].address
+    }));
+  });
+}
+
 module.exports = {
     loginShop,
     createShops,
@@ -1140,5 +1182,6 @@ module.exports = {
     updateShopsCategories,
     changeSidebar,
     updatePaymentsByShops,
-    changeLocation
+    changeLocation,
+    getLocationByShop
 };
