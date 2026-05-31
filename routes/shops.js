@@ -1047,6 +1047,77 @@ function updatePaymentsByShops(req, res, shopId) {
   });
 }
 
+function changeLocation(req, res, id) {
+  if (!id) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({
+      success: false,
+      message: "Shop id is required"
+    }));
+  }
+
+  let body = "";
+
+  // Collect request data
+  req.on("data", chunk => {
+    body += chunk.toString();
+  });
+
+  req.on("end", () => {
+    let data;
+
+    try {
+      data = JSON.parse(body);
+    } catch (err) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: false,
+        message: "Invalid JSON"
+      }));
+    }
+
+    const { location, address } = data;
+
+    if (!location) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: false,
+        message: "location and address are required"
+      }));
+    }
+
+    const query = `
+      UPDATE shops
+      SET location = ?, address = ?
+      WHERE id = ?
+    `;
+
+    db.query(query, [location, address, id], (err, result) => {
+      if (err) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({
+          success: false,
+          message: err.message
+        }));
+      }
+
+      if (result.affectedRows === 0) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({
+          success: false,
+          message: "Shop not found"
+        }));
+      }
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: true,
+        message: "Location and address updated successfully"
+      }));
+    });
+  });
+}
+
 module.exports = {
     loginShop,
     createShops,
@@ -1068,5 +1139,6 @@ module.exports = {
     getSidebar,
     updateShopsCategories,
     changeSidebar,
-    updatePaymentsByShops
+    updatePaymentsByShops,
+    changeLocation
 };
