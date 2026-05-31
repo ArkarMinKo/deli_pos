@@ -1545,23 +1545,33 @@ async function getReportByShop(req, res, id) {
       }
     }
 
-    const report = [];
+        const report = [];
 
-    for (let order of orders) {
-      const deliverymanInfo = deliveryMap[clean(order.id)] || null;
+      for (let order of orders) {
+        const deliverymanInfo = deliveryMap[clean(order.id)] || null;
 
-      report.push({
-        order: order,
-        deliveryman: deliverymanInfo
-      });
-    }
+        report.push({
+          order: order,
+          deliveryman: deliverymanInfo
+        });
+      }
 
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({
-      success: true,
-      total: report.length,
-      data: report
-    }));
+      let total_amount = 0;
+      let total_delivery_fees = 0;
+
+      for (let order of orders) {
+        total_amount += Number(order.grand_total || 0);
+        total_delivery_fees += Number(order.delivery_fees || 0);
+      }
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        success: true,
+        total: report.length,
+        total_amount,
+        total_delivery_fees,
+        data: report
+      }));
 
   } catch (err) {
 
