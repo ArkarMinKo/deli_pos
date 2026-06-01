@@ -1160,6 +1160,104 @@ function getLocationByShop(req, res, shopId) {
   });
 }
 
+async function changePasswordByShops(req, res, shopId) {
+  if (!shopId) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({
+      success: false,
+      message: "Shop ID is required"
+    }));
+  }
+
+  let body = "";
+
+  req.on("data", chunk => {
+    body += chunk.toString();
+  });
+
+  req.on("end", async () => {
+    try {
+      const { current_pw, new_pw } = JSON.parse(body);
+
+      if (!current_pw || !new_pw) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({
+          success: false,
+          message: "Current password and new password are required"
+        }));
+      }
+
+      // Get current shop password
+      const [shops] = await db.promise().query(
+        "SELECT password FROM shops WHERE id = ?",
+        [shopId]
+      );
+
+      if (shops.length === 0) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({
+          success: false,
+          message: "Shop not found"
+        }));
+      }
+
+      const shop = shops[0];
+
+      // Verify current password
+      const isMatch = await bcrypt.compare(
+        current_pw,
+        shop.password
+      );
+
+      if (!isMatch) {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({
+          success: false,
+          message: "Current password is incorrect"
+        }));
+      }
+
+      // Prevent using same password
+      const isSamePassword = await bcrypt.compare(
+        new_pw,
+        shop.password
+      );
+
+      if (isSamePassword) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({
+          success: false,
+          message: "New password must be different from current password"
+        }));
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(new_pw, 10);
+
+      // Update password
+      await db.promise().query(
+        "UPDATE shops SET password = ? WHERE id = ?",
+        [hashedPassword, shopId]
+      );
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: true,
+        message: "Password changed successfully"
+      }));
+
+    } catch (error) {
+      console.error("Change password error:", error);
+
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: false,
+        message: "Internal server error"
+      }));
+    }
+  });
+}
+
 module.exports = {
     loginShop,
     createShops,
@@ -1183,5 +1281,6 @@ module.exports = {
     changeSidebar,
     updatePaymentsByShops,
     changeLocation,
-    getLocationByShop
+    getLocationByShop,
+    changePasswordByShops
 };

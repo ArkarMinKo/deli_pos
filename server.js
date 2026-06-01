@@ -281,6 +281,11 @@ const server = http.createServer(async (req, res) => {
         shops.getLocationByShop(req, res, id);
     }
 
+    else if (pathName.startsWith("/change-passwords-shops/") && method === "PATCH") {
+        const id = pathName.split("/")[2];
+        shops.changePasswordByShops(req, res, id);
+    }
+
     // deliveryMen CRUD
     else if (pathName === "/login-deliverymen" && method === "POST") deliverymen.loginDeliverymen(req, res);
     else if (pathName === "/deliverymen" && method === "POST") deliverymen.createDeliverymen(req, res);
