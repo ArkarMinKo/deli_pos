@@ -457,6 +457,11 @@ const server = http.createServer(async (req, res) => {
         order.getOrdersByShopId(req, res, id);
     }
 
+    else if (pathName.startsWith("/orders-by-shop-noti/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        order.getOrdersByShopId(req, res, id);
+    }
+
     else if (pathName.startsWith("/orders-by-user/") && method === "GET") {
         const id = pathName.split("/")[2];
         order.getOrdersByUserId(req, res, id);
