@@ -595,6 +595,11 @@ const server = http.createServer(async (req, res) => {
         dashboard.deliverymenSummaries(req, res, id)
     }
 
+    else if(pathName.startsWith("/payments-chart-shops/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        dashboard.paymentsChartByShop(req, res, id)
+    }
+
     // --- 404 fallback ---
     else {
         res.writeHead(404, { "Content-Type": "application/json" });

@@ -1091,6 +1091,55 @@ async function deliverymenSummaries(req, res, shopId) {
   }
 }
 
+async function paymentsChartByShop(req, res, shopId) {
+  res.setHeader("Content-Type", "application/json");
+
+  if (!shopId) {
+    res.statusCode = 400;
+    return res.end(
+      JSON.stringify({
+        success: false,
+        message: "Shop ID is required"
+      })
+    );
+  }
+
+  try {
+    const [rows] = await db.promise().query(
+      `
+      SELECT
+        payment_method AS method,
+        COUNT(*) AS total
+      FROM orders
+      WHERE shopId = ?
+        AND payment_method IS NOT NULL
+        AND payment_method <> ''
+      GROUP BY payment_method
+      ORDER BY total DESC
+      `,
+      [shopId]
+    );
+
+    res.statusCode = 200;
+    return res.end(
+      JSON.stringify({
+        success: true,
+        data: rows
+      })
+    );
+  } catch (error) {
+    console.error(error);
+
+    res.statusCode = 500;
+    return res.end(
+      JSON.stringify({
+        success: false,
+        message: "Internal server error"
+      })
+    );
+  }
+}
+
 module.exports = { 
     getDashboardSummariesByShop,
     getReportRvenueByShopId,
@@ -1101,5 +1150,6 @@ module.exports = {
     top5LessMenuByShopId,
     top5CustomerByShopId,
     ordersSummaries,
-    deliverymenSummaries
+    deliverymenSummaries,
+    paymentsChartByShop
 };
