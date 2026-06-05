@@ -281,6 +281,7 @@ function putDeliverymen(req, res, id) {
         const phone = fields.phone;
         const password = fields.password ? String(fields.password) : null;
         const work_type = fields.work_type;
+        const base64Photo = fields.photo; // Checking if photo is sent as base64 string
 
         const photoFile = Array.isArray(files.photo) ? files.photo[0] : files.photo;
 
@@ -306,7 +307,16 @@ function putDeliverymen(req, res, id) {
                 try {
                     let photoName = null;
 
-                    if (photoFile?.originalFilename) {
+                    // Logic for Base64 or File Upload
+                    if (base64Photo && typeof base64Photo === 'string' && base64Photo.startsWith('data:image')) {
+                        const matches = base64Photo.match(/^data:image\/([A-Za-z-+/]+);base64,(.+)$/);
+                        if (matches && matches.length === 3) {
+                            const extension = matches[1];
+                            const buffer = Buffer.from(matches[2], 'base64');
+                            photoName = `photo_${id}_${Date.now()}.${extension}`;
+                            fs.writeFileSync(path.join(__dirname, "../deliverymen_uploads", photoName), buffer);
+                        }
+                    } else if (photoFile?.originalFilename) {
                         photoName = generatePhotoName(id, photoFile.originalFilename);
                         fs.renameSync(
                             photoFile.filepath,
