@@ -1333,6 +1333,166 @@ function systemDashboardSummaries(req, res) {
   });
 }
 
+function systemOrderChart(req, res) {
+  res.writeHead(200, { "Content-Type": "application/json" });
+
+  const data = {
+    day: [],
+    week: [],
+    month: [],
+    year: []
+  };
+
+  // ---------- DAY ----------
+  const daySql = `
+    SELECT
+      HOUR(created_at) AS hour,
+      COUNT(*) AS total
+    FROM orders
+    WHERE DATE(created_at) = CURDATE()
+    GROUP BY HOUR(created_at)
+  `;
+
+  // ---------- WEEK ----------
+  const weekSql = `
+    SELECT
+      WEEKDAY(created_at) AS weekday,
+      COUNT(*) AS total
+    FROM orders
+    WHERE YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)
+    GROUP BY WEEKDAY(created_at)
+  `;
+
+  // ---------- MONTH ----------
+  const monthSql = `
+    SELECT
+      DAY(created_at) AS day_no,
+      COUNT(*) AS total
+    FROM orders
+    WHERE YEAR(created_at) = YEAR(CURDATE())
+      AND MONTH(created_at) = MONTH(CURDATE())
+    GROUP BY DAY(created_at)
+  `;
+
+  // ---------- YEAR ----------
+  const yearSql = `
+    SELECT
+      MONTH(created_at) AS month_no,
+      COUNT(*) AS total
+    FROM orders
+    WHERE YEAR(created_at) = YEAR(CURDATE())
+    GROUP BY MONTH(created_at)
+  `;
+
+  db.query(daySql, (err, dayRows) => {
+    if (err) {
+      return res.end(JSON.stringify({
+        success: false,
+        error: err.message
+      }));
+    }
+
+    for (let i = 0; i < 24; i++) {
+      const row = dayRows.find(r => r.hour === i);
+
+      data.day.push({
+        name: `${String(i).padStart(2, "0")}:00`,
+        value: row ? row.total : 0
+      });
+    }
+
+    db.query(weekSql, (err, weekRows) => {
+      if (err) {
+        return res.end(JSON.stringify({
+          success: false,
+          error: err.message
+        }));
+      }
+
+      const weekNames = [
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat",
+        "Sun"
+      ];
+
+      for (let i = 0; i < 7; i++) {
+        const row = weekRows.find(r => r.weekday === i);
+
+        data.week.push({
+          name: weekNames[i],
+          value: row ? row.total : 0
+        });
+      }
+
+      db.query(monthSql, (err, monthRows) => {
+        if (err) {
+          return res.end(JSON.stringify({
+            success: false,
+            error: err.message
+          }));
+        }
+
+        const daysInMonth = new Date(
+          new Date().getFullYear(),
+          new Date().getMonth() + 1,
+          0
+        ).getDate();
+
+        for (let i = 1; i <= daysInMonth; i++) {
+          const row = monthRows.find(r => r.day_no === i);
+
+          data.month.push({
+            name: `Day ${i}`,
+            value: row ? row.total : 0
+          });
+        }
+
+        db.query(yearSql, (err, yearRows) => {
+          if (err) {
+            return res.end(JSON.stringify({
+              success: false,
+              error: err.message
+            }));
+          }
+
+          const monthNames = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec"
+          ];
+
+          for (let i = 1; i <= 12; i++) {
+            const row = yearRows.find(r => r.month_no === i);
+
+            data.year.push({
+              name: monthNames[i - 1],
+              value: row ? row.total : 0
+            });
+          }
+
+          res.end(JSON.stringify({
+            success: true,
+            data
+          }));
+        });
+      });
+    });
+  });
+}
+
 module.exports = { 
     getDashboardSummariesByShop,
     getReportRvenueByShopId,
@@ -1345,5 +1505,6 @@ module.exports = {
     ordersSummaries,
     deliverymenSummaries,
     paymentsChartByShop,
-    systemDashboardSummaries
+    systemDashboardSummaries,
+    systemOrderChart
 };
