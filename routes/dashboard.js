@@ -1140,6 +1140,199 @@ async function paymentsChartByShop(req, res, shopId) {
   }
 }
 
+function systemDashboardSummaries(req, res) {
+  res.writeHead(200, { "Content-Type": "application/json" });
+
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const tomorrowStart = new Date(todayStart);
+  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+
+  const yesterdayStart = new Date(todayStart);
+  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+
+  const dashboard = {
+    total_shops: {
+      total: 0,
+      new_shops: 0
+    },
+    total_menu: {
+      total: 0,
+      new_menu: 0
+    },
+    total_client: {
+      total: 0,
+      new_users: 0
+    },
+    total_delivery_income_today: {
+      today_system_income: 0,
+      yesterday_system_income: 0
+    },
+    total_deliverymen: {
+      total: 0,
+      new_deliverymen: 0
+    }
+  };
+
+  const queries = [
+    // Shops
+    cb => {
+      db.query(
+        `SELECT
+            COUNT(*) AS total,
+            SUM(
+              CASE
+                WHEN created_at >= ? AND created_at < ?
+                THEN 1 ELSE 0
+              END
+            ) AS new_shops
+         FROM shops`,
+        [todayStart, tomorrowStart],
+        (err, rows) => {
+          if (!err && rows.length) {
+            dashboard.total_shops.total = rows[0].total || 0;
+            dashboard.total_shops.new_shops = rows[0].new_shops || 0;
+          }
+          cb(err);
+        }
+      );
+    },
+
+    // Menu
+    cb => {
+      db.query(
+        `SELECT
+            COUNT(*) AS total,
+            SUM(
+              CASE
+                WHEN created_at >= ? AND created_at < ?
+                THEN 1 ELSE 0
+              END
+            ) AS new_menu
+         FROM menu`,
+        [todayStart, tomorrowStart],
+        (err, rows) => {
+          if (!err && rows.length) {
+            dashboard.total_menu.total = rows[0].total || 0;
+            dashboard.total_menu.new_menu = rows[0].new_menu || 0;
+          }
+          cb(err);
+        }
+      );
+    },
+
+    // Users
+    cb => {
+      db.query(
+        `SELECT
+            COUNT(*) AS total,
+            SUM(
+              CASE
+                WHEN created_at >= ? AND created_at < ?
+                THEN 1 ELSE 0
+              END
+            ) AS new_users
+         FROM users`,
+        [todayStart, tomorrowStart],
+        (err, rows) => {
+          if (!err && rows.length) {
+            dashboard.total_client.total = rows[0].total || 0;
+            dashboard.total_client.new_users = rows[0].new_users || 0;
+          }
+          cb(err);
+        }
+      );
+    },
+
+    // Today's system delivery income
+    cb => {
+      db.query(
+        `SELECT COALESCE(SUM(o.delivery_fees),0) AS income
+         FROM orders o
+         LEFT JOIN deliverymen d ON o.deliverymenId = d.id
+         WHERE d.work_type IS NULL
+           AND o.created_at >= ?
+           AND o.created_at < ?`,
+        [todayStart, tomorrowStart],
+        (err, rows) => {
+          if (!err && rows.length) {
+            dashboard.total_delivery_income_today.today_system_income =
+              rows[0].income || 0;
+          }
+          cb(err);
+        }
+      );
+    },
+
+    // Yesterday's system delivery income
+    cb => {
+      db.query(
+        `SELECT COALESCE(SUM(o.delivery_fees),0) AS income
+         FROM orders o
+         LEFT JOIN deliverymen d ON o.deliverymenId = d.id
+         WHERE d.work_type IS NULL
+           AND o.created_at >= ?
+           AND o.created_at < ?`,
+        [yesterdayStart, todayStart],
+        (err, rows) => {
+          if (!err && rows.length) {
+            dashboard.total_delivery_income_today.yesterday_system_income =
+              rows[0].income || 0;
+          }
+          cb(err);
+        }
+      );
+    },
+
+    // Deliverymen (system deliverymen only)
+    cb => {
+      db.query(
+        `SELECT
+            COUNT(*) AS total,
+            SUM(
+              CASE
+                WHEN created_at >= ? AND created_at < ?
+                THEN 1 ELSE 0
+              END
+            ) AS new_deliverymen
+         FROM deliverymen
+         WHERE work_type IS NULL`,
+        [todayStart, tomorrowStart],
+        (err, rows) => {
+          if (!err && rows.length) {
+            dashboard.total_deliverymen.total = rows[0].total || 0;
+            dashboard.total_deliverymen.new_deliverymen =
+              rows[0].new_deliverymen || 0;
+          }
+          cb(err);
+        }
+      );
+    }
+  ];
+
+  let completed = 0;
+
+  queries.forEach(query => {
+    query(err => {
+      if (err) {
+        console.error(err);
+      }
+
+      completed++;
+
+      if (completed === queries.length) {
+        res.end(
+          JSON.stringify({
+            success: true,
+            data: dashboard
+          })
+        );
+      }
+    });
+  });
+}
+
 module.exports = { 
     getDashboardSummariesByShop,
     getReportRvenueByShopId,
@@ -1151,5 +1344,6 @@ module.exports = {
     top5CustomerByShopId,
     ordersSummaries,
     deliverymenSummaries,
-    paymentsChartByShop
+    paymentsChartByShop,
+    systemDashboardSummaries
 };

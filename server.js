@@ -600,6 +600,8 @@ const server = http.createServer(async (req, res) => {
         dashboard.paymentsChartByShop(req, res, id)
     }
 
+    else if (pathName === "/dashboard-summaries-by-system" && method === "GET") dashboard.systemDashboardSummaries(req, res);
+
     // --- 404 fallback ---
     else {
         res.writeHead(404, { "Content-Type": "application/json" });
