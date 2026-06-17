@@ -1493,6 +1493,74 @@ function systemOrderChart(req, res) {
   });
 }
 
+function systemShopMenuBranches(req, res) {
+  res.writeHead(200, {
+    "Content-Type": "application/json"
+  });
+
+  const sql = `
+    SELECT
+      s.id AS shop_id,
+      s.shop_name,
+      m.id AS menu_id,
+      m.name AS menu_name,
+      m.prices
+    FROM shops s
+    LEFT JOIN menu m ON s.id = m.shop_id
+    WHERE s.permission = 'approved'
+    ORDER BY s.shop_name, m.name
+  `;
+
+  db.query(sql, (err, rows) => {
+    if (err) {
+      return res.end(JSON.stringify({
+        success: false,
+        error: err.message
+      }));
+    }
+
+    const shopsMap = {};
+
+    rows.forEach(row => {
+      if (!shopsMap[row.shop_id]) {
+        shopsMap[row.shop_id] = {
+          id: row.shop_id,
+          shop_name: row.shop_name,
+          menus: []
+        };
+      }
+
+      if (row.menu_id) {
+        let price = 0;
+
+        try {
+          const prices =
+            typeof row.prices === "string"
+              ? JSON.parse(row.prices)
+              : row.prices;
+
+          if (Array.isArray(prices) && prices.length > 0) {
+            price = Number(prices[0].price || 0);
+          }
+        } catch (e) {}
+
+        shopsMap[row.shop_id].menus.push({
+          menu_id: row.menu_id,
+          menu_name: row.menu_name,
+          price
+        });
+      }
+    });
+
+    const data = Object.values(shopsMap);
+
+    res.end(JSON.stringify({
+      success: true,
+      data
+    }));
+  });
+}
+
 module.exports = { 
     getDashboardSummariesByShop,
     getReportRvenueByShopId,
@@ -1506,5 +1574,6 @@ module.exports = {
     deliverymenSummaries,
     paymentsChartByShop,
     systemDashboardSummaries,
-    systemOrderChart
+    systemOrderChart,
+    systemShopMenuBranches
 };
