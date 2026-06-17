@@ -1290,7 +1290,7 @@ function patchShopPasswordWithOTP(req, res) {
     }
 
     // --- Check if user exists ---
-    db.query("SELECT id FROM users WHERE email=?", [email], async (err, rows) => {
+    db.query("SELECT id FROM shops WHERE email=?", [email], async (err, rows) => {
       if (err) {
         res.statusCode = 500;
         return res.end(JSON.stringify({ error: err.message }));
@@ -1306,7 +1306,7 @@ function patchShopPasswordWithOTP(req, res) {
         // 🔒 Hash the new password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const sql = `UPDATE users SET password=? WHERE email=?`;
+        const sql = `UPDATE shops SET password=? WHERE email=?`;
         db.query(sql, [hashedPassword, email], (err) => {
           if (err) {
             res.statusCode = 500;

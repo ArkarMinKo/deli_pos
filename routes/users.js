@@ -426,6 +426,173 @@ function userLocation(req, res, userId) {
   });
 }
 
+async function changePasswordByUsers(req, res, userId) {
+  if (!userId) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({
+      success: false,
+      message: "User ID is required"
+    }));
+  }
+
+  let body = "";
+
+  req.on("data", chunk => {
+    body += chunk.toString();
+  });
+
+  req.on("end", async () => {
+    try {
+      const { current_pw, new_pw } = JSON.parse(body);
+
+      if (!current_pw || !new_pw) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({
+          success: false,
+          message: "Current password and new password are required"
+        }));
+      }
+
+      // Get current user password
+      const [users] = await db.promise().query(
+        "SELECT password FROM users WHERE id = ?",
+        [userId]
+      );
+
+      if (users.length === 0) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({
+          success: false,
+          message: "User not found"
+        }));
+      }
+
+      const user = users[0];
+
+      // Verify current password
+      const isMatch = await bcrypt.compare(
+        current_pw,
+        user.password
+      );
+
+      if (!isMatch) {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({
+          success: false,
+          message: "Current password is incorrect"
+        }));
+      }
+
+      // Prevent using same password
+      const isSamePassword = await bcrypt.compare(
+        new_pw,
+        user.password
+      );
+
+      if (isSamePassword) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({
+          success: false,
+          message: "New password must be different from current password"
+        }));
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(new_pw, 10);
+
+      // Update password
+      await db.promise().query(
+        "UPDATE users SET password = ? WHERE id = ?",
+        [hashedPassword, userId]
+      );
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: true,
+        message: "Password changed successfully"
+      }));
+
+    } catch (error) {
+      console.error("Change password error:", error);
+
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        success: false,
+        message: "Internal server error"
+      }));
+    }
+  });
+}
+
+// --- PATCH USER PASSWORD WITH OTP (using email, hashed) ---
+function patchUserPasswordWithOTP(req, res) {
+  const form = new formidable.IncomingForm();
+  form.multiples = false;
+
+  form.parse(req, async (err, fields) => {
+    if (err) {
+      res.statusCode = 500;
+      return res.end(JSON.stringify({ error: err.message }));
+    }
+
+    const { email, password, code } = fields;
+
+    if (!email || !password || !code) {
+      res.statusCode = 400;
+      return res.end(
+        JSON.stringify({
+          error: "Email, password, OTP ၃ခုလုံး ထည့်ပါ",
+        })
+      );
+    }
+
+    const result = verifyCode(email, code);
+    if (!result.success) {
+      res.statusCode = 400;
+      res.writeHead(400, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ message: result.message }));
+    }
+
+    // --- Check if user exists ---
+    db.query("SELECT id FROM users WHERE email=?", [email], async (err, rows) => {
+      if (err) {
+        res.statusCode = 500;
+        return res.end(JSON.stringify({ error: err.message }));
+      }
+
+      if (rows.length === 0) {
+        res.statusCode = 404;
+        res.writeHead(404, { "Content-Type": "application/json; charset=utf-8" });
+        return res.end(JSON.stringify({ error: "သင့် email နှင့် အကောင့် မရှိပါ" }));
+      }
+
+      try {
+        // 🔒 Hash the new password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const sql = `UPDATE users SET password=? WHERE email=?`;
+        db.query(sql, [hashedPassword, email], (err) => {
+          if (err) {
+            res.statusCode = 500;
+            return res.end(JSON.stringify({ error: err.message }));
+          }
+
+          res.writeHead(200, {
+            "Content-Type": "application/json; charset=utf-8",
+          });
+          res.end(
+            JSON.stringify({ message: "စကားဝှက် ပြောင်းလဲပြီးပါပြီ" })
+          );
+        });
+      } catch (hashErr) {
+        console.error("Password hash error:", hashErr);
+        res.statusCode = 500;
+        res.end(JSON.stringify({ error: "Password hashing failed" }));
+      }
+    });
+  });
+}
+
 module.exports = {
     loginUser,
     createUsers,
@@ -437,5 +604,7 @@ module.exports = {
     getSpecialUsers,
     toMakeNonSpecial,
     userInfoForOrders,
-    userLocation
+    userLocation,
+    patchUserPasswordWithOTP,
+    changePasswordByUsers
 };

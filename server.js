@@ -133,6 +133,16 @@ const server = http.createServer(async (req, res) => {
         const id = pathName.split("/")[2];
         users.toMakeNonSpecial(req, res, id);
     }
+
+    else if (pathName.startsWith("/change-passwords-users/") && method === "PATCH") {
+        const id = pathName.split("/")[2];
+        users.changePasswordByUsers(req, res, id);
+    }
+
+    else if (pathName.startsWith("/change-passwords-with-otp-users/") && method === "PATCH") {
+        const id = pathName.split("/")[2];
+        users.patchUserPasswordWithOTP(req, res, id);
+    }
     // -- email confrimation ---
 
     else if(pathName === "/request-email-confirmation" && method === "POST"){
