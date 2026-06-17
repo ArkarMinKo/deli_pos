@@ -2127,8 +2127,8 @@ function systemDeliverymenSummaries(req, res) {
       data: {
         total_deliverymen: Number(summary.total_deliverymen),
         active_deliverymen: Number(summary.active_deliverymen),
-        finished_orders: Number(summary.finished_orders),
-        cleared_orders: Number(summary.cleared_orders)
+        today_orders_finished: Number(summary.finished_orders),
+        all_orders_finished: Number(summary.cleared_orders)
       }
     }));
   });
