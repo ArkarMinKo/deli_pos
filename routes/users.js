@@ -593,6 +593,112 @@ function patchUserPasswordWithOTP(req, res) {
   });
 }
 
+function updateUsers(req, res, userId) {
+    if (!userId) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "User ID is required" }));
+    }
+
+    const uploadDir = path.join(__dirname, "../uploads/users");
+
+    if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    const form = new formidable.IncomingForm({
+        uploadDir,
+        keepExtensions: true,
+        multiples: false
+    });
+
+    form.parse(req, (err, fields, files) => {
+        if (err) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "Form parse error" }));
+        }
+
+        const name = fields.name;
+        const phone = fields.phone;
+
+        // Check user exists
+        db.query(
+            "SELECT photo FROM users WHERE id = ?",
+            [userId],
+            (err, rows) => {
+                if (err) {
+                    res.writeHead(500, { "Content-Type": "application/json" });
+                    return res.end(JSON.stringify({ error: err.message }));
+                }
+
+                if (rows.length === 0) {
+                    res.writeHead(404, { "Content-Type": "application/json" });
+                    return res.end(JSON.stringify({ error: "User not found" }));
+                }
+
+                let photoPath = rows[0].photo;
+
+                // New photo uploaded
+                if (files.photo) {
+                    const photoFile = Array.isArray(files.photo)
+                        ? files.photo[0]
+                        : files.photo;
+
+                    const filename = path.basename(photoFile.filepath);
+                    photoPath = `/uploads/users/${filename}`;
+
+                    // Delete old photo if exists
+                    if (rows[0].photo) {
+                        const oldFile = path.join(
+                            __dirname,
+                            "..",
+                            rows[0].photo.replace(/^\//, "")
+                        );
+
+                        if (fs.existsSync(oldFile)) {
+                            fs.unlinkSync(oldFile);
+                        }
+                    }
+                }
+
+                const sql = `
+                    UPDATE users
+                    SET
+                        name = COALESCE(?, name),
+                        phone = COALESCE(?, phone),
+                        photo = ?
+                    WHERE id = ?
+                `;
+
+                db.query(
+                    sql,
+                    [name || null, phone || null, photoPath, userId],
+                    (err, result) => {
+                        if (err) {
+                            res.writeHead(500, {
+                                "Content-Type": "application/json"
+                            });
+                            return res.end(
+                                JSON.stringify({ error: err.message })
+                            );
+                        }
+
+                        res.writeHead(200, {
+                            "Content-Type": "application/json; charset=utf-8"
+                        });
+
+                        res.end(
+                            JSON.stringify({
+                                success: true,
+                                message: "User updated successfully"
+                            })
+                        );
+                    }
+                );
+            }
+        );
+    });
+}
+
 module.exports = {
     loginUser,
     createUsers,
@@ -606,5 +712,6 @@ module.exports = {
     userInfoForOrders,
     userLocation,
     patchUserPasswordWithOTP,
-    changePasswordByUsers
+    changePasswordByUsers,
+    updateUsers
 };
