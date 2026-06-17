@@ -1664,6 +1664,83 @@ const top5DeliverymenBySystem = async (req, res) => {
   }
 };
 
+function systemTop5Customers(req, res) {
+  res.writeHead(200, {
+    "Content-Type": "application/json"
+  });
+
+  const sql = `
+    SELECT
+      u.id AS user_id,
+      u.name,
+      o.shopId,
+      s.shop_name
+    FROM users u
+    LEFT JOIN orders o ON u.id = o.userId
+    LEFT JOIN shops s ON o.shopId = s.id
+  `;
+
+  db.query(sql, (err, rows) => {
+    if (err) {
+      return res.end(JSON.stringify({
+        success: false,
+        error: err.message
+      }));
+    }
+
+    const customers = {};
+
+    rows.forEach(row => {
+      if (!customers[row.user_id]) {
+        customers[row.user_id] = {
+          name: row.name,
+          total_orders: 0,
+          shopCounts: {}
+        };
+      }
+
+      if (row.shopId) {
+        customers[row.user_id].total_orders++;
+
+        const shopName = row.shop_name || "Unknown Shop";
+
+        if (!customers[row.user_id].shopCounts[shopName]) {
+          customers[row.user_id].shopCounts[shopName] = 0;
+        }
+
+        customers[row.user_id].shopCounts[shopName]++;
+      }
+    });
+
+    const result = Object.values(customers)
+      .filter(customer => customer.total_orders > 0)
+      .map(customer => {
+        let mostOrderShop = "";
+        let maxCount = 0;
+
+        Object.entries(customer.shopCounts).forEach(([shop, count]) => {
+          if (count > maxCount) {
+            maxCount = count;
+            mostOrderShop = shop;
+          }
+        });
+
+        return {
+          name: customer.name,
+          total_orders: customer.total_orders,
+          most_order_shop: mostOrderShop
+        };
+      })
+      .sort((a, b) => b.total_orders - a.total_orders)
+      .slice(0, 5);
+
+    res.end(JSON.stringify({
+      success: true,
+      customers: result
+    }));
+  });
+}
+
 module.exports = { 
     getDashboardSummariesByShop,
     getReportRvenueByShopId,
@@ -1679,5 +1756,6 @@ module.exports = {
     systemDashboardSummaries,
     systemOrderChart,
     systemShopMenuBranches,
-    top5DeliverymenBySystem
+    top5DeliverymenBySystem,
+    systemTop5Customers
 };
