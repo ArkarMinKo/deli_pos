@@ -1823,6 +1823,188 @@ function top5LessShopThisMonth(req, res) {
   });
 }
 
+function top5MenuThisMonth(req, res) {
+  res.writeHead(200, {
+    "Content-Type": "application/json"
+  });
+
+  const sql = `
+    SELECT
+      o.userId,
+      o.orders,
+      m.id AS menu_id,
+      m.name AS menu_name,
+      s.shop_name
+    FROM orders o
+    LEFT JOIN menu m ON 1=1
+    LEFT JOIN shops s ON m.shop_id = s.id
+    WHERE YEAR(o.created_at) = YEAR(CURDATE())
+      AND MONTH(o.created_at) = MONTH(CURDATE())
+  `;
+
+  db.query(sql, (err, rows) => {
+    if (err) {
+      return res.end(JSON.stringify({
+        success: false,
+        error: err.message
+      }));
+    }
+
+    db.query(`
+      SELECT
+        m.id,
+        m.name AS menu_name,
+        s.shop_name
+      FROM menu m
+      LEFT JOIN shops s ON m.shop_id = s.id
+    `, (err2, menus) => {
+
+      if (err2) {
+        return res.end(JSON.stringify({
+          success: false,
+          error: err2.message
+        }));
+      }
+
+      const menuMap = {};
+
+      menus.forEach(menu => {
+        menuMap[menu.id] = {
+          id: menu.id,
+          menu_name: menu.menu_name,
+          shop_name: menu.shop_name,
+          total_orders: 0,
+          customers: new Set()
+        };
+      });
+
+      rows.forEach(row => {
+        const orderItems = Array.isArray(row.orders)
+          ? row.orders
+          : JSON.parse(row.orders);
+
+        orderItems.forEach(item => {
+          if (!menuMap[item.menu_id]) return;
+
+          menuMap[item.menu_id].total_orders += Number(item.quantity || 1);
+
+          if (row.userId) {
+            menuMap[item.menu_id].customers.add(row.userId);
+          }
+        });
+      });
+
+      const data = Object.values(menuMap)
+        .filter(item => item.total_orders > 0)
+        .map(item => ({
+          id: item.id,
+          shop_name: item.shop_name,
+          menu_name: item.menu_name,
+          total_orders: item.total_orders,
+          total_customer: item.customers.size
+        }))
+        .sort((a, b) => b.total_orders - a.total_orders)
+        .slice(0, 5);
+
+      res.end(JSON.stringify({
+        success: true,
+        data
+      }));
+    });
+  });
+}
+
+function top5LessMenuThisMonth(req, res) {
+  res.writeHead(200, {
+    "Content-Type": "application/json"
+  });
+
+  const sql = `
+    SELECT
+      o.userId,
+      o.orders
+    FROM orders o
+    WHERE YEAR(o.created_at) = YEAR(CURDATE())
+      AND MONTH(o.created_at) = MONTH(CURDATE())
+  `;
+
+  db.query(sql, (err, rows) => {
+    if (err) {
+      return res.end(JSON.stringify({
+        success: false,
+        error: err.message
+      }));
+    }
+
+    db.query(`
+      SELECT
+        m.id,
+        m.name AS menu_name,
+        s.shop_name
+      FROM menu m
+      LEFT JOIN shops s ON m.shop_id = s.id
+    `, (err2, menus) => {
+
+      if (err2) {
+        return res.end(JSON.stringify({
+          success: false,
+          error: err2.message
+        }));
+      }
+
+      const menuMap = {};
+
+      menus.forEach(menu => {
+        menuMap[menu.id] = {
+          id: menu.id,
+          menu_name: menu.menu_name,
+          shop_name: menu.shop_name,
+          total_orders: 0,
+          customers: new Set()
+        };
+      });
+
+      rows.forEach(row => {
+        const orderItems = Array.isArray(row.orders)
+          ? row.orders
+          : JSON.parse(row.orders);
+
+        orderItems.forEach(item => {
+          if (!menuMap[item.menu_id]) return;
+
+          menuMap[item.menu_id].total_orders += Number(item.quantity || 1);
+
+          if (row.userId) {
+            menuMap[item.menu_id].customers.add(row.userId);
+          }
+        });
+      });
+
+      const data = Object.values(menuMap)
+        .filter(item => item.total_orders > 0)
+        .map(item => ({
+          id: item.id,
+          shop_name: item.shop_name,
+          menu_name: item.menu_name,
+          total_orders: item.total_orders,
+          total_customer: item.customers.size
+        }))
+        .sort((a, b) => {
+          if (a.total_orders !== b.total_orders) {
+            return a.total_orders - b.total_orders;
+          }
+          return a.total_customer - b.total_customer;
+        })
+        .slice(0, 5);
+
+      res.end(JSON.stringify({
+        success: true,
+        data
+      }));
+    });
+  });
+}
+
 module.exports = { 
     getDashboardSummariesByShop,
     getReportRvenueByShopId,
@@ -1841,5 +2023,7 @@ module.exports = {
     top5DeliverymenBySystem,
     systemTop5Customers,
     top5ShopsThisMonth,
-    top5LessShopThisMonth
+    top5LessShopThisMonth,
+    top5MenuThisMonth,
+    top5LessMenuThisMonth
 };
