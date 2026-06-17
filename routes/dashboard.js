@@ -2107,7 +2107,7 @@ function systemDeliverymenSummaries(req, res) {
 
       COALESCE(SUM(assign_order), 0) AS assign_orders,
 
-      COALESCE(SUM(finished_order_count), 0) AS finished_orders
+      COALESCE(SUM(cleared_order_count), 0) AS finished_orders
 
     FROM deliverymen
   `;
