@@ -599,103 +599,107 @@ function updateUsers(req, res, userId) {
         return res.end(JSON.stringify({ error: "User ID is required" }));
     }
 
-    const uploadDir = path.join(__dirname, "../uploads/users");
+    let body = "";
 
-    if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    const form = new formidable.IncomingForm({
-        uploadDir,
-        keepExtensions: true,
-        multiples: false
+    req.on("data", chunk => {
+        body += chunk;
     });
 
-    form.parse(req, (err, fields, files) => {
-        if (err) {
-            res.writeHead(400, { "Content-Type": "application/json" });
-            return res.end(JSON.stringify({ error: "Form parse error" }));
-        }
+    req.on("end", () => {
+        try {
+            const data = JSON.parse(body);
 
-        const name = fields.name;
-        const phone = fields.phone;
+            const { name, phone, photo } = data;
 
-        // Check user exists
-        db.query(
-            "SELECT photo FROM users WHERE id = ?",
-            [userId],
-            (err, rows) => {
-                if (err) {
-                    res.writeHead(500, { "Content-Type": "application/json" });
-                    return res.end(JSON.stringify({ error: err.message }));
-                }
+            db.query(
+                "SELECT photo FROM users WHERE id = ?",
+                [userId],
+                (err, rows) => {
+                    if (err)
+                        return res.end(JSON.stringify({ error: err.message }));
 
-                if (rows.length === 0) {
-                    res.writeHead(404, { "Content-Type": "application/json" });
-                    return res.end(JSON.stringify({ error: "User not found" }));
-                }
+                    if (rows.length === 0)
+                        return res.end(JSON.stringify({ error: "User not found" }));
 
-                let photoPath = rows[0].photo;
+                    let photoPath = rows[0].photo;
 
-                // New photo uploaded
-                if (files.photo) {
-                    const photoFile = Array.isArray(files.photo)
-                        ? files.photo[0]
-                        : files.photo;
+                    if (photo) {
+                        const uploadDir = path.join(__dirname, "../uploads/users");
 
-                    const filename = path.basename(photoFile.filepath);
-                    photoPath = `/uploads/users/${filename}`;
-
-                    // Delete old photo if exists
-                    if (rows[0].photo) {
-                        const oldFile = path.join(
-                            __dirname,
-                            "..",
-                            rows[0].photo.replace(/^\//, "")
-                        );
-
-                        if (fs.existsSync(oldFile)) {
-                            fs.unlinkSync(oldFile);
+                        if (!fs.existsSync(uploadDir)) {
+                            fs.mkdirSync(uploadDir, { recursive: true });
                         }
-                    }
-                }
 
-                const sql = `
-                    UPDATE users
-                    SET
-                        name = COALESCE(?, name),
-                        phone = COALESCE(?, phone),
-                        photo = ?
-                    WHERE id = ?
-                `;
+                        // detect image type
+                        const matches = photo.match(/^data:image\/(\w+);base64,/);
 
-                db.query(
-                    sql,
-                    [name || null, phone || null, photoPath, userId],
-                    (err, result) => {
-                        if (err) {
-                            res.writeHead(500, {
-                                "Content-Type": "application/json"
-                            });
-                            return res.end(
-                                JSON.stringify({ error: err.message })
+                        let extension = "jpg";
+                        let base64Data = photo;
+
+                        if (matches) {
+                            extension = matches[1];
+                            base64Data = photo.replace(
+                                /^data:image\/\w+;base64,/,
+                                ""
                             );
                         }
 
-                        res.writeHead(200, {
-                            "Content-Type": "application/json; charset=utf-8"
-                        });
+                        const fileName = `user_${Date.now()}.${extension}`;
+                        const filePath = path.join(uploadDir, fileName);
 
-                        res.end(
-                            JSON.stringify({
-                                success: true,
-                                message: "User updated successfully"
-                            })
+                        fs.writeFileSync(
+                            filePath,
+                            Buffer.from(base64Data, "base64")
                         );
+
+                        // delete old photo
+                        if (rows[0].photo) {
+                            const oldFile = path.join(
+                                __dirname,
+                                "..",
+                                rows[0].photo.replace(/^\//, "")
+                            );
+
+                            if (fs.existsSync(oldFile)) {
+                                fs.unlinkSync(oldFile);
+                            }
+                        }
+
+                        photoPath = `/uploads/users/${fileName}`;
                     }
-                );
-            }
-        );
+
+                    db.query(
+                        `UPDATE users
+                         SET name = COALESCE(?, name),
+                             phone = COALESCE(?, phone),
+                             photo = ?
+                         WHERE id = ?`,
+                        [name || null, phone || null, photoPath, userId],
+                        (err) => {
+                            if (err)
+                                return res.end(
+                                    JSON.stringify({ error: err.message })
+                                );
+
+                            res.writeHead(200, {
+                                "Content-Type":
+                                    "application/json; charset=utf-8"
+                            });
+
+                            res.end(
+                                JSON.stringify({
+                                    success: true,
+                                    message: "User updated successfully"
+                                })
+                            );
+                        }
+                    );
+                }
+            );
+        } catch (e) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "Invalid JSON" }));
+        }
     });
 }
 
