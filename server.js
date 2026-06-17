@@ -609,6 +609,7 @@ const server = http.createServer(async (req, res) => {
     else if (pathName === "/top5Lessshops-this-month" && method === "GET") dashboard.top5LessShopThisMonth(req, res);
     else if (pathName === "/top5menu-this-month" && method === "GET") dashboard.top5MenuThisMonth(req, res);
     else if (pathName === "/top5Lessmenu-this-month" && method === "GET") dashboard.top5LessMenuThisMonth(req, res);
+    else if (pathName === "/shops-summaries-by-system" && method === "GET") dashboard.shopsSummariesSystem(req, res);
 
     // --- 404 fallback ---
     else {

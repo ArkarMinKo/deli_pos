@@ -2005,6 +2005,53 @@ function top5LessMenuThisMonth(req, res) {
   });
 }
 
+function shopsSummariesSystem(req, res) {
+  res.writeHead(200, {
+    "Content-Type": "application/json"
+  });
+
+  const sql = `
+    SELECT
+      (SELECT COUNT(*) FROM shops) AS total_shops,
+
+      (SELECT COUNT(*) FROM menu) AS total_menu,
+
+      (
+        SELECT COUNT(*)
+        FROM shops
+        WHERE DATE(created_at) = CURDATE()
+      ) AS today_shops,
+
+      (
+        SELECT COUNT(*)
+        FROM deliverymen
+        WHERE work_type IS NOT NULL
+          AND work_type != ''
+      ) AS total_shop_deliverymen
+  `;
+
+  db.query(sql, (err, rows) => {
+    if (err) {
+      return res.end(JSON.stringify({
+        success: false,
+        error: err.message
+      }));
+    }
+
+    const summary = rows[0];
+
+    res.end(JSON.stringify({
+      success: true,
+      data: {
+        total_shops: Number(summary.total_shops),
+        total_menu: Number(summary.total_menu),
+        today_shops: Number(summary.today_shops),
+        total_shop_deliverymen: Number(summary.total_shop_deliverymen)
+      }
+    }));
+  });
+}
+
 module.exports = { 
     getDashboardSummariesByShop,
     getReportRvenueByShopId,
@@ -2025,5 +2072,6 @@ module.exports = {
     top5ShopsThisMonth,
     top5LessShopThisMonth,
     top5MenuThisMonth,
-    top5LessMenuThisMonth
+    top5LessMenuThisMonth,
+    shopsSummariesSystem
 };
