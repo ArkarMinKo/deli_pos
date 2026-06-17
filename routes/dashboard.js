@@ -2052,6 +2052,43 @@ function shopsSummariesSystem(req, res) {
   });
 }
 
+function systemReportSummaries(req, res) {
+  res.writeHead(200, {
+    "Content-Type": "application/json"
+  });
+
+  const sql = `
+    SELECT
+      COUNT(*) AS today_orders,
+      COALESCE(SUM(grand_total), 0) AS today_amount,
+      COALESCE(SUM(delivery_fees), 0) AS today_delivery_fees,
+      COUNT(DISTINCT userId) AS total_customers
+    FROM orders
+    WHERE DATE(created_at) = CURDATE()
+  `;
+
+  db.query(sql, (err, rows) => {
+    if (err) {
+      return res.end(JSON.stringify({
+        success: false,
+        error: err.message
+      }));
+    }
+
+    const report = rows[0];
+
+    res.end(JSON.stringify({
+      success: true,
+      data: {
+        today_orders: Number(report.today_orders),
+        today_amount: Number(report.today_amount),
+        today_delivery_fees: Number(report.today_delivery_fees),
+        total_customers: Number(report.total_customers)
+      }
+    }));
+  });
+}
+
 module.exports = { 
     getDashboardSummariesByShop,
     getReportRvenueByShopId,
@@ -2073,5 +2110,6 @@ module.exports = {
     top5LessShopThisMonth,
     top5MenuThisMonth,
     top5LessMenuThisMonth,
-    shopsSummariesSystem
+    shopsSummariesSystem,
+    systemReportSummaries
 };
