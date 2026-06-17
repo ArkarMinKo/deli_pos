@@ -2,6 +2,7 @@ const formidable = require("formidable");
 const bcrypt = require("bcrypt");
 const db = require("../db");
 const {generateId} = require('../utils/idUserGenerator')
+const { verifyCode } = require("../utils/codeStore");
 
 function loginUser(req, res) {
     const form = new formidable.IncomingForm();

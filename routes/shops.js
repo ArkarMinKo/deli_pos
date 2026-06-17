@@ -5,6 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const {generateId} = require('../utils/idShopGenerator')
 const sendMail = require("../utils/mailer");
+const { verifyCode } = require("../utils/codeStore");
 
 const UPLOAD_DIR = path.join(__dirname, "../shop_uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
@@ -1259,6 +1260,75 @@ async function changePasswordByShops(req, res, shopId) {
   });
 }
 
+// --- PATCH USER PASSWORD WITH OTP (using email, hashed) ---
+function patchShopPasswordWithOTP(req, res) {
+  const form = new formidable.IncomingForm();
+  form.multiples = false;
+
+  form.parse(req, async (err, fields) => {
+    if (err) {
+      res.statusCode = 500;
+      return res.end(JSON.stringify({ error: err.message }));
+    }
+
+    const { email, password, code } = fields;
+
+    if (!email || !password || !code) {
+      res.statusCode = 400;
+      return res.end(
+        JSON.stringify({
+          error: "Email, password, OTP ၃ခုလုံး ထည့်ပါ",
+        })
+      );
+    }
+
+    const result = verifyCode(email, code);
+    if (!result.success) {
+      res.statusCode = 400;
+      res.writeHead(400, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ message: result.message }));
+    }
+
+    // --- Check if user exists ---
+    db.query("SELECT id FROM users WHERE email=?", [email], async (err, rows) => {
+      if (err) {
+        res.statusCode = 500;
+        return res.end(JSON.stringify({ error: err.message }));
+      }
+
+      if (rows.length === 0) {
+        res.statusCode = 404;
+        res.writeHead(404, { "Content-Type": "application/json; charset=utf-8" });
+        return res.end(JSON.stringify({ error: "သင့် email နှင့် အကောင့် မရှိပါ" }));
+      }
+
+      try {
+        // 🔒 Hash the new password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const sql = `UPDATE users SET password=? WHERE email=?`;
+        db.query(sql, [hashedPassword, email], (err) => {
+          if (err) {
+            res.statusCode = 500;
+            return res.end(JSON.stringify({ error: err.message }));
+          }
+
+          res.writeHead(200, {
+            "Content-Type": "application/json; charset=utf-8",
+          });
+          res.end(
+            JSON.stringify({ message: "စကားဝှက် ပြောင်းလဲပြီးပါပြီ" })
+          );
+        });
+      } catch (hashErr) {
+        console.error("Password hash error:", hashErr);
+        res.statusCode = 500;
+        res.end(JSON.stringify({ error: "Password hashing failed" }));
+      }
+    });
+  });
+}
+
 module.exports = {
     loginShop,
     createShops,
@@ -1283,5 +1353,6 @@ module.exports = {
     updatePaymentsByShops,
     changeLocation,
     getLocationByShop,
-    changePasswordByShops
+    changePasswordByShops,
+    patchShopPasswordWithOTP
 };
