@@ -1741,6 +1741,88 @@ function systemTop5Customers(req, res) {
   });
 }
 
+function top5ShopsThisMonth(req, res) {
+  res.writeHead(200, {
+    "Content-Type": "application/json"
+  });
+
+  const sql = `
+    SELECT
+      s.id,
+      s.shop_name,
+      COUNT(o.id) AS total_orders,
+      COUNT(DISTINCT o.userId) AS total_customer
+    FROM shops s
+    LEFT JOIN orders o
+      ON s.id = o.shopId
+      AND YEAR(o.created_at) = YEAR(CURDATE())
+      AND MONTH(o.created_at) = MONTH(CURDATE())
+    GROUP BY s.id, s.shop_name
+    ORDER BY total_orders DESC
+    LIMIT 5
+  `;
+
+  db.query(sql, (err, rows) => {
+    if (err) {
+      return res.end(JSON.stringify({
+        success: false,
+        error: err.message
+      }));
+    }
+
+    res.end(JSON.stringify({
+      success: true,
+      data: rows.map(row => ({
+        id: row.id,
+        shop_name: row.shop_name,
+        total_orders: Number(row.total_orders),
+        total_customer: Number(row.total_customer)
+      }))
+    }));
+  });
+}
+
+function top5LessShopThisMonth(req, res) {
+  res.writeHead(200, {
+    "Content-Type": "application/json"
+  });
+
+  const sql = `
+    SELECT
+      s.id,
+      s.shop_name,
+      COUNT(o.id) AS total_orders,
+      COUNT(DISTINCT o.userId) AS total_customer
+    FROM shops s
+    LEFT JOIN orders o
+      ON s.id = o.shopId
+      AND YEAR(o.created_at) = YEAR(CURDATE())
+      AND MONTH(o.created_at) = MONTH(CURDATE())
+    GROUP BY s.id, s.shop_name
+    ORDER BY total_orders ASC, total_customer ASC
+    LIMIT 5
+  `;
+
+  db.query(sql, (err, rows) => {
+    if (err) {
+      return res.end(JSON.stringify({
+        success: false,
+        error: err.message
+      }));
+    }
+
+    res.end(JSON.stringify({
+      success: true,
+      data: rows.map(row => ({
+        id: row.id,
+        shop_name: row.shop_name,
+        total_orders: Number(row.total_orders),
+        total_customer: Number(row.total_customer)
+      }))
+    }));
+  });
+}
+
 module.exports = { 
     getDashboardSummariesByShop,
     getReportRvenueByShopId,
@@ -1757,5 +1839,7 @@ module.exports = {
     systemOrderChart,
     systemShopMenuBranches,
     top5DeliverymenBySystem,
-    systemTop5Customers
+    systemTop5Customers,
+    top5ShopsThisMonth,
+    top5LessShopThisMonth
 };
