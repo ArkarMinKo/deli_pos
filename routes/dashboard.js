@@ -2089,6 +2089,51 @@ function systemReportSummaries(req, res) {
   });
 }
 
+function systemDeliverymenSummaries(req, res) {
+  res.writeHead(200, {
+    "Content-Type": "application/json"
+  });
+
+  const sql = `
+    SELECT
+      COUNT(*) AS total_deliverymen,
+
+      SUM(
+        CASE
+          WHEN is_online = 1 THEN 1
+          ELSE 0
+        END
+      ) AS active_deliverymen,
+
+      COALESCE(SUM(assign_order), 0) AS assign_orders,
+
+      COALESCE(SUM(finished_order_count), 0) AS finished_orders
+
+    FROM deliverymen
+  `;
+
+  db.query(sql, (err, rows) => {
+    if (err) {
+      return res.end(JSON.stringify({
+        success: false,
+        error: err.message
+      }));
+    }
+
+    const summary = rows[0];
+
+    res.end(JSON.stringify({
+      success: true,
+      data: {
+        total_deliverymen: Number(summary.total_deliverymen),
+        active_deliverymen: Number(summary.active_deliverymen),
+        assign_orders: Number(summary.assign_orders),
+        finished_orders: Number(summary.finished_orders)
+      }
+    }));
+  });
+}
+
 module.exports = { 
     getDashboardSummariesByShop,
     getReportRvenueByShopId,
@@ -2111,5 +2156,6 @@ module.exports = {
     top5MenuThisMonth,
     top5LessMenuThisMonth,
     shopsSummariesSystem,
-    systemReportSummaries
+    systemReportSummaries,
+    systemDeliverymenSummaries
 };
