@@ -2105,9 +2105,9 @@ function systemDeliverymenSummaries(req, res) {
         END
       ) AS active_deliverymen,
 
-      COALESCE(SUM(assign_order), 0) AS assign_orders,
+      COALESCE(SUM(finished_order_count), 0) AS finished_orders,
 
-      COALESCE(SUM(cleared_order_count), 0) AS finished_orders
+      COALESCE(SUM(cleared_order_count), 0) AS cleared_orders
 
     FROM deliverymen
   `;
@@ -2127,8 +2127,8 @@ function systemDeliverymenSummaries(req, res) {
       data: {
         total_deliverymen: Number(summary.total_deliverymen),
         active_deliverymen: Number(summary.active_deliverymen),
-        assign_orders: Number(summary.assign_orders),
-        finished_orders: Number(summary.finished_orders)
+        finished_orders: Number(summary.finished_orders),
+        cleared_orders: Number(summary.cleared_orders)
       }
     }));
   });
