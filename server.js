@@ -602,6 +602,7 @@ const server = http.createServer(async (req, res) => {
 
     else if (pathName === "/dashboard-summaries-by-system" && method === "GET") dashboard.systemDashboardSummaries(req, res);
     else if (pathName === "/system-order-chart" && method === "GET") dashboard.systemOrderChart(req, res);
+    else if (pathName === "/system-menu-branches" && method === "GET") dashboard.systemShopMenuBranches(req, res);
 
     // --- 404 fallback ---
     else {
