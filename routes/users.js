@@ -593,115 +593,115 @@ function patchUserPasswordWithOTP(req, res) {
   });
 }
 
-function updateUsers(req, res, userId) {
-    if (!userId) {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ error: "User ID is required" }));
-    }
+// function updateUsers(req, res, userId) {
+//     if (!userId) {
+//         res.writeHead(400, { "Content-Type": "application/json" });
+//         return res.end(JSON.stringify({ error: "User ID is required" }));
+//     }
 
-    let body = "";
+//     let body = "";
 
-    req.on("data", chunk => {
-        body += chunk;
-    });
+//     req.on("data", chunk => {
+//         body += chunk;
+//     });
 
-    req.on("end", () => {
-        try {
-            const data = JSON.parse(body);
+//     req.on("end", () => {
+//         try {
+//             const data = JSON.parse(body);
 
-            const { name, phone, photo } = data;
+//             const { name, phone, photo } = data;
 
-            db.query(
-                "SELECT photo FROM users WHERE id = ?",
-                [userId],
-                (err, rows) => {
-                    if (err)
-                        return res.end(JSON.stringify({ error: err.message }));
+//             db.query(
+//                 "SELECT photo FROM users WHERE id = ?",
+//                 [userId],
+//                 (err, rows) => {
+//                     if (err)
+//                         return res.end(JSON.stringify({ error: err.message }));
 
-                    if (rows.length === 0)
-                        return res.end(JSON.stringify({ error: "User not found" }));
+//                     if (rows.length === 0)
+//                         return res.end(JSON.stringify({ error: "User not found" }));
 
-                    let photoPath = rows[0].photo;
+//                     let photoPath = rows[0].photo;
 
-                    if (photo) {
-                        const uploadDir = path.join(__dirname, "../uploads/users");
+//                     if (photo) {
+//                         const uploadDir = path.join(__dirname, "../uploads/users");
 
-                        if (!fs.existsSync(uploadDir)) {
-                            fs.mkdirSync(uploadDir, { recursive: true });
-                        }
+//                         if (!fs.existsSync(uploadDir)) {
+//                             fs.mkdirSync(uploadDir, { recursive: true });
+//                         }
 
-                        // detect image type
-                        const matches = photo.match(/^data:image\/(\w+);base64,/);
+//                         // detect image type
+//                         const matches = photo.match(/^data:image\/(\w+);base64,/);
 
-                        let extension = "jpg";
-                        let base64Data = photo;
+//                         let extension = "jpg";
+//                         let base64Data = photo;
 
-                        if (matches) {
-                            extension = matches[1];
-                            base64Data = photo.replace(
-                                /^data:image\/\w+;base64,/,
-                                ""
-                            );
-                        }
+//                         if (matches) {
+//                             extension = matches[1];
+//                             base64Data = photo.replace(
+//                                 /^data:image\/\w+;base64,/,
+//                                 ""
+//                             );
+//                         }
 
-                        const fileName = `user_${Date.now()}.${extension}`;
-                        const filePath = path.join(uploadDir, fileName);
+//                         const fileName = `user_${Date.now()}.${extension}`;
+//                         const filePath = path.join(uploadDir, fileName);
 
-                        fs.writeFileSync(
-                            filePath,
-                            Buffer.from(base64Data, "base64")
-                        );
+//                         fs.writeFileSync(
+//                             filePath,
+//                             Buffer.from(base64Data, "base64")
+//                         );
 
-                        // delete old photo
-                        if (rows[0].photo) {
-                            const oldFile = path.join(
-                                __dirname,
-                                "..",
-                                rows[0].photo.replace(/^\//, "")
-                            );
+//                         // delete old photo
+//                         if (rows[0].photo) {
+//                             const oldFile = path.join(
+//                                 __dirname,
+//                                 "..",
+//                                 rows[0].photo.replace(/^\//, "")
+//                             );
 
-                            if (fs.existsSync(oldFile)) {
-                                fs.unlinkSync(oldFile);
-                            }
-                        }
+//                             if (fs.existsSync(oldFile)) {
+//                                 fs.unlinkSync(oldFile);
+//                             }
+//                         }
 
-                        photoPath = `/uploads/users/${fileName}`;
-                    }
+//                         photoPath = `/uploads/users/${fileName}`;
+//                     }
 
-                    db.query(
-                        `UPDATE users
-                         SET name = COALESCE(?, name),
-                             phone = COALESCE(?, phone),
-                             photo = ?
-                         WHERE id = ?`,
-                        [name || null, phone || null, photoPath, userId],
-                        (err) => {
-                            if (err)
-                                return res.end(
-                                    JSON.stringify({ error: err.message })
-                                );
+//                     db.query(
+//                         `UPDATE users
+//                          SET name = COALESCE(?, name),
+//                              phone = COALESCE(?, phone),
+//                              photo = ?
+//                          WHERE id = ?`,
+//                         [name || null, phone || null, photoPath, userId],
+//                         (err) => {
+//                             if (err)
+//                                 return res.end(
+//                                     JSON.stringify({ error: err.message })
+//                                 );
 
-                            res.writeHead(200, {
-                                "Content-Type":
-                                    "application/json; charset=utf-8"
-                            });
+//                             res.writeHead(200, {
+//                                 "Content-Type":
+//                                     "application/json; charset=utf-8"
+//                             });
 
-                            res.end(
-                                JSON.stringify({
-                                    success: true,
-                                    message: "User updated successfully"
-                                })
-                            );
-                        }
-                    );
-                }
-            );
-        } catch (e) {
-            res.writeHead(400, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ error: "Invalid JSON" }));
-        }
-    });
-}
+//                             res.end(
+//                                 JSON.stringify({
+//                                     success: true,
+//                                     message: "User updated successfully"
+//                                 })
+//                             );
+//                         }
+//                     );
+//                 }
+//             );
+//         } catch (e) {
+//             res.writeHead(400, { "Content-Type": "application/json" });
+//             res.end(JSON.stringify({ error: "Invalid JSON" }));
+//         }
+//     });
+// }
 
 module.exports = {
     loginUser,

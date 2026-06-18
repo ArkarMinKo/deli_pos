@@ -104,10 +104,10 @@ const server = http.createServer(async (req, res) => {
         users.getUsersById(req, res, id);
     }
 
-    else if (pathName.startsWith("/users/") && method === "PUT") {
-        const id = pathName.split("/")[2];
-        users.updateUsers(req, res, id);
-    }
+    // else if (pathName.startsWith("/users/") && method === "PUT") {
+    //     const id = pathName.split("/")[2];
+    //     users.updateUsers(req, res, id);
+    // }
 
     else if (pathName.startsWith("/users-location/") && method === "PATCH") {
         const id = pathName.split("/")[2];
