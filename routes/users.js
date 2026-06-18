@@ -717,5 +717,5 @@ module.exports = {
     userLocation,
     patchUserPasswordWithOTP,
     changePasswordByUsers,
-    updateUsers
+    // updateUsers
 };
