@@ -857,6 +857,7 @@ async function connectedOrdersBySpecialUsers(req, res, id) {
         id: dm.id,
         name: dm.name,
         phone: dm.phone,
+        photo: dm.photo,
         is_online: dm.is_online,
         assign_order: dm.assign_order,
         current_orders: orderIds,
