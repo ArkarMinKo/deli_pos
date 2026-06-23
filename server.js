@@ -25,6 +25,7 @@ const SHOP_UPLOAD_DIR = path.join(__dirname, "shop_uploads");
 const DELIVERYMEN_UPLOAD_DIR = path.join(__dirname, "deliverymen_uploads");
 const ADMIN_UPLOAD_DIR = path.join(__dirname, "admin_uploads");
 const ORDER_UPLOAD_DIR = path.join(__dirname, "orders_uploads");
+const ANNOUNCE_UPLOAD_DIR = path.join(__dirname, "announce_uploads");
 
 // Create upload folders
 fs.mkdirSync(INGREDIENTS_UPLOAD_DIR, { recursive: true });
@@ -33,6 +34,7 @@ fs.mkdirSync(SHOP_UPLOAD_DIR, { recursive: true });
 fs.mkdirSync(DELIVERYMEN_UPLOAD_DIR, { recursive: true });
 fs.mkdirSync(ADMIN_UPLOAD_DIR, { recursive: true });
 fs.mkdirSync(ORDER_UPLOAD_DIR, { recursive: true });
+fs.mkdirSync(ANNOUNCE_UPLOAD_DIR, { recursive: true });
 
 /* ------------------------------------
       UNIVERSAL STATIC SERVE FUNCTION
@@ -93,6 +95,7 @@ const server = http.createServer(async (req, res) => {
     if (serveStaticFolder(pathName, res, "/deliverymen-uploads/", DELIVERYMEN_UPLOAD_DIR)) return;
     if (serveStaticFolder(pathName, res, "/admin-uploads/", ADMIN_UPLOAD_DIR)) return;
     if (serveStaticFolder(pathName, res, "/orders-uploads/", ORDER_UPLOAD_DIR)) return;
+    if (serveStaticFolder(pathName, res, "/announce-uploads/", ANNOUNCE_UPLOAD_DIR)) return;
 
     // Users CRUD
     if (pathName === "/login-user" && method === "POST") users.loginUser(req, res);
