@@ -4,6 +4,7 @@ const formidable = require("formidable");
 const db = require("../db");
 
 const UPLOAD_DIR = path.join(__dirname, "../announce_uploads");
+if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
 
 function createAnnouncements(req, res) {
   res.setHeader("Content-Type", "application/json");
