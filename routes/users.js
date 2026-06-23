@@ -1,6 +1,8 @@
 const formidable = require("formidable");
 const bcrypt = require("bcrypt");
 const db = require("../db");
+const path = require("path");
+const fs = require("fs");
 const {generateId} = require('../utils/idUserGenerator')
 const { verifyCode } = require("../utils/codeStore");
 const { generatePhotoName } = require("../utils/photoNameGenerator");
