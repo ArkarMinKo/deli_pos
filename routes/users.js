@@ -3,6 +3,10 @@ const bcrypt = require("bcrypt");
 const db = require("../db");
 const {generateId} = require('../utils/idUserGenerator')
 const { verifyCode } = require("../utils/codeStore");
+const { generatePhotoName } = require("../utils/photoNameGenerator");
+
+const UPLOAD_DIR = path.join(__dirname, "../uploads");
+if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
 
 function loginUser(req, res) {
     const form = new formidable.IncomingForm();
@@ -593,115 +597,137 @@ function patchUserPasswordWithOTP(req, res) {
   });
 }
 
-// function updateUsers(req, res, userId) {
-//     if (!userId) {
-//         res.writeHead(400, { "Content-Type": "application/json" });
-//         return res.end(JSON.stringify({ error: "User ID is required" }));
-//     }
+function updateUser(req, res, userId) {
+  res.setHeader("Content-Type", "application/json");
 
-//     let body = "";
+  if (!userId) {
+    res.statusCode = 400;
+    return res.end(JSON.stringify({ error: "User ID is required" }));
+  }
 
-//     req.on("data", chunk => {
-//         body += chunk;
-//     });
+  const form = new formidable.IncomingForm();
 
-//     req.on("end", () => {
-//         try {
-//             const data = JSON.parse(body);
+  form.parse(req, (err, fields) => {
+    if (err) {
+      res.statusCode = 500;
+      return res.end(JSON.stringify({ error: err.message }));
+    }
 
-//             const { name, phone, photo } = data;
+    const name = fields.name?.[0] || fields.name || null;
+    const phone = fields.phone?.[0] || fields.phone || null;
+    const photoBase64 = fields.photo?.[0] || fields.photo || null;
 
-//             db.query(
-//                 "SELECT photo FROM users WHERE id = ?",
-//                 [userId],
-//                 (err, rows) => {
-//                     if (err)
-//                         return res.end(JSON.stringify({ error: err.message }));
+    db.query(
+      "SELECT photo FROM users WHERE id = ?",
+      [userId],
+      (err, rows) => {
+        if (err) {
+          res.statusCode = 500;
+          return res.end(JSON.stringify({ error: err.message }));
+        }
 
-//                     if (rows.length === 0)
-//                         return res.end(JSON.stringify({ error: "User not found" }));
+        if (rows.length === 0) {
+          res.statusCode = 404;
+          return res.end(JSON.stringify({ error: "User not found" }));
+        }
 
-//                     let photoPath = rows[0].photo;
+        let photoFileName = rows[0].photo;
 
-//                     if (photo) {
-//                         const uploadDir = path.join(__dirname, "../uploads/users");
+        const updateDatabase = () => {
+          const updates = [];
+          const values = [];
 
-//                         if (!fs.existsSync(uploadDir)) {
-//                             fs.mkdirSync(uploadDir, { recursive: true });
-//                         }
+          if (name !== null) {
+            updates.push("name=?");
+            values.push(name);
+          }
 
-//                         // detect image type
-//                         const matches = photo.match(/^data:image\/(\w+);base64,/);
+          if (phone !== null) {
+            updates.push("phone=?");
+            values.push(phone);
+          }
 
-//                         let extension = "jpg";
-//                         let base64Data = photo;
+          if (photoFileName) {
+            updates.push("photo=?");
+            values.push(photoFileName);
+          }
 
-//                         if (matches) {
-//                             extension = matches[1];
-//                             base64Data = photo.replace(
-//                                 /^data:image\/\w+;base64,/,
-//                                 ""
-//                             );
-//                         }
+          if (updates.length === 0) {
+            res.statusCode = 400;
+            return res.end(
+              JSON.stringify({ error: "No fields provided for update" })
+            );
+          }
 
-//                         const fileName = `user_${Date.now()}.${extension}`;
-//                         const filePath = path.join(uploadDir, fileName);
+          values.push(userId);
 
-//                         fs.writeFileSync(
-//                             filePath,
-//                             Buffer.from(base64Data, "base64")
-//                         );
+          db.query(
+            `UPDATE users SET ${updates.join(", ")} WHERE id=?`,
+            values,
+            (err) => {
+              if (err) {
+                res.statusCode = 500;
+                return res.end(JSON.stringify({ error: err.message }));
+              }
 
-//                         // delete old photo
-//                         if (rows[0].photo) {
-//                             const oldFile = path.join(
-//                                 __dirname,
-//                                 "..",
-//                                 rows[0].photo.replace(/^\//, "")
-//                             );
+              res.statusCode = 200;
+              return res.end(
+                JSON.stringify({
+                  success: true,
+                  message: "User updated successfully",
+                })
+              );
+            }
+          );
+        };
 
-//                             if (fs.existsSync(oldFile)) {
-//                                 fs.unlinkSync(oldFile);
-//                             }
-//                         }
+        // Photo provided as Base64
+        if (photoBase64) {
+          try {
+            // remove old photo if exists
+            if (rows[0].photo) {
+              const oldPath = path.join(UPLOAD_DIR, rows[0].photo);
+              if (fs.existsSync(oldPath)) {
+                fs.unlinkSync(oldPath);
+              }
+            }
 
-//                         photoPath = `/uploads/users/${fileName}`;
-//                     }
+            const matches = photoBase64.match(
+              /^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/
+            );
 
-//                     db.query(
-//                         `UPDATE users
-//                          SET name = COALESCE(?, name),
-//                              phone = COALESCE(?, phone),
-//                              photo = ?
-//                          WHERE id = ?`,
-//                         [name || null, phone || null, photoPath, userId],
-//                         (err) => {
-//                             if (err)
-//                                 return res.end(
-//                                     JSON.stringify({ error: err.message })
-//                                 );
+            if (!matches) {
+              res.statusCode = 400;
+              return res.end(
+                JSON.stringify({ error: "Invalid base64 image format" })
+              );
+            }
 
-//                             res.writeHead(200, {
-//                                 "Content-Type":
-//                                     "application/json; charset=utf-8"
-//                             });
+            const ext = matches[1] === "jpeg" ? ".jpg" : `.${matches[1]}`;
+            const imageBuffer = Buffer.from(matches[2], "base64");
 
-//                             res.end(
-//                                 JSON.stringify({
-//                                     success: true,
-//                                     message: "User updated successfully"
-//                                 })
-//                             );
-//                         }
-//                     );
-//                 }
-//             );
-//         } catch (e) {
-//             res.writeHead(400, { "Content-Type": "application/json" });
-//             res.end(JSON.stringify({ error: "Invalid JSON" }));
-//         }
-//     });
-// }
+            photoFileName = generatePhotoName(
+              userId,
+              `photo${ext}`
+            ); // e.g. U001.jpg
+
+            fs.writeFileSync(
+              path.join(UPLOAD_DIR, photoFileName),
+              imageBuffer
+            );
+
+            updateDatabase();
+          } catch (error) {
+            res.statusCode = 500;
+            return res.end(JSON.stringify({ error: error.message }));
+          }
+        } else {
+          updateDatabase();
+        }
+      }
+    );
+  });
+}
 
 module.exports = {
     loginUser,
@@ -717,5 +743,5 @@ module.exports = {
     userLocation,
     patchUserPasswordWithOTP,
     changePasswordByUsers,
-    // updateUsers
+    updateUser
 };
