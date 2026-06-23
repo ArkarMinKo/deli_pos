@@ -16,6 +16,7 @@ const admin = require("./routes/admin");
 const order = require("./routes/orders");
 const mobileNoti = require('./routes/mobileNotification');
 const dashboard = require('./routes/dashboard');
+const announce = require('./routes/announcement');
 
 // Upload folders
 const INGREDIENTS_UPLOAD_DIR = path.join(__dirname, "ingredients_uploads");
@@ -637,6 +638,9 @@ const server = http.createServer(async (req, res) => {
     else if (pathName === "/shops-summaries-by-system" && method === "GET") dashboard.shopsSummariesSystem(req, res);
     else if (pathName === "/deliverymen-summaries-by-system" && method === "GET") dashboard.systemDeliverymenSummaries(req, res);
     else if (pathName === "/report-system-summaries" && method === "GET") dashboard.systemReportSummaries(req, res);
+
+    // --- Announcements ---
+    else if (pathName === "/announcements" && method === "POST") announce.createAnnouncements(req, res);
 
     // --- 404 fallback ---
     else {
