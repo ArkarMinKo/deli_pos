@@ -19,6 +19,7 @@ const dashboard = require('./routes/dashboard');
 const announce = require('./routes/announcement');
 
 // Upload folders
+const UPLOAD_DIR = path.join(__dirname, "../uploads");
 const INGREDIENTS_UPLOAD_DIR = path.join(__dirname, "ingredients_uploads");
 const MENU_UPLOAD_DIR = path.join(__dirname, "menu_uploads");
 const SHOP_UPLOAD_DIR = path.join(__dirname, "shop_uploads");
@@ -28,6 +29,7 @@ const ORDER_UPLOAD_DIR = path.join(__dirname, "orders_uploads");
 const ANNOUNCE_UPLOAD_DIR = path.join(__dirname, "announce_uploads");
 
 // Create upload folders
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 fs.mkdirSync(INGREDIENTS_UPLOAD_DIR, { recursive: true });
 fs.mkdirSync(MENU_UPLOAD_DIR, { recursive: true });
 fs.mkdirSync(SHOP_UPLOAD_DIR, { recursive: true });
@@ -89,6 +91,7 @@ const server = http.createServer(async (req, res) => {
     const method = req.method;
 
     // CALL IMAGE
+    if (serveStaticFolder(pathName, res, "/uploads/", UPLOAD_DIR)) return;
     if (serveStaticFolder(pathName, res, "/ingredients-uploads/", INGREDIENTS_UPLOAD_DIR)) return;
     if (serveStaticFolder(pathName, res, "/menu-uploads/", MENU_UPLOAD_DIR)) return;
     if (serveStaticFolder(pathName, res, "/shop-uploads/", SHOP_UPLOAD_DIR)) return;
