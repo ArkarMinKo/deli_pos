@@ -641,6 +641,7 @@ const server = http.createServer(async (req, res) => {
 
     // --- Announcements ---
     else if (pathName === "/announcements" && method === "POST") announce.createAnnouncements(req, res);
+    else if (pathName === "/announcements" && method === "GET") announce.getAnnouncement(req, res);
 
     // --- 404 fallback ---
     else {

@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const formidable = require("formidable");
-const db = require("../config/db"); // your mysql connection
+const db = require("../db");
 
 const UPLOAD_DIR = path.join(__dirname, "../announce_uploads");
 
@@ -119,4 +119,53 @@ function createAnnouncements(req, res) {
   });
 }
 
-module.exports = {createAnnouncements};
+function getAnnouncement(req, res) {
+  res.setHeader("Content-Type", "application/json");
+
+  db.query(
+    "SELECT images, second FROM announcements WHERE id = 1",
+    (err, rows) => {
+      if (err) {
+        res.statusCode = 500;
+        return res.end(
+          JSON.stringify({
+            success: false,
+            error: err.message,
+          })
+        );
+      }
+
+      if (rows.length === 0) {
+        return res.end(
+          JSON.stringify({
+            success: true,
+            data: {
+              images: [],
+              second: 0,
+            },
+          })
+        );
+      }
+
+      let images = [];
+
+      try {
+        images = JSON.parse(rows[0].images || "[]");
+      } catch (e) {
+        images = [];
+      }
+
+      res.end(
+        JSON.stringify({
+          success: true,
+          data: {
+            images,
+            second: rows[0].second || 0,
+          },
+        })
+      );
+    }
+  );
+}
+
+module.exports = {createAnnouncements, getAnnouncement};
