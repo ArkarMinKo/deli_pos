@@ -148,19 +148,11 @@ function getAnnouncement(req, res) {
         );
       }
 
-      let images = [];
-
-      try {
-        images = JSON.parse(rows[0].images || "[]");
-      } catch (e) {
-        images = [];
-      }
-
       res.end(
         JSON.stringify({
           success: true,
           data: {
-            images,
+            images: rows[0].images || [],
             second: rows[0].second || 0,
           },
         })
