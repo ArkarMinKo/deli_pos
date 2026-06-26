@@ -445,6 +445,7 @@ const server = http.createServer(async (req, res) => {
     else if (pathName === "/menu" && method === "POST") menu.createMenu(req, res);
     else if (pathName === "/menu" && method === "GET") menu.getAllShopsWithMenus(req, res);
     else if (pathName === "/new-menu" && method === "GET") menu.newMenu(req, res);
+    else if (pathName === "/popular-menu" && method === "GET") menu.popularMenu(req, res);
     else if (pathName.startsWith("/menu-by-category/") && method === "GET") {
         const category = pathName.split("/")[2];
         menu.getAllShopsWithMenusByCategories(req, res, category)
