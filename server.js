@@ -19,7 +19,7 @@ const dashboard = require('./routes/dashboard');
 const announce = require('./routes/announcement');
 
 // Upload folders
-const UPLOAD_DIR = path.join(__dirname, "../uploads");
+const UPLOAD_DIR = path.join(__dirname, "uploads");
 const INGREDIENTS_UPLOAD_DIR = path.join(__dirname, "ingredients_uploads");
 const MENU_UPLOAD_DIR = path.join(__dirname, "menu_uploads");
 const SHOP_UPLOAD_DIR = path.join(__dirname, "shop_uploads");
