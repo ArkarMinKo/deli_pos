@@ -927,6 +927,237 @@ function offMenu(req, res, id) {
   });
 }
 
+function newMenu(req, res) {
+  const categorySql = `SELECT id, name FROM categories`;
+
+  db.query(categorySql, (err, categories) => {
+    if (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ message: "Category fetch error" }));
+    }
+
+    const categoryMap = {};
+    categories.forEach(c => (categoryMap[c.id] = c.name));
+
+    db.query("SELECT server FROM server LIMIT 1", (err, serverResult) => {
+
+      const openDeli =
+        !err && serverResult.length
+          ? serverResult[0].server
+          : 0;
+
+      const sql = `
+        SELECT
+          m.*,
+          s.shop_name,
+          s.shopkeeper_name,
+          s.photo AS shop_photo,
+          s.phone,
+          s.categories,
+          s.address,
+          s.payments,
+          s.have_deliverymen,
+          s.deli_fees_method,
+          s.open_shop,
+          s.location
+        FROM menu m
+        INNER JOIN shops s
+          ON s.id = m.shop_id
+        WHERE s.permission='approved'
+        ORDER BY m.created_at DESC
+        LIMIT 10
+      `;
+
+      db.query(sql, (err, menus) => {
+
+        if (err) {
+          res.writeHead(500, {
+            "Content-Type": "application/json"
+          });
+          return res.end(JSON.stringify({
+            message: "Menu fetch error"
+          }));
+        }
+
+        if (!menus.length) {
+          res.writeHead(200, {
+            "Content-Type": "application/json"
+          });
+          return res.end(JSON.stringify({
+            shops: []
+          }));
+        }
+
+        const shopMap = {};
+
+        let pending = menus.length;
+
+        menus.forEach(menu => {
+
+          let relateMenuIds = [];
+          let relateIngredientsIds = [];
+
+          try {
+            relateMenuIds = Array.isArray(menu.relate_menu)
+              ? menu.relate_menu
+              : JSON.parse(menu.relate_menu || "[]");
+          } catch {}
+
+          try {
+            relateIngredientsIds = Array.isArray(menu.relate_ingredients)
+              ? menu.relate_ingredients
+              : JSON.parse(menu.relate_ingredients || "[]");
+          } catch {}
+
+          const menuPromise = new Promise(resolve => {
+
+            if (!relateMenuIds.length)
+              return resolve([]);
+
+            db.query(
+              `SELECT id,name,prices,category,photo
+               FROM menu
+               WHERE id IN (${relateMenuIds.map(()=>"?").join(",")})`,
+              relateMenuIds,
+              (err, rows) => {
+
+                if (err) return resolve([]);
+
+                resolve(rows.map(r => ({
+                  id: r.id,
+                  name: r.name,
+                  prices: r.prices,
+                  category: categoryMap[r.category] || r.category,
+                  photo: r.photo
+                })));
+              }
+            );
+
+          });
+
+          const ingredientPromise = new Promise(resolve => {
+
+            if (!relateIngredientsIds.length)
+              return resolve([]);
+
+            db.query(
+              `SELECT id,name,photo,prices
+               FROM ingredients
+               WHERE id IN (${relateIngredientsIds.map(()=>"?").join(",")})`,
+              relateIngredientsIds,
+              (err, rows) => {
+
+                if (err) return resolve([]);
+
+                resolve(rows.map(i => ({
+                  id: i.id,
+                  name: i.name,
+                  photo: i.photo,
+                  prices: i.prices
+                })));
+              }
+            );
+
+          });
+
+          Promise.all([
+            menuPromise,
+            ingredientPromise
+          ]).then(([relatedMenus, relatedIngredients]) => {
+
+            if (!shopMap[menu.shop_id]) {
+
+              shopMap[menu.shop_id] = {
+                shop: {
+                  id: menu.shop_id,
+                  shop_name: menu.shop_name,
+                  shopkeeper_name: menu.shopkeeper_name,
+                  photo: menu.shop_photo,
+                  phone: menu.phone,
+                  categories:
+                    typeof menu.categories === "string"
+                      ? JSON.parse(menu.categories || "[]")
+                      : menu.categories,
+                  address: menu.address,
+                  payments:
+                    typeof menu.payments === "string"
+                      ? JSON.parse(menu.payments || "[]")
+                      : menu.payments,
+                  have_deliverymen: menu.have_deliverymen,
+                  deli_fees_method: menu.deli_fees_method,
+                  open_shop: menu.open_shop,
+                  location: menu.location
+                },
+                menus: []
+              };
+
+            }
+
+            shopMap[menu.shop_id].menus.push({
+
+              id: menu.id,
+              shop_id: menu.shop_id,
+              shop_name: menu.shop_name,
+              name: menu.name,
+              prices:
+                typeof menu.prices === "string"
+                  ? JSON.parse(menu.prices)
+                  : menu.prices,
+              category_id: menu.category,
+              category:
+                categoryMap[menu.category] || menu.category,
+              photo: menu.photo,
+              description: menu.description,
+              complete_order: menu.complete_order,
+              rating: menu.rating,
+              rating_count: menu.rating_count,
+              open_deli: openDeli,
+              open_shop: menu.open_shop,
+              open_menu: menu.open_menu,
+              shop_location: menu.location,
+              created_at: menu.created_at,
+              get_months: (() => {
+                try {
+                  return Array.isArray(menu.get_months)
+                    ? menu.get_months
+                    : JSON.parse(
+                        menu.get_months || '["All months"]'
+                      );
+                } catch {
+                  return ["All months"];
+                }
+              })(),
+              relate_menu: relatedMenus,
+              relate_ingredients: relatedIngredients
+
+            });
+
+            pending--;
+
+            if (pending === 0) {
+
+              res.writeHead(200, {
+                "Content-Type": "application/json; charset=utf-8"
+              });
+
+              res.end(JSON.stringify({
+                shops: Object.values(shopMap)
+              }));
+
+            }
+
+          });
+
+        });
+
+      });
+
+    });
+
+  });
+
+}
+
 module.exports = { 
     createMenu,
     updateMenu,
@@ -936,5 +1167,6 @@ module.exports = {
     getAllShopsWithMenus,
     getAllShopsWithMenusByCategories,
     openMenu,
-    offMenu
+    offMenu,
+    newMenu
 };
