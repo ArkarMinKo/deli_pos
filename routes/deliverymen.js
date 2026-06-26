@@ -2024,6 +2024,134 @@ async function deliverymenHistory(req, res, deliverymenId) {
   }
 }
 
+function putDeliverymenMobile(req, res, deliverymenId) {
+    if (!deliverymenId) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({
+            success: false,
+            message: "Deliverymen ID is required"
+        }));
+    }
+
+    const form = new formidable.IncomingForm();
+
+    form.parse(req, (err, fields) => {
+        if (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({
+                success: false,
+                message: err.message
+            }));
+        }
+
+        const name = fields.name ? fields.name[0] : null;
+        const phone = fields.phone ? fields.phone[0] : null;
+        const photo = fields.photo ? fields.photo[0] : null;
+
+        db.query(
+            "SELECT photo FROM deliverymen WHERE id=?",
+            [deliverymenId],
+            (err, rows) => {
+                if (err) {
+                    res.writeHead(500, { "Content-Type": "application/json" });
+                    return res.end(JSON.stringify({
+                        success: false,
+                        message: err.message
+                    }));
+                }
+
+                if (rows.length === 0) {
+                    res.writeHead(404, { "Content-Type": "application/json" });
+                    return res.end(JSON.stringify({
+                        success: false,
+                        message: "Deliveryman not found"
+                    }));
+                }
+
+                let photoName = rows[0].photo;
+
+                if (photo && photo.startsWith("data:image")) {
+
+                    // Delete old image
+                    if (photoName) {
+                        const oldPath = path.join(UPLOAD_DIR, photoName);
+                        if (fs.existsSync(oldPath)) {
+                            fs.unlinkSync(oldPath);
+                        }
+                    }
+
+                    // Match base64 string
+                    const matches = photo.match(/^data:image\/(\w+);base64,(.+)$/);
+
+                    if (!matches) {
+                        res.writeHead(400, {
+                            "Content-Type": "application/json"
+                        });
+                        return res.end(JSON.stringify({
+                            success: false,
+                            message: "Invalid image format"
+                        }));
+                    }
+
+                    const ext = "." + matches[1];
+                    const imageBuffer = Buffer.from(matches[2], "base64");
+
+                    photoName = generatePhotoName(
+                        deliverymenId,
+                        "photo" + ext
+                    );
+
+                    fs.writeFileSync(
+                        path.join(UPLOAD_DIR, photoName),
+                        imageBuffer
+                    );
+                }
+
+                db.query(
+                    `UPDATE deliverymen
+                     SET
+                        name=?,
+                        phone=?,
+                        photo=?
+                     WHERE id=?`,
+                    [
+                        name,
+                        phone,
+                        photoName,
+                        deliverymenId
+                    ],
+                    (err) => {
+                        if (err) {
+                            res.writeHead(500, {
+                                "Content-Type": "application/json"
+                            });
+                            return res.end(JSON.stringify({
+                                success: false,
+                                message: err.message
+                            }));
+                        }
+
+                        res.writeHead(200, {
+                            "Content-Type": "application/json"
+                        });
+
+                        res.end(JSON.stringify({
+                            success: true,
+                            message: "Deliveryman updated successfully",
+                            data: {
+                                id: deliverymenId,
+                                name,
+                                phone,
+                                photo: photoName
+                            }
+                        }));
+                    }
+                );
+            }
+        );
+    });
+}
+
 module.exports = { 
     loginDeliverymen,
     createDeliverymen,
@@ -2046,5 +2174,6 @@ module.exports = {
     getReportShopDeliveymenByShop,
     getReportSystemDeliveymenByShop,
     clearedOrders,
-    deliverymenHistory
+    deliverymenHistory,
+    putDeliverymenMobile
 };
