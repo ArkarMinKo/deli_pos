@@ -607,17 +607,25 @@ function updateUser(req, res, userId) {
     return res.end(JSON.stringify({ error: "User ID is required" }));
   }
 
-  const form = new formidable.IncomingForm();
+  let body = "";
 
-  form.parse(req, (err, fields) => {
-    if (err) {
-      res.statusCode = 500;
-      return res.end(JSON.stringify({ error: err.message }));
+  req.on("data", chunk => {
+    body += chunk.toString();
+  });
+
+  req.on("end", () => {
+    let data;
+
+    try {
+      data = JSON.parse(body || "{}");
+    } catch (err) {
+      res.statusCode = 400;
+      return res.end(JSON.stringify({ error: "Invalid JSON body" }));
     }
 
-    const name = fields.name?.[0] || fields.name || null;
-    const phone = fields.phone?.[0] || fields.phone || null;
-    let photoBase64 = fields.photo?.[0] || fields.photo || null;
+    const name = data.name || null;
+    const phone = data.phone || null;
+    let photoBase64 = data.photo || null;
 
     if (typeof photoBase64 === "string") {
       photoBase64 = photoBase64.trim().replace(/\s/g, "");
@@ -699,14 +707,17 @@ function updateUser(req, res, userId) {
 
             const parts = photoBase64.split(";base64,");
 
-            if (parts.length !== 2 || !parts[0].startsWith("data:image/")) {
+            if (
+              parts.length !== 2 ||
+              !parts[0].startsWith("data:image/")
+            ) {
               res.statusCode = 400;
               return res.end(
                 JSON.stringify({ error: "Invalid base64 image format" })
               );
             }
 
-            const mime = parts[0]; // data:image/png
+            const mime = parts[0];
             const data = parts[1];
 
             const extRaw = mime.split("/")[1];
