@@ -1202,7 +1202,7 @@ function popularMenu(req, res) {
               )
           ) jt
           JOIN menu m
-              ON m.id = jt.menu_id
+            ON m.id = CAST(jt.menu_id AS CHAR)
           GROUP BY jt.menu_id
           ORDER BY total_orders DESC, oldest_menu ASC
           LIMIT 10
