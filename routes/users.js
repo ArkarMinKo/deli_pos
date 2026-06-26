@@ -617,7 +617,11 @@ function updateUser(req, res, userId) {
 
     const name = fields.name?.[0] || fields.name || null;
     const phone = fields.phone?.[0] || fields.phone || null;
-    const photoBase64 = fields.photo?.[0] || fields.photo || null;
+    let photoBase64 = fields.photo?.[0] || fields.photo || null;
+
+    if (typeof photoBase64 === "string") {
+      photoBase64 = photoBase64.trim().replace(/\s/g, "");
+    }
 
     db.query(
       "SELECT photo FROM users WHERE id = ?",
@@ -649,7 +653,7 @@ function updateUser(req, res, userId) {
             values.push(phone);
           }
 
-          if (photoFileName) {
+          if (photoFileName !== null) {
             updates.push("photo=?");
             values.push(photoFileName);
           }
@@ -683,10 +687,9 @@ function updateUser(req, res, userId) {
           );
         };
 
-        // Photo provided as Base64
+        // Handle base64 image
         if (photoBase64) {
           try {
-            // remove old photo if exists
             if (rows[0].photo) {
               const oldPath = path.join(UPLOAD_DIR, rows[0].photo);
               if (fs.existsSync(oldPath)) {
@@ -694,24 +697,24 @@ function updateUser(req, res, userId) {
               }
             }
 
-            const matches = photoBase64.match(
-              /^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/
-            );
+            const parts = photoBase64.split(";base64,");
 
-            if (!matches) {
+            if (parts.length !== 2 || !parts[0].startsWith("data:image/")) {
               res.statusCode = 400;
               return res.end(
                 JSON.stringify({ error: "Invalid base64 image format" })
               );
             }
 
-            const ext = matches[1] === "jpeg" ? ".jpg" : `.${matches[1]}`;
-            const imageBuffer = Buffer.from(matches[2], "base64");
+            const mime = parts[0]; // data:image/png
+            const data = parts[1];
 
-            photoFileName = generatePhotoName(
-              userId,
-              `photo${ext}`
-            ); // e.g. U001.jpg
+            const extRaw = mime.split("/")[1];
+            const ext = extRaw === "jpeg" ? "jpg" : extRaw;
+
+            const imageBuffer = Buffer.from(data, "base64");
+
+            photoFileName = generatePhotoName(userId, `photo.${ext}`);
 
             fs.writeFileSync(
               path.join(UPLOAD_DIR, photoFileName),
