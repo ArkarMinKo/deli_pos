@@ -2044,9 +2044,13 @@ function putDeliverymenMobile(req, res, deliverymenId) {
             }));
         }
 
-        const name = fields.name ? fields.name[0] : null;
-        const phone = fields.phone ? fields.phone[0] : null;
-        const photo = fields.photo ? fields.photo[0] : null;
+        const name = fields.name?.[0] || fields.name || null;
+        const phone = fields.phone?.[0] || fields.phone || null;
+        let photo = fields.photo?.[0] || fields.photo || null;
+
+        if (typeof photo === "string") {
+            photo = photo.trim().replace(/\s/g, "");
+        }
 
         db.query(
             "SELECT photo FROM deliverymen WHERE id=?",
