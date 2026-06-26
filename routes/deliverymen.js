@@ -2033,24 +2033,28 @@ function putDeliverymenMobile(req, res, deliverymenId) {
         }));
     }
 
-    const form = new formidable.IncomingForm();
+    let body = "";
 
-    form.parse(req, (err, fields) => {
-        if (err) {
-            res.writeHead(500, { "Content-Type": "application/json" });
+    req.on("data", chunk => {
+        body += chunk.toString();
+    });
+
+    req.on("end", () => {
+        let data;
+
+        try {
+            data = JSON.parse(body);
+        } catch (err) {
+            res.writeHead(400, { "Content-Type": "application/json" });
             return res.end(JSON.stringify({
                 success: false,
-                message: err.message
+                message: "Invalid JSON body"
             }));
         }
 
-        const name = fields.name?.[0] || fields.name || null;
-        const phone = fields.phone?.[0] || fields.phone || null;
-        let photo = fields.photo?.[0] || fields.photo || null;
-
-        if (typeof photo === "string") {
-            photo = photo.trim().replace(/\s/g, "");
-        }
+        const name = data.name || null;
+        const phone = data.phone || null;
+        let photo = data.photo || null;
 
         db.query(
             "SELECT photo FROM deliverymen WHERE id=?",
@@ -2065,18 +2069,19 @@ function putDeliverymenMobile(req, res, deliverymenId) {
                 }
 
                 if (rows.length === 0) {
-                    res.writeHead(404, { "Content-Type": "application/json" });
-                    return res.end(JSON.stringify({
-                        success: false,
-                        message: "Deliveryman not found"
-                    }));
+                  res.writeHead(404, { "Content-Type": "application/json" });
+                  return res.end(JSON.stringify({
+                      success: false,
+                      message: "Deliveryman not found"
+                  }));
                 }
 
                 let photoName = rows[0].photo;
 
+                // Handle base64 image
                 if (photo && photo.startsWith("data:image")) {
 
-                    // Delete old image
+                    // delete old file
                     if (photoName) {
                         const oldPath = path.join(UPLOAD_DIR, photoName);
                         if (fs.existsSync(oldPath)) {
@@ -2084,39 +2089,37 @@ function putDeliverymenMobile(req, res, deliverymenId) {
                         }
                     }
 
-                    // Match base64 string
-                    const matches = photo.match(/^data:image\/(\w+);base64,(.+)$/);
+                    const matches = photo.match(
+                        /^data:image\/(\w+);base64,(.+)$/
+                    );
 
                     if (!matches) {
-                        res.writeHead(400, {
+                      res.writeHead(400, {
                             "Content-Type": "application/json"
                         });
-                        return res.end(JSON.stringify({
-                            success: false,
-                            message: "Invalid image format"
-                        }));
+                      return res.end(JSON.stringify({
+                          success: false,
+                          message: "Invalid image format"
+                      }));
                     }
 
-                    const ext = "." + matches[1];
-                    const imageBuffer = Buffer.from(matches[2], "base64");
+                    const ext = matches[1] === "jpeg" ? "jpg" : matches[1];
+                    const buffer = Buffer.from(matches[2], "base64");
 
                     photoName = generatePhotoName(
                         deliverymenId,
-                        "photo" + ext
+                        `photo.${ext}`
                     );
 
                     fs.writeFileSync(
                         path.join(UPLOAD_DIR, photoName),
-                        imageBuffer
+                        buffer
                     );
                 }
 
                 db.query(
                     `UPDATE deliverymen
-                     SET
-                        name=?,
-                        phone=?,
-                        photo=?
+                     SET name=?, phone=?, photo=?
                      WHERE id=?`,
                     [
                         name,
@@ -2134,12 +2137,8 @@ function putDeliverymenMobile(req, res, deliverymenId) {
                                 message: err.message
                             }));
                         }
-
-                        res.writeHead(200, {
-                            "Content-Type": "application/json"
-                        });
-
-                        res.end(JSON.stringify({
+                        res.writeHead(200, { "Content-Type": "application/json" });
+                        return res.end(JSON.stringify({
                             success: true,
                             message: "Deliveryman updated successfully",
                             data: {
