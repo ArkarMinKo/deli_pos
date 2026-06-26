@@ -1202,10 +1202,11 @@ function popularMenu(req, res) {
               )
           ) jt
           JOIN menu m
-            ON m.id = CAST(jt.menu_id AS CHAR)
+            ON m.id COLLATE utf8mb4_0900_ai_ci
+            = jt.menu_id COLLATE utf8mb4_0900_ai_ci
           GROUP BY jt.menu_id
           ORDER BY total_orders DESC, oldest_menu ASC
-          LIMIT 10
+          LIMIT 10;
         `;
 
         db.query(popularSql, (err, popularMenus) => {
