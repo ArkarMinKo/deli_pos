@@ -503,7 +503,7 @@ function updateAdminPasscode(req, res) {
 }
 
 // --- VERIFY ADMIN PASSCODE ---
-function verifyAdminPasscode(req, res) {
+function verifyManagerPasscode(req, res) {
     const form = new formidable.IncomingForm();
 
     form.parse(req, async (err, fields) => {
@@ -522,6 +522,128 @@ function verifyAdminPasscode(req, res) {
 
         try {
             const sql = "SELECT passcode FROM admin WHERE role = 'owner' OR role = 'manager'";
+            db.query(sql, async (err, results) => {
+                if (err) {
+                    res.statusCode = 500;
+                    return res.end(JSON.stringify({ error: err.message }));
+                }
+
+                if (results.length === 0) {
+                    res.statusCode = 404;
+                    return res.end(JSON.stringify({ error: "Admin Passcode မရှိပါ" }));
+                }
+
+                let matched = false;
+
+                for (const row of results) {
+                    const match = await bcrypt.compare(passcode, row.passcode);
+                    if (match) {
+                        matched = true;
+                        break;
+                    }
+                }
+
+                if (matched) {
+                    res.statusCode = 200;
+                    res.end(JSON.stringify({
+                        success: true,
+                        message: "Passcode စစ်ဆေးမှု အောင်မြင်ပါသည်"
+                    }));
+                } else {
+                    res.statusCode = 403;
+                    res.end(JSON.stringify({
+                        success: false,
+                        message: "Passcode မမှန်ပါ"
+                    }));
+                }
+            });
+        } catch (error) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: error.message }));
+        }
+    });
+}
+
+function verifyShopManagerPasscode(req, res) {
+    const form = new formidable.IncomingForm();
+
+    form.parse(req, async (err, fields) => {
+        if (err) {
+            res.statusCode = 500;
+            return res.end(JSON.stringify({ error: err.message }));
+        }
+
+        const passcodeField = fields.passcode;
+        const passcode = Array.isArray(passcodeField) ? passcodeField[0].toString() : passcodeField.toString();
+
+        if (!passcode) {
+            res.statusCode = 400;
+            return res.end(JSON.stringify({ message: "Passcode ထည့်ရန် လိုအပ်ပါသည်" }));
+        }
+
+        try {
+            const sql = "SELECT passcode FROM admin WHERE role = 'owner' OR role = 'manager' OR role = 'shopmanager'";
+            db.query(sql, async (err, results) => {
+                if (err) {
+                    res.statusCode = 500;
+                    return res.end(JSON.stringify({ error: err.message }));
+                }
+
+                if (results.length === 0) {
+                    res.statusCode = 404;
+                    return res.end(JSON.stringify({ error: "Admin Passcode မရှိပါ" }));
+                }
+
+                let matched = false;
+
+                for (const row of results) {
+                    const match = await bcrypt.compare(passcode, row.passcode);
+                    if (match) {
+                        matched = true;
+                        break;
+                    }
+                }
+
+                if (matched) {
+                    res.statusCode = 200;
+                    res.end(JSON.stringify({
+                        success: true,
+                        message: "Passcode စစ်ဆေးမှု အောင်မြင်ပါသည်"
+                    }));
+                } else {
+                    res.statusCode = 403;
+                    res.end(JSON.stringify({
+                        success: false,
+                        message: "Passcode မမှန်ပါ"
+                    }));
+                }
+            });
+        } catch (error) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: error.message }));
+        }
+    });
+}
+
+function verifyDeliManagerPasscode(req, res) {
+    const form = new formidable.IncomingForm();
+
+    form.parse(req, async (err, fields) => {
+        if (err) {
+            res.statusCode = 500;
+            return res.end(JSON.stringify({ error: err.message }));
+        }
+
+        const passcodeField = fields.passcode;
+        const passcode = Array.isArray(passcodeField) ? passcodeField[0].toString() : passcodeField.toString();
+
+        if (!passcode) {
+            res.statusCode = 400;
+            return res.end(JSON.stringify({ message: "Passcode ထည့်ရန် လိုအပ်ပါသည်" }));
+        }
+
+        try {
+            const sql = "SELECT passcode FROM admin WHERE role = 'owner' OR role = 'manager' OR role = 'delimanager'";
             db.query(sql, async (err, results) => {
                 if (err) {
                     res.statusCode = 500;
@@ -874,7 +996,9 @@ module.exports = {
     updateAdminPasscode,
     getAdminsById,
     loginAdmin,
-    verifyAdminPasscode,
+    verifyManagerPasscode,
+    verifyShopManagerPasscode,
+    verifyDeliManagerPasscode,
     verifyOwnerPasscode,
     createAgent,
     getAgents,
