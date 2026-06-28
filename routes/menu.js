@@ -511,7 +511,13 @@ function getAllShopsWithMenus(req, res) {
             let menuPending = menus.length;
 
             if (menuPending === 0) {
-              processedShops[shopIndex] = { shop, menus: [] };
+              processedShops[shopIndex] = { 
+                shop: {
+                  ...shop,
+                  open_deli: openDeli
+                },
+                menus: [] 
+              };
               shopPending--;
               if (shopPending === 0) sendResponse();
               return;
@@ -618,7 +624,10 @@ function getAllShopsWithMenus(req, res) {
                   menuPending--;
                   if (menuPending === 0) {
                     processedShops[shopIndex] = {
-                      shop,
+                      shop: {
+                        ...shop,
+                        open_deli: openDeli
+                      },
                       menus: processedMenus
                     };
                     shopPending--;
