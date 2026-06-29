@@ -187,7 +187,7 @@ const server = http.createServer(async (req, res) => {
         admin.getAdminsById(req, res, id);
     }
 
-    else if (pathName === "/admin/verify-manager-passcode" && method === "POST") admin.verifyManagerPasscode(req, res);
+    else if (pathName === "/admin/verify-admin-passcode" && method === "POST") admin.verifyManagerPasscode(req, res);
     else if (pathName === "/admin/verify-shopmanager-passcode" && method === "POST") admin.verifyShopManagerPasscode(req, res);
     else if (pathName === "/admin/verify-delimanager-passcode" && method === "POST") admin.verifyDeliManagerPasscode(req, res);
     else if (pathName === "/admin/verify-owner-passcode" && method === "POST") admin.verifyOwnerPasscode(req, res);
