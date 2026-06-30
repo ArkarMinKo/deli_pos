@@ -183,14 +183,60 @@ function postOrder(req, res) {
               }));
             }
 
-            res.writeHead(201, { "Content-Type": "application/json" });
+            // ==========================
+            // Calculate total quantity per menu
+            // ==========================
+            const menuTotals = {};
 
-            res.end(JSON.stringify({
-              success: true,
-              message: "သင့် Order အောင်မြင်စွာ မှာယူပြီးပါပြီ ကျေးဇူးပြု၍ ဆိုင်ဘက်မှ reply ကို စောင့်ပေးပါ",
-              orderId: newOrderId,
-              photo: relativePath
-            }));
+            ordersArray.forEach(item => {
+              if (!item.menu_id) return;
+
+              const qty = Number(item.quantity) || 0;
+
+              if (qty > 0) {
+                menuTotals[item.menu_id] = (menuTotals[item.menu_id] || 0) + qty;
+              }
+            });
+
+            const updates = Object.entries(menuTotals);
+
+            // If no menu needs updating
+            if (updates.length === 0) {
+              return sendSuccess();
+            }
+
+            let completed = 0;
+
+            updates.forEach(([menuId, qty]) => {
+              db.query(
+                `UPDATE menu
+                SET complete_order = complete_order + ?
+                WHERE id = ?`,
+                [qty, menuId],
+                (updateErr) => {
+                  if (updateErr) {
+                    console.error("Menu update error:", updateErr);
+                  }
+
+                  completed++;
+
+                  if (completed === updates.length) {
+                    sendSuccess();
+                  }
+                }
+              );
+            });
+
+            function sendSuccess() {
+              res.writeHead(201, { "Content-Type": "application/json" });
+
+              res.end(JSON.stringify({
+                success: true,
+                message: "သင့် Order အောင်မြင်စွာ မှာယူပြီးပါပြီ ကျေးဇူးပြု၍ ဆိုင်ဘက်မှ reply ကို စောင့်ပေးပါ",
+                orderId: newOrderId,
+                photo: relativePath
+              }));
+            }
           });
         });
       });
