@@ -501,7 +501,7 @@ function getAllShopsWithMenus(req, res) {
           const menuSql = `
             SELECT * FROM menu
             WHERE shop_id = ?
-            ORDER BY created_at DESC
+            ORDER BY complete_order DESC
           `;
 
           db.query(menuSql, [shop.id], (err, menus) => {
@@ -691,7 +691,7 @@ function getAllShopsWithMenusByCategories(req, res, category) {
           const menuSql = `
             SELECT * FROM menu
             WHERE shop_id = ?
-            ORDER BY created_at DESC
+            ORDER BY complete_order DESC
           `;
 
           db.query(menuSql, [shop.id], (err, menus) => {
