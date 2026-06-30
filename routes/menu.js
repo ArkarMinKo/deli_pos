@@ -304,7 +304,7 @@ function getMenuByShopId(req, res, shopId) {
   const shopSql = `
     SELECT shop_name, shopkeeper_name, email, photo, phone, categories, address, payments, have_deliverymen, deli_fees_method, complete_order, open_shop, location 
     FROM shops WHERE permission = 'approved'
-    AND id = ? ORDER BY complete_order DESC
+    AND id = ?
   `;
 
   db.query(shopSql, [shopId], (err, shopResult) => {
@@ -330,7 +330,7 @@ function getMenuByShopId(req, res, shopId) {
       const categoryMap = {};
       categories.forEach((c) => (categoryMap[c.id] = c.name));
 
-      const menuSql = `SELECT * FROM menu WHERE shop_id = ? ORDER BY created_at DESC`;
+      const menuSql = `SELECT * FROM menu WHERE shop_id = ? ORDER BY complete_order DESC`;
 
       db.query(menuSql, [shopId], (err, menus) => {
         if (err) {
