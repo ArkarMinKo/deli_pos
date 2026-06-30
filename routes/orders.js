@@ -183,26 +183,45 @@ function postOrder(req, res) {
               }));
             }
 
-            // ==========================
-            // Calculate total quantity per menu
-            // ==========================
+            // =========================================
+            // Calculate quantity for each menu
+            // and total quantity for shop
+            // =========================================
             const menuTotals = {};
+            let shopTotalQty = 0;
 
             ordersArray.forEach(item => {
-              if (!item.menu_id) return;
-
               const qty = Number(item.quantity) || 0;
 
-              if (qty > 0) {
-                menuTotals[item.menu_id] = (menuTotals[item.menu_id] || 0) + qty;
-              }
+              shopTotalQty += qty;
+
+              if (!item.menu_id || qty <= 0) return;
+
+              menuTotals[item.menu_id] =
+                (menuTotals[item.menu_id] || 0) + qty;
             });
 
             const updates = Object.entries(menuTotals);
 
-            // If no menu needs updating
+            // Update shop total_orders
+            const updateShop = (callback) => {
+              db.query(
+                `UPDATE shops
+                SET total_orders = total_orders + ?
+                WHERE id = ?`,
+                [shopTotalQty, shopId],
+                (err) => {
+                  if (err) {
+                    console.error("Shop update error:", err);
+                  }
+                  callback();
+                }
+              );
+            };
+
+            // No menu updates
             if (updates.length === 0) {
-              return sendSuccess();
+              return updateShop(sendSuccess);
             }
 
             let completed = 0;
@@ -213,15 +232,15 @@ function postOrder(req, res) {
                 SET complete_order = complete_order + ?
                 WHERE id = ?`,
                 [qty, menuId],
-                (updateErr) => {
-                  if (updateErr) {
-                    console.error("Menu update error:", updateErr);
+                (err) => {
+                  if (err) {
+                    console.error("Menu update error:", err);
                   }
 
                   completed++;
 
                   if (completed === updates.length) {
-                    sendSuccess();
+                    updateShop(sendSuccess);
                   }
                 }
               );
