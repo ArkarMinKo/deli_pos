@@ -462,7 +462,7 @@ function getAllShopsWithMenus(req, res) {
   const shopSql = `
     SELECT id, shop_name, shopkeeper_name, photo, phone, categories, address, payments, have_deliverymen, deli_fees_method, total_orders, open_shop, location
     FROM shops WHERE permission = 'approved'
-    ORDER BY id DESC
+    ORDER BY total_orders DESC
   `;
 
   db.query(shopSql, (err, shops) => {
@@ -652,7 +652,7 @@ function getAllShopsWithMenusByCategories(req, res, category) {
   const shopSql = `
     SELECT id, shop_name, shopkeeper_name, photo, phone, categories, address, payments, have_deliverymen, deli_fees_method, total_orders, open_shop, location
     FROM shops WHERE permission = 'approved' AND JSON_CONTAINS(CAST(categories AS JSON), ?, '$')
-    ORDER BY id DESC
+    ORDER BY total_orders DESC
   `;
 
   db.query(shopSql, [JSON.stringify(Number(category))], (err, shops) => {
