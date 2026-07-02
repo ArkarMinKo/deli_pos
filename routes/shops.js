@@ -224,7 +224,7 @@ function updateShop(req, res, id) {
             return res.end(JSON.stringify({ error: "Shop ID required" }));
         }
 
-        if (!shop_name, !shopkeeper_name, !location, !address, !phone) {
+        if (!shop_name || !shopkeeper_name || !location || !address || !phone) {
             res.writeHead(400, { "Content-Type": "application/json" });
             return res.end(
                 JSON.stringify({ message: "လိုအပ်ချက်များ မပြည့်စုံပါ" })
