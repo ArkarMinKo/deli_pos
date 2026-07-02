@@ -217,14 +217,14 @@ function updateShop(req, res, id) {
             return res.end(JSON.stringify({ error: "Form parse error", details: err }));
         }
 
-        const {shopkeeper_name, shop_name, phone, address, photo } = fields;
+        const {shopkeeper_name, shop_name, phone, address, location, photo } = fields;
 
         if (!id) {
             res.statusCode = 400;
             return res.end(JSON.stringify({ error: "Shop ID required" }));
         }
 
-        if (!shop_name, !shopkeeper_name, !address, !phone) {
+        if (!shop_name, !shopkeeper_name, !location, !address, !phone) {
             res.writeHead(400, { "Content-Type": "application/json" });
             return res.end(
                 JSON.stringify({ message: "လိုအပ်ချက်များ မပြည့်စုံပါ" })
@@ -263,7 +263,7 @@ function updateShop(req, res, id) {
             // 3. Update DB (limited fields)
             const sql = `
                 UPDATE shops SET
-                    shopkeeper_name = ?, shop_name = ?, phone = ?, address = ?, photo = ?
+                    shopkeeper_name = ?, shop_name = ?, phone = ?, address = ?, location = ?, photo = ?
                 WHERE id = ?
             `;
 
@@ -272,6 +272,7 @@ function updateShop(req, res, id) {
                 shop_name,
                 phone,
                 address,
+                location,
                 newPhotoFile,
                 id
             ];
