@@ -273,7 +273,7 @@ function updateShop(req, res, id) {
                 if (logo && logo.startsWith("data:image")) {
                     const base64Data = logo.replace(/^data:image\/\w+;base64,/, "");
                     const ext = logo.substring("data:image/".length, logo.indexOf(";base64"));
-                    const logoName = `${id}_log.${ext}`;
+                    const logoName = `${id}_logo.${ext}`;
 
                     fs.writeFileSync(
                         path.join(UPLOAD_DIR, logoName),
@@ -334,6 +334,7 @@ function getShopsPending(req, res) {
       shop_name, 
       email, 
       phone, 
+      logo,
       photo, 
       items, 
       address, 
@@ -368,6 +369,7 @@ function getShopsApprove(req, res) {
       email, 
       phone, 
       photo, 
+      logo,
       items, 
       address, 
       location, 
@@ -401,6 +403,7 @@ function getShops(req, res) {
       email, 
       phone, 
       photo, 
+      logo,
       items, 
       address, 
       location, 
@@ -439,6 +442,7 @@ function getShopsById(req, res, id) {
         email, 
         phone, 
         photo, 
+        logo,
         items, 
         address, 
         location, 

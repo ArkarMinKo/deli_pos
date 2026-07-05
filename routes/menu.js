@@ -302,7 +302,7 @@ function deleteMenu(req, res, id) {
 
 function getMenuByShopId(req, res, shopId) {
   const shopSql = `
-    SELECT shop_name, shopkeeper_name, email, photo, phone, categories, address, payments, have_deliverymen, deli_fees_method, open_shop, location 
+    SELECT shop_name, shopkeeper_name, email, photo, logo, phone, categories, address, payments, have_deliverymen, deli_fees_method, open_shop, location 
     FROM shops WHERE permission = 'approved'
     AND id = ?
   `;
@@ -460,7 +460,7 @@ function getMenuByShopId(req, res, shopId) {
 
 function getAllShopsWithMenus(req, res) {
   const shopSql = `
-    SELECT id, shop_name, shopkeeper_name, photo, phone, categories, address, payments, have_deliverymen, deli_fees_method, total_orders, open_shop, location
+    SELECT id, shop_name, shopkeeper_name, photo, logo, phone, categories, address, payments, have_deliverymen, deli_fees_method, total_orders, open_shop, location
     FROM shops WHERE permission = 'approved'
     ORDER BY total_orders DESC
   `;
@@ -650,7 +650,7 @@ function getAllShopsWithMenus(req, res) {
 
 function getAllShopsWithMenusByCategories(req, res, category) {
   const shopSql = `
-    SELECT id, shop_name, shopkeeper_name, photo, phone, categories, address, payments, have_deliverymen, deli_fees_method, total_orders, open_shop, location
+    SELECT id, shop_name, shopkeeper_name, photo, logo, phone, categories, address, payments, have_deliverymen, deli_fees_method, total_orders, open_shop, location
     FROM shops WHERE permission = 'approved' AND JSON_CONTAINS(CAST(categories AS JSON), ?, '$')
     ORDER BY total_orders DESC
   `;
