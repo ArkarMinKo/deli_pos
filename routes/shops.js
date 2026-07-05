@@ -217,22 +217,22 @@ function updateShop(req, res, id) {
             return res.end(JSON.stringify({ error: "Form parse error", details: err }));
         }
 
-        const {shopkeeper_name, shop_name, phone, address, photo } = fields;
+        const { shopkeeper_name, shop_name, phone, address, photo, logo } = fields;
 
         if (!id) {
             res.statusCode = 400;
             return res.end(JSON.stringify({ error: "Shop ID required" }));
         }
 
-        if (!shop_name|| !shopkeeper_name|| !address|| !phone) {
+        if (!shop_name || !shopkeeper_name || !address || !phone) {
             res.writeHead(400, { "Content-Type": "application/json" });
             return res.end(
                 JSON.stringify({ message: "လိုအပ်ချက်များ မပြည့်စုံပါ" })
             );
         }
 
-        // 1. Get existing shop (for old photo)
-        db.query("SELECT photo FROM shops WHERE id = ?", [id], (err, result) => {
+        // 1. Get existing shop (for old photo/logo)
+        db.query("SELECT photo, logo FROM shops WHERE id = ?", [id], (err, result) => {
             if (err || result.length === 0) {
                 res.statusCode = 404;
                 return res.end(JSON.stringify({ error: "Shop not found" }));
@@ -241,29 +241,65 @@ function updateShop(req, res, id) {
             let oldPhoto = result[0].photo;
             let newPhotoFile = oldPhoto;
 
-            // 2. Handle photo update
+            let oldLogo = result[0].logo;
+            let newLogoFile = oldLogo;
+
+            // 2. Handle photo/logo update
             try {
+                // Photo
                 if (photo && photo.startsWith("data:image")) {
                     const base64Data = photo.replace(/^data:image\/\w+;base64,/, "");
                     const ext = photo.substring("data:image/".length, photo.indexOf(";base64"));
                     const photoName = `${id}.${ext}`;
-                    fs.writeFileSync(path.join(UPLOAD_DIR, photoName), Buffer.from(base64Data, "base64"));
+
+                    fs.writeFileSync(
+                        path.join(UPLOAD_DIR, photoName),
+                        Buffer.from(base64Data, "base64")
+                    );
+
                     newPhotoFile = photoName;
 
                     // Delete old photo
-                    if (oldPhoto && fs.existsSync(path.join(UPLOAD_DIR, oldPhoto))) {
+                    if (
+                        oldPhoto &&
+                        oldPhoto !== photoName &&
+                        fs.existsSync(path.join(UPLOAD_DIR, oldPhoto))
+                    ) {
                         fs.unlinkSync(path.join(UPLOAD_DIR, oldPhoto));
+                    }
+                }
+
+                // Logo
+                if (logo && logo.startsWith("data:image")) {
+                    const base64Data = logo.replace(/^data:image\/\w+;base64,/, "");
+                    const ext = logo.substring("data:image/".length, logo.indexOf(";base64"));
+                    const logoName = `${id}_log.${ext}`;
+
+                    fs.writeFileSync(
+                        path.join(UPLOAD_DIR, logoName),
+                        Buffer.from(base64Data, "base64")
+                    );
+
+                    newLogoFile = logoName;
+
+                    // Delete old logo
+                    if (
+                        oldLogo &&
+                        oldLogo !== logoName &&
+                        fs.existsSync(path.join(UPLOAD_DIR, oldLogo))
+                    ) {
+                        fs.unlinkSync(path.join(UPLOAD_DIR, oldLogo));
                     }
                 }
             } catch (e) {
                 res.statusCode = 400;
-                return res.end(JSON.stringify({ error: "Invalid photo format", details: e }));
+                return res.end(JSON.stringify({ error: "Invalid photo/logo format", details: e }));
             }
 
-            // 3. Update DB (limited fields)
+            // 3. Update DB
             const sql = `
                 UPDATE shops SET
-                    shopkeeper_name = ?, shop_name = ?, phone = ?, address = ?, photo = ?
+                    shopkeeper_name = ?, shop_name = ?, phone = ?, address = ?, photo = ?, logo = ?
                 WHERE id = ?
             `;
 
@@ -273,6 +309,7 @@ function updateShop(req, res, id) {
                 phone,
                 address,
                 newPhotoFile,
+                newLogoFile,
                 id
             ];
 
