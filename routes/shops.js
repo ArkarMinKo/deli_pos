@@ -403,7 +403,7 @@ function getShops(req, res) {
       email, 
       phone, 
       photo, 
-      logo,
+      IFNULL(logo, NULL) AS logo,
       items, 
       address, 
       location, 
@@ -436,27 +436,28 @@ function getShops(req, res) {
 function getShopsById(req, res, id) {
     const sql = `
         SELECT 
-        id, 
-        shopkeeper_name, 
-        shop_name, 
-        email, 
-        phone, 
-        photo, 
-        IFNULL(logo, NULL) AS logo,
-        items, 
-        address, 
-        location, 
-        status,
-        categories,
-        payments,
-        have_deliverymen,
-        deli_fees_method,
-        open_shop,
-        open_shop_deli,
-        permission, 
-        created_at
-        FROM shops
-        WHERE id = ?
+        s.id, 
+        s.shopkeeper_name, 
+        s.shop_name, 
+        s.email, 
+        s.phone, 
+        s.photo, 
+        IFNULL(s.logo, NULL) AS logo,
+        s.items, 
+        s.address, 
+        s.location, 
+        s.status,
+        s.categories,
+        s.payments,
+        s.have_deliverymen,
+        s.deli_fees_method,
+        s.open_shop,
+        s.open_shop_deli,
+        s.permission, 
+        s.created_at,
+        (SELECT deli_fees FROM server WHERE id = 1) AS deli_fees
+        FROM shops s
+        WHERE s.id = ?
         LIMIT 1
     `
 
