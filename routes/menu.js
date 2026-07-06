@@ -302,9 +302,30 @@ function deleteMenu(req, res, id) {
 
 function getMenuByShopId(req, res, shopId) {
   const shopSql = `
-    SELECT shop_name, shopkeeper_name, email, photo, IFNULL(logo, NULL) AS logo, phone, categories, address, payments, have_deliverymen, deli_fees_method, open_shop, location 
-    FROM shops WHERE permission = 'approved'
-    AND id = ?
+    SELECT 
+    s.id, 
+    s.shopkeeper_name, 
+    s.shop_name, 
+    s.email, 
+    s.phone, 
+    s.photo, 
+    IFNULL(s.logo, NULL) AS logo,
+    (SELECT deli_fees FROM server WHERE id = 1) AS deli_fees
+    s.items, 
+    s.address, 
+    s.location, 
+    s.status,
+    s.categories,
+    s.payments,
+    s.have_deliverymen,
+    s.deli_fees_method,
+    s.open_shop,
+    s.open_shop_deli,
+    s.permission, 
+    s.created_at
+    FROM shops s
+    WHERE s.id = ?
+    LIMIT 1
   `;
 
   db.query(shopSql, [shopId], (err, shopResult) => {
