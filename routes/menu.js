@@ -310,7 +310,7 @@ function getMenuByShopId(req, res, shopId) {
     s.phone, 
     s.photo, 
     IFNULL(s.logo, NULL) AS logo,
-    (SELECT deli_fees FROM server WHERE id = 1) AS deli_fees
+    (SELECT deli_fees FROM server WHERE id = 1) AS deli_fees,
     s.items, 
     s.address, 
     s.location, 
