@@ -442,7 +442,7 @@ function getShopsById(req, res, id) {
         email, 
         phone, 
         photo, 
-        logo,
+        IFNULL(logo, NULL) AS logo,
         items, 
         address, 
         location, 
