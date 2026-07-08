@@ -84,7 +84,8 @@ function createDeliverymen(req, res) {
         const email = fields.email;
         const phone = fields.phone;
         const password = String(fields.password || "");
-        const work_type = fields.work_type || null;
+        const workTypeRaw = Array.isArray(fields.work_type) ? fields.work_type[0] : fields.work_type;
+        const work_type = (workTypeRaw && workTypeRaw.trim() !== "") ? workTypeRaw.trim() : null;
 
         const photoFile = Array.isArray(files.photo) ? files.photo[0] : files.photo;
 
