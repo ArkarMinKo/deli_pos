@@ -142,7 +142,7 @@ function createDeliverymen(req, res) {
                                 phone,
                                 hashedPassword, // use hashed password
                                 photoName,
-                                work_type
+                                work_type || null
                             ],
                             (err, result) => {
                                 if (err) {
