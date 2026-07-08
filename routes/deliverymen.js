@@ -84,7 +84,7 @@ function createDeliverymen(req, res) {
         const email = fields.email;
         const phone = fields.phone;
         const password = String(fields.password || "");
-        const work_type = fields.work_type;
+        const work_type = fields.work_type || null;
 
         const photoFile = Array.isArray(files.photo) ? files.photo[0] : files.photo;
 
@@ -142,7 +142,7 @@ function createDeliverymen(req, res) {
                                 phone,
                                 hashedPassword, // use hashed password
                                 photoName,
-                                work_type || null
+                                work_type
                             ],
                             (err, result) => {
                                 if (err) {
