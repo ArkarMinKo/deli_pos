@@ -140,27 +140,43 @@ function deleteCategories(req, res, id) {
         return res.end(JSON.stringify({ error: "Category ID required" }));
     }
 
-    // Check exist first
     db.query("SELECT id FROM categories WHERE id = ?", [id], (err, result) => {
         if (err || result.length === 0) {
             res.writeHead(404, { "Content-Type": "application/json" });
             return res.end(JSON.stringify({ error: "Category not found" }));
         }
 
-        // Delete
-        db.query("DELETE FROM categories WHERE id = ?", [id], (err2) => {
-            if (err2) {
+        db.query("SELECT id FROM menu WHERE category = ?", [id], (menuErr, menuResult) => {
+            if (menuErr) {
                 res.writeHead(500, { "Content-Type": "application/json" });
-                return res.end(JSON.stringify({ error: "Delete failed", details: err2 }));
+                return res.end(JSON.stringify({ error: "Database error checking menu usage", details: menuErr }));
             }
 
-            res.writeHead(200, { "Content-Type": "application/json" });
-            return res.end(
-                JSON.stringify({
-                    message: "Category ကို အောင်မြင်စွာ ဖျက်ပြီးပါပြီ",
-                    id
-                })
-            );
+            if (menuResult.length > 0) {
+                res.writeHead(400, { "Content-Type": "application/json" });
+                return res.end(
+                    JSON.stringify({
+                        success: false,
+                        message: "ဤ Category ကို အသုံးပြုထားသော Menu များ ရှိနေပါသည်။ ကျေးဇူးပြု၍ ထို Menu များ၏ Category ကို အရင်ပြောင်းလဲပြီးမှ ပြန်လည်ကြိုးစားပေးပါ။"
+                    })
+                );
+            }
+
+            db.query("DELETE FROM categories WHERE id = ?", [id], (deleteErr) => {
+                if (deleteErr) {
+                    res.writeHead(500, { "Content-Type": "application/json" });
+                    return res.end(JSON.stringify({ error: "Delete failed", details: deleteErr }));
+                }
+
+                res.writeHead(200, { "Content-Type": "application/json" });
+                return res.end(
+                    JSON.stringify({
+                        success: true,
+                        message: "Category ကို အောင်မြင်စွာ ဖျက်ပြီးပါပြီ။",
+                        id
+                    })
+                );
+            });
         });
     });
 }
