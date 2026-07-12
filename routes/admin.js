@@ -581,22 +581,25 @@ function verifyShopManagerPasscode(req, res) {
             return res.end(JSON.stringify({ message: "Passcode ထည့်ရန် လိုအပ်ပါသည်" }));
         }
 
-        try {
-            const sql = "SELECT passcode FROM admin WHERE role = 'owner' OR role = 'manager' OR role = 'shopmanager'";
-            db.query(sql, async (err, results) => {
-                if (err) {
-                    res.statusCode = 500;
-                    return res.end(JSON.stringify({ error: err.message }));
-                }
+        const sql = "SELECT passcode FROM admin WHERE role IN ('owner', 'manager', 'shopmanager') AND passcode IS NOT NULL AND passcode != ''";
 
-                if (results.length === 0) {
-                    res.statusCode = 404;
-                    return res.end(JSON.stringify({ error: "Admin Passcode မရှိပါ" }));
-                }
+        db.query(sql, async (err, results) => {
+            if (err) {
+                res.statusCode = 500;
+                return res.end(JSON.stringify({ error: err.message }));
+            }
 
+            if (results.length === 0) {
+                res.statusCode = 404;
+                return res.end(JSON.stringify({ error: "Admin Passcode မရှိပါ" }));
+            }
+
+            try {
                 let matched = false;
 
                 for (const row of results) {
+                    if (!row.passcode) continue;
+
                     const match = await bcrypt.compare(passcode, row.passcode);
                     if (match) {
                         matched = true;
@@ -617,11 +620,11 @@ function verifyShopManagerPasscode(req, res) {
                         message: "Passcode မမှန်ပါ"
                     }));
                 }
-            });
-        } catch (error) {
-            res.statusCode = 500;
-            res.end(JSON.stringify({ error: error.message }));
-        }
+            } catch (error) {
+                res.statusCode = 500;
+                res.end(JSON.stringify({ error: error.message }));
+            }
+        });
     });
 }
 
@@ -642,22 +645,25 @@ function verifyDeliManagerPasscode(req, res) {
             return res.end(JSON.stringify({ message: "Passcode ထည့်ရန် လိုအပ်ပါသည်" }));
         }
 
-        try {
-            const sql = "SELECT passcode FROM admin WHERE role = 'owner' OR role = 'manager' OR role = 'delimanager'";
-            db.query(sql, async (err, results) => {
-                if (err) {
-                    res.statusCode = 500;
-                    return res.end(JSON.stringify({ error: err.message }));
-                }
+        const sql = "SELECT passcode FROM admin WHERE role IN ('owner', 'manager', 'delimanager') AND passcode IS NOT NULL AND passcode != ''";
 
-                if (results.length === 0) {
-                    res.statusCode = 404;
-                    return res.end(JSON.stringify({ error: "Admin Passcode မရှိပါ" }));
-                }
+        db.query(sql, async (err, results) => {
+            if (err) {
+                res.statusCode = 500;
+                return res.end(JSON.stringify({ error: err.message }));
+            }
 
+            if (results.length === 0) {
+                res.statusCode = 404;
+                return res.end(JSON.stringify({ error: "Admin Passcode မရှိပါ" }));
+            }
+
+            try {
                 let matched = false;
 
                 for (const row of results) {
+                    if (!row.passcode) continue;
+
                     const match = await bcrypt.compare(passcode, row.passcode);
                     if (match) {
                         matched = true;
@@ -678,11 +684,11 @@ function verifyDeliManagerPasscode(req, res) {
                         message: "Passcode မမှန်ပါ"
                     }));
                 }
-            });
-        } catch (error) {
-            res.statusCode = 500;
-            res.end(JSON.stringify({ error: error.message }));
-        }
+            } catch (error) {
+                res.statusCode = 500;
+                res.end(JSON.stringify({ error: error.message }));
+            }
+        });
     });
 }
 
