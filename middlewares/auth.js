@@ -253,7 +253,7 @@ async function authUserId(req, res, id = null) {
   if (isRegularUser){
     if (user.id !== id) {
 
-      return deny(res, 403, "Access denied");
+      return deny(res, 403, `Access denied ${user.id} ${id}`);
 
     }
   }
