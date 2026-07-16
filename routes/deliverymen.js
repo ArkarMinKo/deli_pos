@@ -55,7 +55,7 @@ function loginDeliverymen(req, res) {
             }
 
           const token = generateToken({
-            id: user.id,
+            id: deliverymen.id,
             type: "deliverymen"
           });
 
