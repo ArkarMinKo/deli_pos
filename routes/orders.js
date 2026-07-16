@@ -3,6 +3,8 @@ const fs = require("fs");
 const db = require("../db");
 const { generateOrderId } = require("../utils/idOrderGenerator");
 
+const { authUserId, authShopId } = require('../middlewares/auth');
+
 const UPLOAD_DIR = path.join(__dirname, "../orders_uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
 
@@ -48,6 +50,8 @@ function postOrder(req, res) {
           message: "Missing required fields"
         }));
       }
+
+      if (!(await authUserId(req, res, userId))) return; 
 
       const ordersArray = orders;
 
@@ -943,6 +947,8 @@ async function approveAllOrderItems(req, res, orderId) {
           JSON.stringify({ message: "orderId and shopId required" })
         );
       }
+
+      if (!(await authShopId(req, res, shopIdId))) return; 
 
       const [rows] = await db.promise().query(
         "SELECT orders FROM orders WHERE id = ?",

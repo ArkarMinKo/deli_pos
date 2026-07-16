@@ -1,77 +1,373 @@
 const { verifyJWT } = require("../utils/jwtToken");
 
-/**
- * Normal user (login ဖြစ်ထားရုံ)
- */
-async function authUser(req, res, targetId = null) {
+/*
+|--------------------------------------------------------------------------
+| Common
+|--------------------------------------------------------------------------
+*/
+
+function deny(res, code, message) {
+  res.writeHead(code, {
+    "Content-Type": "application/json",
+  });
+
+  res.end(JSON.stringify({
+    message
+  }));
+
+  return false;
+}
+
+async function authenticate(req, res) {
   try {
-    const user = await verifyJWT(req);
-    req.user = user;
+    const auth = await verifyJWT(req);
 
-    if (targetId && user.userId !== targetId) {
-       res.writeHead(403, { "Content-Type": "application/json" });
-       res.end(JSON.stringify({ message: "Access Denied" }));
-       return false;
-    }
+    req.user = auth;
 
-    return true;
+    return auth;
   } catch (err) {
-    res.writeHead(err.status || 401, {
-      "Content-Type": "application/json"
-    });
-    res.end(JSON.stringify({ message: err.message }));
+
+    deny(
+      res,
+      err.status || 401,
+      err.message || "Unauthorized"
+    );
+
     return false;
   }
 }
 
-/**
- *  Owner only
- */
+/*
+|--------------------------------------------------------------------------
+| Any Logged In Account
+|--------------------------------------------------------------------------
+*/
+
+async function auth(req, res) {
+
+  return await authenticate(req, res);
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Admin / User / Shop / Deliverymen
+|--------------------------------------------------------------------------
+*/
+
+async function authAdmin(req, res) {
+
+  const user = await authenticate(req, res);
+
+  if (!user) return false;
+
+  if (user.type !== "admin") {
+
+    return deny(res, 403, "Admin only");
+
+  }
+
+  return true;
+
+}
+
+async function authUser(req, res) {
+
+  const user = await authenticate(req, res);
+
+  if (!user) return false;
+
+  if (user.type !== "user") {
+
+    return deny(res, 403, "User only");
+
+  }
+
+  return true;
+
+}
+
+async function authShop(req, res) {
+
+  const user = await authenticate(req, res);
+
+  if (!user) return false;
+
+  if (user.type !== "shop") {
+
+    return deny(res, 403, "Shop only");
+
+  }
+
+  return true;
+
+}
+
+async function authDeliverymen(req, res) {
+
+  const user = await authenticate(req, res);
+
+  if (!user) return false;
+
+  if (user.type !== "deliverymen") {
+
+    return deny(res, 403, "Deliverymen only");
+
+  }
+
+  return true;
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Owner
+|--------------------------------------------------------------------------
+*/
+
 async function authOwner(req, res) {
-  try {
-    const user = await verifyJWT(req);
 
-    if (user.role !== "owner") {
-      res.writeHead(403, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ message: "Owner only access" }));
-      return false;
-    }
+  const user = await authenticate(req, res);
 
-    return true;
-  } catch (err) {
-    res.writeHead(err.status || 401, {
-      "Content-Type": "application/json"
-    });
-    res.end(JSON.stringify({ message: err.message }));
-    return false;
+  if (!user) return false;
+
+  if (user.type !== "admin") {
+
+    return deny(res, 403, "Admin only");
+
   }
-}
-/**
- *  Admin only
- */
-async function authAdmin(req, res, targetId = null) {
-  try {
-    const user = await verifyJWT(req);
 
-    if (user.role !== "owner" && user.role !== "manager" && user.role !== "shopmanager" && user.role !== "delimanager") {
-      res.writeHead(403, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ message: "Admin Team only access" }));
-      return false;
-    }
+  if (user.role !== "owner") {
 
-    return true;
-  } catch (err) {
-    res.writeHead(err.status || 401, {
-      "Content-Type": "application/json"
-    });
-    res.end(JSON.stringify({ message: err.message }));
-    return false;
+    return deny(res, 403, "Owner only");
+
   }
+
+  return true;
+
 }
 
-function checkIsAdmin(user) {
-    const adminRoles = ["owner", "manager", "seller", "chatmen"];
-    return adminRoles.includes(user.role);
+/*
+|--------------------------------------------------------------------------
+| Owner + Manager
+|--------------------------------------------------------------------------
+*/
+
+async function authOwnerManager(req, res) {
+
+  const user = await authenticate(req, res);
+
+  if (!user) return false;
+
+  if (user.type !== "admin") {
+
+    return deny(res, 403, "Admin only");
+
+  }
+
+  if (!["owner", "manager"].includes(user.role)) {
+
+    return deny(res, 403, "Owner / Manager only");
+
+  }
+
+  return true;
+
 }
 
-module.exports = { authUser, authOwner, authAdmin, checkIsAdmin };
+/*
+|--------------------------------------------------------------------------
+| Owner + Manager + ShopManager
+|--------------------------------------------------------------------------
+*/
+
+async function authShopAdmin(req, res) {
+
+  const user = await authenticate(req, res);
+
+  if (!user) return false;
+
+  if (user.type !== "admin") {
+
+    return deny(res, 403, "Admin only");
+
+  }
+
+  if (!["owner", "manager", "shopmanager"].includes(user.role)) {
+
+    return deny(res, 403, "Permission denied");
+
+  }
+
+  return true;
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Owner + Manager + DeliveryManager
+|--------------------------------------------------------------------------
+*/
+
+async function authDeliveryAdmin(req, res) {
+
+  const user = await authenticate(req, res);
+
+  if (!user) return false;
+
+  if (user.type !== "admin") {
+
+    return deny(res, 403, "Admin only");
+
+  }
+
+  if (!["owner", "manager", "delimanager"].includes(user.role)) {
+
+    return deny(res, 403, "Permission denied");
+
+  }
+
+  return true;
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Self ID
+|--------------------------------------------------------------------------
+*/
+
+async function authUserId(req, res, id = null, isUserOnly) {
+
+  const user = await authenticate(req, res);
+
+  if (!user) return false;
+
+  const isRegularUser = user.type === "user";
+  const isAllowedAdmin = user.type === "admin" && (user.role === "owner" || user.role === "manager") && !isUserOnly;
+
+  if (!isRegularUser && !isAllowedAdmin) {
+    return deny(res, 403, "Access denied. Only regular users, or admins who are owners/managers, are allowed.");
+  }
+
+  if (isRegularUser){
+    if (user.id !== id) {
+
+      return deny(res, 403, "Access denied");
+
+    }
+  }
+
+  return true;
+
+}
+
+async function authShopId(req, res, id) {
+
+  const user = await authenticate(req, res);
+
+  if (!user) return false;
+
+  if (user.type !== "shop") {
+
+    return deny(res, 403, "Shop only");
+
+  }
+
+  if (user.id !== id) {
+
+    return deny(res, 403, "Access denied");
+
+  }
+
+  return true;
+
+}
+
+async function authDeliverymenId(req, res, id) {
+
+  const user = await authenticate(req, res);
+
+  if (!user) return false;
+
+  if (user.type !== "deliverymen") {
+
+    return deny(res, 403, "Deliverymen only");
+
+  }
+
+  if (user.id !== id) {
+
+    return deny(res, 403, "Access denied");
+
+  }
+
+  return true;
+
+}
+
+async function authAdminId(req, res, id) {
+
+  const user = await authenticate(req, res);
+
+  if (!user) return false;
+
+  if (user.type !== "admin") {
+
+    return deny(res, 403, "Admin only");
+
+  }
+
+  if(user.role !== "owner"){
+    if (user.id !== id) {
+
+      return deny(res, 403, "Access denied");
+
+    }
+  }
+
+  return true;
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Helper
+|--------------------------------------------------------------------------
+*/
+
+function isAdmin(user) {
+
+  return user.type === "admin";
+
+}
+
+function isOwner(user) {
+
+  return user.type === "admin" && user.role === "owner";
+
+}
+
+module.exports = {
+
+  auth,
+
+  authAdmin,
+  authUser,
+  authShop,
+  authDeliverymen,
+
+  authAdminId,
+  authUserId,
+  authShopId,
+  authDeliverymenId,
+
+  authOwner,
+  authOwnerManager,
+  authShopAdmin,
+  authDeliveryAdmin,
+
+  isAdmin,
+  isOwner,
+
+};

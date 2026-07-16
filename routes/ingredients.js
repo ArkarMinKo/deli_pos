@@ -6,6 +6,8 @@ const db = require("../db");
 const { generateIngredientsId } = require("../utils/idIngredientsGenerator");
 const { generatePhotoName } = require("../utils/photoNameGenerator");
 
+const { authShopId } = require('../middlewares/auth');
+
 const UPLOAD_DIR = path.join(__dirname, "../ingredients_uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
 
@@ -27,6 +29,8 @@ function createIngredients(req, res) {
             res.writeHead(400, { "Content-Type": "application/json" });
             return res.end(JSON.stringify({ error: "လိုအပ်ချက်များ မပြည့်စုံပါ" }));
         }
+
+        if (!(await authShopId(req, res, shop_id))) return; 
 
         // Generate Ingredient ID
         generateIngredientsId(db, shop_id, (err, newId) => {

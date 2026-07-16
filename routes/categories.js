@@ -3,6 +3,7 @@ const db = require("../db");
 const path = require("path");
 const fs = require("fs");
 const { generateCategoryId } = require("../utils/idCategoriesGenerator");
+const {authShopId} = require('../middlewares/auth');
 
 function createCategories(req, res) {
     const form = new formidable.IncomingForm({
@@ -22,6 +23,8 @@ function createCategories(req, res) {
             res.writeHead(400, { "Content-Type": "application/json" });
             return res.end(JSON.stringify({ error: "လိုအပ်ချက်များ မပြည့်စုံပါ" }));
         }
+
+        if (!(await authShopId(req, res, shop_id))) return; 
 
         // Generate ID based on shop_id
         generateCategoryId(db, shop_id, (err, newId) => {

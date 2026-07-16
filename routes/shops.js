@@ -6,6 +6,7 @@ const path = require("path");
 const {generateId} = require('../utils/idShopGenerator')
 const sendMail = require("../utils/mailer");
 const { verifyCode } = require("../utils/codeStore");
+const { generateToken } = require('../utils/jwtToken');
 
 const UPLOAD_DIR = path.join(__dirname, "../shop_uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
@@ -62,13 +63,19 @@ function loginShop(req, res, body) {
           );
         }
 
+        const token = generateToken({
+          id: user.id,
+          type: "shop"
+        });
+
         // Login success
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(
           JSON.stringify({
             message: "ဝင်ရောက်မှုအောင်မြင်ပါပြီ ကြိုဆိုပါသည်",
             id: shop.id,
-            have_deliverymen: shop.have_deliverymen
+            have_deliverymen: shop.have_deliverymen,
+            token: token
           })
         );
       }

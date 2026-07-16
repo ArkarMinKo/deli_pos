@@ -6,6 +6,7 @@ const fs = require("fs");
 const {generateId} = require('../utils/idUserGenerator')
 const { verifyCode } = require("../utils/codeStore");
 const { generatePhotoName } = require("../utils/photoNameGenerator");
+const { generateToken } = require('../utils/jwtToken');
 
 const UPLOAD_DIR = path.join(__dirname, "../uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
@@ -52,12 +53,18 @@ function loginUser(req, res) {
                 return res.end(JSON.stringify({ error: "Password မမှန်ကန်ပါ" }));
             }
 
+          const token = generateToken({
+            id: user.id,
+            type: "user"
+          });
+
             // Login Success
             res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
             res.end(
                 JSON.stringify({
                     message: "Login အောင်မြင်ပါသည်",
-                    userId: user.id
+                    userId: user.id,
+                    token: token
                 })
             );
         });

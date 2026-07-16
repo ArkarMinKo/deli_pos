@@ -7,6 +7,7 @@ const db = require("../db");
 const bcrypt = require("bcrypt");
 const { off } = require("process");
 const { clear } = require("console");
+const { generateToken } = require('../utils/jwtToken');
 
 const UPLOAD_DIR = path.join(__dirname, "../deliverymen_uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
@@ -53,12 +54,18 @@ function loginDeliverymen(req, res) {
                 return res.end(JSON.stringify({ error: "Password မမှန်ကန်ပါ" }));
             }
 
+          const token = generateToken({
+            id: user.id,
+            type: "deliverymen"
+          });
+
             // Login Success
             res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
             res.end(
                 JSON.stringify({
                     message: "Login အောင်မြင်ပါသည်",
-                    deliverymenId: deliverymen.id
+                    deliverymenId: deliverymen.id,
+                    token: token
                 })
             );
         });

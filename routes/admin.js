@@ -5,6 +5,7 @@ const path = require("path");
 const db = require("../db");
 const { generateAdminId } = require("../utils/idAdminGenerator");
 const { generatePhotoName } = require("../utils/photoNameGenerator");
+const { generateToken } = require('../utils/jwtToken');
 
 const UPLOAD_DIR = path.join(__dirname, "../admin_uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
@@ -52,12 +53,19 @@ function loginAdmin(req, res) {
           return res.end(JSON.stringify({ message: "Password မှားနေပါသည်။ ထပ်စမ်းကြည့်ပါ" }));
         }
 
+        const token = generateToken({
+            id: user.id,
+            type: "admin",
+            role: user.role
+        });
+
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(
           JSON.stringify({
             message: "ဝင်ရောက်မှုအောင်မြင်ပါသည်။ ကြိုဆိုပါသည်",
             id: user.id,
-            role: user.role
+            role: user.role,
+            token: token
           })
         );
       });
