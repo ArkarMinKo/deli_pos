@@ -237,23 +237,23 @@ async function authDeliveryAdmin(req, res) {
 |--------------------------------------------------------------------------
 */
 
-async function authUserId(req, res, id = null) {
+async function authUserId(req, res, id = null, isUserOnly) {
 
   const user = await authenticate(req, res);
 
   if (!user) return false;
 
   const isRegularUser = user.type === "user";
-  const isAllowedAdmin = user.type === "admin" && (user.role === "owner" || user.role === "manager");
+  const isAllowedAdmin = user.type === "admin" && (user.role === "owner" || user.role === "manager") && !isUserOnly;
 
   if (!isRegularUser && !isAllowedAdmin) {
     return deny(res, 403, "Access denied. Only regular users, or admins who are owners/managers, are allowed.");
   }
 
   if (isRegularUser){
-    if (user.id !== id) {
+    if (user.userId !== id) {
 
-      return deny(res, 403, `Access denied ${user.id} ${id}`);
+      return deny(res, 403, "Access denied");
 
     }
   }
@@ -274,7 +274,7 @@ async function authShopId(req, res, id) {
 
   }
 
-  if (user.id !== id) {
+  if (user.userId !== id) {
 
     return deny(res, 403, "Access denied");
 
@@ -296,7 +296,7 @@ async function authDeliverymenId(req, res, id) {
 
   }
 
-  if (user.id !== id) {
+  if (user.userId !== id) {
 
     return deny(res, 403, "Access denied");
 
@@ -319,7 +319,7 @@ async function authAdminId(req, res, id) {
   }
 
   if(user.role !== "owner"){
-    if (user.id !== id) {
+    if (user.userId !== id) {
 
       return deny(res, 403, "Access denied");
 

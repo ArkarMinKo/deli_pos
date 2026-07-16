@@ -117,35 +117,35 @@ const server = http.createServer(async (req, res) => {
 
     else if (pathName.startsWith("/get-users-by-id/") && method === "GET") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authUserId(req, res, id))) return;
+        if (!(await auth.authUserId(req, res, id, false))) return;
         users.getUsersById(req, res, id);
         return
     }
 
     else if (pathName.startsWith("/userinfo-orders/") && method === "GET") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authUserId(req, res, id))) return;
+        if (!(await auth.authUserId(req, res, id, true))) return;
         users.userInfoForOrders(req, res, id);
         return;
     }
 
     else if (pathName.startsWith("/users/") && method === "PUT") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authUserId(req, res, id))) return;
+        if (!(await auth.authUserId(req, res, id, true))) return;
         users.updateUser(req, res, id, true);
         return;
     }
 
     else if (pathName.startsWith("/users-location/") && method === "PATCH") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authUserId(req, res, id))) return;
+        if (!(await auth.authUserId(req, res, id, true))) return;
         users.userLocation(req, res, id);
         return;
     }
 
     else if (pathName.startsWith("/users/") && method === "DELETE") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authUserId(req, res, id))) return;
+        if (!(await auth.authUserId(req, res, id, true))) return;
         users.deleteUser(req, res, id);
         return;
     }
@@ -180,7 +180,7 @@ const server = http.createServer(async (req, res) => {
 
     else if (pathName.startsWith("/change-passwords-with-otp-users/") && method === "PATCH") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authUserId(req, res, id))) return;
+        if (!(await auth.authUserId(req, res, id, true))) return;
         users.patchUserPasswordWithOTP(req, res, id);
         return;
     }
@@ -721,7 +721,7 @@ const server = http.createServer(async (req, res) => {
 
     else if (pathName.startsWith("/orders-by-user/") && method === "GET") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authUserId(req, res, id))) return;
+        if (!(await auth.authUserId(req, res, id, true))) return;
         order.getOrdersByUserId(req, res, id);
         return;
     }
@@ -817,14 +817,14 @@ const server = http.createServer(async (req, res) => {
     // --- Mobile Notification ---
     else if(pathName.startsWith("/mobile-noti/") && method === "GET") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authUserId(req, res, id))) return;
+        if (!(await auth.authUserId(req, res, id, true))) return;
         mobileNoti.getNotiUser(req, res, id);
         return;
     }
 
     else if(pathName.startsWith("/mobile-noti/") && method === "PATCH") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authUserId(req, res, id))) return;
+        if (!(await auth.authUserId(req, res, id, true))) return;
         mobileNoti.mobileNotiSeen(req, res, id);
         return;
     }
