@@ -8,7 +8,7 @@ const { authUserId, authShopId } = require('../middlewares/auth');
 const UPLOAD_DIR = path.join(__dirname, "../orders_uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
 
-function postOrder(req, res) {
+async function postOrder(req, res) {
   let body = "";
 
   req.on("data", chunk => {
