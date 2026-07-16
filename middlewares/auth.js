@@ -237,14 +237,14 @@ async function authDeliveryAdmin(req, res) {
 |--------------------------------------------------------------------------
 */
 
-async function authUserId(req, res, id = null, isUserOnly) {
+async function authUserId(req, res, id = null) {
 
   const user = await authenticate(req, res);
 
   if (!user) return false;
 
   const isRegularUser = user.type === "user";
-  const isAllowedAdmin = user.type === "admin" && (user.role === "owner" || user.role === "manager") && !isUserOnly;
+  const isAllowedAdmin = user.type === "admin" && (user.role === "owner" || user.role === "manager");
 
   if (!isRegularUser && !isAllowedAdmin) {
     return deny(res, 403, "Access denied. Only regular users, or admins who are owners/managers, are allowed.");

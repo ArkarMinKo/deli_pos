@@ -117,35 +117,35 @@ const server = http.createServer(async (req, res) => {
 
     else if (pathName.startsWith("/get-users-by-id/") && method === "GET") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authUserId(req, res, id, false))) return;
+        if (!(await auth.authUserId(req, res, id))) return;
         users.getUsersById(req, res, id);
         return
     }
 
     else if (pathName.startsWith("/userinfo-orders/") && method === "GET") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authUserId(req, res, id, true))) return;
+        if (!(await auth.authUserId(req, res, id))) return;
         users.userInfoForOrders(req, res, id);
         return;
     }
 
     else if (pathName.startsWith("/users/") && method === "PUT") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authUserId(req, res, id, true))) return;
+        if (!(await auth.authUserId(req, res, id))) return;
         users.updateUser(req, res, id, true);
         return;
     }
 
     else if (pathName.startsWith("/users-location/") && method === "PATCH") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authUserId(req, res, id, true))) return;
+        if (!(await auth.authUserId(req, res, id))) return;
         users.userLocation(req, res, id);
         return;
     }
 
     else if (pathName.startsWith("/users/") && method === "DELETE") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authUserId(req, res, id, true))) return;
+        if (!(await auth.authUserId(req, res, id))) return;
         users.deleteUser(req, res, id);
         return;
     }
@@ -180,7 +180,7 @@ const server = http.createServer(async (req, res) => {
 
     else if (pathName.startsWith("/change-passwords-with-otp-users/") && method === "PATCH") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authUserId(req, res, id, true))) return;
+        if (!(await auth.authUserId(req, res, id))) return;
         users.patchUserPasswordWithOTP(req, res, id);
         return;
     }
