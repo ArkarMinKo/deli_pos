@@ -64,7 +64,7 @@ function loginShop(req, res, body) {
         }
 
         const token = generateToken({
-          id: user.id,
+          id: shop.id,
           type: "shop"
         });
 
