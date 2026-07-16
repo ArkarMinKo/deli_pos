@@ -16,7 +16,7 @@ function createMenu(req, res) {
         multiples: false,
     });
 
-    form.parse(req, (err, fields, files) => {
+    form.parse(req, async (err, fields, files) => {
         if (err) {
             res.writeHead(500, { "Content-Type": "application/json" });
             return res.end(JSON.stringify({ message: "Form parsing failed", err }));
