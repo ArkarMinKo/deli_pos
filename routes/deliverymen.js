@@ -9,6 +9,8 @@ const { off } = require("process");
 const { clear } = require("console");
 const { generateToken } = require('../utils/jwtToken');
 
+const { authShopId } = require('../middlewares/auth');
+
 const UPLOAD_DIR = path.join(__dirname, "../deliverymen_uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
 
@@ -1570,7 +1572,7 @@ function clearedOrders(req, res, deliverymenId) {
     body += chunk.toString();
   });
 
-  req.on("end", () => {
+  req.on("end", async () => {
     try {
       const data = JSON.parse(body);
       const { shopId } = data;
@@ -1584,6 +1586,8 @@ function clearedOrders(req, res, deliverymenId) {
           })
         );
       }
+
+      if (!(await authShopId(req, res, shop_id))) return;
 
       db.query(
         `SELECT 

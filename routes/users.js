@@ -174,8 +174,11 @@ function getUsersById(req, res, id) {
             return res.end(JSON.stringify({ message: "User ရှာမတွေ့ပါ" }));
         }
 
+        const user = results[0];
+        delete user.password;
+
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify(results));
+        res.end(JSON.stringify(user));
     });
 }
 

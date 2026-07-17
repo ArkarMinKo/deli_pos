@@ -921,8 +921,7 @@ function openMenu(req, res, id) {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({
       success: true,
-      message: "Menu ဖွင့်လှစ်လိုက်ပါပြီ",
-      deliveryman_id: id
+      message: "Menu ဖွင့်လှစ်လိုက်ပါပြီ"
     }));
   });
 }

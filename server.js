@@ -579,14 +579,16 @@ const server = http.createServer(async (req, res) => {
 
     else if (pathName.startsWith("/categories/") && method === "PUT") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authShopId(req, res, id))) return; 
+        const shopId = id.split("_")[0];
+        if (!(await auth.authShopId(req, res, shopId))) return; 
         categories.updateCategories(req, res, id);
         return;
     }
 
     else if (pathName.startsWith("/categories/") && method === "DELETE") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authShopId(req, res, id))) return; 
+        const shopId = id.split("_")[0];
+        if (!(await auth.authShopId(req, res, shopId))) return; 
         categories.deleteCategories(req, res, id);
         return;
     }
@@ -606,14 +608,16 @@ const server = http.createServer(async (req, res) => {
 
     else if (pathName.startsWith("/ingredients/") && method === "PUT") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authShopId(req, res, id))) return; 
+        const shopId = id.split("_")[0];
+        if (!(await auth.authShopId(req, res, shopId))) return; 
         ingredients.updateIngredients(req, res, id);
         return;
     }
 
     else if (pathName.startsWith("/ingredients/") && method === "DELETE") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authShopId(req, res, id))) return; 
+        const shopId = id.split("_")[0];
+        if (!(await auth.authShopId(req, res, shopId))) return; 
         ingredients.deleteIngredients(req, res, id);
         return;
     }
@@ -654,14 +658,15 @@ const server = http.createServer(async (req, res) => {
 
     else if (pathName.startsWith("/menu/") && method === "PUT") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authShopId(req, res, id))) return;
+        const shopId = id.split("_")[0];
+        if (!(await auth.authShopId(req, res, shopId))) return;
         menu.updateMenu(req, res, id);
         return;
     }
 
     else if (pathName.startsWith("/menu/") && method === "DELETE") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authShopId(req, res, id))) return;
+        if (!(await auth.authShopId(req, res, shopId))) return;
         menu.deleteMenu(req, res, id);
         return;
     }
@@ -675,14 +680,16 @@ const server = http.createServer(async (req, res) => {
 
     else if (pathName.startsWith("/open-menu/") && method === "PATCH") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authShopId(req, res, id))) return;
+        const shopId = id.split("_")[0];
+        if (!(await auth.authShopId(req, res, shopId))) return;
         menu.openMenu(req, res, id);
         return;
     }
 
     else if (pathName.startsWith("/off-menu/") && method === "PATCH") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authShopId(req, res, id))) return;
+        const shopId = id.split("_")[0];
+        if (!(await auth.authShopId(req, res, ShopId))) return;
         menu.offMenu(req, res, id);
         return;
     }
@@ -809,7 +816,6 @@ const server = http.createServer(async (req, res) => {
 
     else if(pathName.startsWith("/clearedOrders-by-shops/") && method === "PATCH") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authShopId(req, res, id))) return;
         deliverymen.clearedOrders(req, res, id);
         return;
     }

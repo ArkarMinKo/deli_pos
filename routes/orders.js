@@ -948,7 +948,7 @@ async function approveAllOrderItems(req, res, orderId) {
         );
       }
 
-      if (!(await authShopId(req, res, shopIdId))) return; 
+      if (!(await authShopId(req, res, shopId))) return; 
 
       const [rows] = await db.promise().query(
         "SELECT orders FROM orders WHERE id = ?",
