@@ -523,8 +523,8 @@ const server = http.createServer(async (req, res) => {
     }
 
     else if (pathName.startsWith("/assign-orders/") && method === "POST") {
-        if (!(await auth.authDeliveryAdmin(req, res))) return;
         const id = pathName.split("/")[2];
+        if (!(await auth.authDeliveryAdmin(req, res)) && !(await auth.authDeliverymenId(req, res, id))) return;
         deliverymen.addOrdersToDeliverymen(req, res, id);
         return;
     }
