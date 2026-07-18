@@ -1587,7 +1587,7 @@ function clearedOrders(req, res, deliverymenId) {
         );
       }
 
-      if (!(await authShopId(req, res, shop_id))) return;
+      if (!(await authShopId(req, res, shopId))) return;
 
       db.query(
         `SELECT 
