@@ -756,7 +756,7 @@ const server = http.createServer(async (req, res) => {
 
     else if(pathName.startsWith("/finish-order/") && method === "POST") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authDeliverymenId(req, res, id))) return;
+        if (!(await auth.authDeliverymen(req, res))) return;
         order.finishOrder(req, res, id);
         return;
     }
