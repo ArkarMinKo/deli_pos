@@ -524,7 +524,7 @@ const server = http.createServer(async (req, res) => {
 
     else if (pathName.startsWith("/assign-orders/") && method === "POST") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authDeliveryAdmin(req, res)) && !(await auth.authDeliverymenId(req, res, id))) return;
+        if (!(await auth.auth(req, res))) return;
         deliverymen.addOrdersToDeliverymen(req, res, id);
         return;
     }
@@ -572,7 +572,7 @@ const server = http.createServer(async (req, res) => {
 
     else if (pathName.startsWith("/categories/") && method === "GET") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authShopId(req, res, id)) && !(await auth.authUser(req, res))) return; 
+        if (!(await auth.auth(req, res))) return; 
         categories.getCategoriesByShopId(req, res, id);
         return;
     }
@@ -782,7 +782,7 @@ const server = http.createServer(async (req, res) => {
 
     else if(pathName.startsWith("/report-shops/") && method === "GET") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authShopId(req, res, id)) && !(await auth.authOwner)) return;
+        if (!(await auth.auth(req, res))) return;
         order.getReportByShop(req, res, id)
         return;
     }
