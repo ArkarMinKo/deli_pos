@@ -7,32 +7,33 @@ const { verifyJWT } = require("../utils/jwtToken");
 */
 
 function deny(res, code, message) {
-  res.writeHead(code, {
-    "Content-Type": "application/json",
-  });
+  setTimeout(() => {
+    if (res.writableEnded || res.headersSent) return;
 
-  res.end(JSON.stringify({
-    message
-  }));
+    res.writeHead(code, {
+      "Content-Type": "application/json",
+    });
+    res.end(JSON.stringify({ message }));
+  }, 0);
 
   return false;
 }
 
 async function authenticate(req, res) {
+  if (req.user) return req.user;
+  if (req.authError) return false;
+
   try {
     const auth = await verifyJWT(req);
-
     req.user = auth;
-
     return auth;
   } catch (err) {
-
+    req.authError = err;
     deny(
       res,
       err.status || 401,
       err.message || "Unauthorized"
     );
-
     return false;
   }
 }

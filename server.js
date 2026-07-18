@@ -524,12 +524,7 @@ const server = http.createServer(async (req, res) => {
 
     else if (pathName.startsWith("/assign-orders/") && method === "POST") {
         const id = pathName.split("/")[2];
-        const isDeliveryman = await auth.authDeliverymenId(req, res, id);
-        if (!isDeliveryman) {
-            const isAdmin = await auth.authDeliveryAdmin(req, res);
-            if(!isAdmin)return
-            return res.status(401).json({ message: "Unauthorized access" });
-        }
+        if (!(await auth.authDeliveryAdmin(req, res)) && !(await auth.authDeliverymenId(req, res, id))) return;
         deliverymen.addOrdersToDeliverymen(req, res, id);
         return;
     }
