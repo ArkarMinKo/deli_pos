@@ -830,7 +830,6 @@ const server = http.createServer(async (req, res) => {
 
     else if(pathName.startsWith("/mobile-noti/") && method === "PATCH") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authUserId(req, res, id, true))) return;
         mobileNoti.mobileNotiSeen(req, res, id);
         return;
     }
