@@ -572,7 +572,7 @@ const server = http.createServer(async (req, res) => {
 
     else if (pathName.startsWith("/categories/") && method === "GET") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authShopId(req, res, id))) return; 
+        if (!(await auth.authShopId(req, res, id)) && !(await auth.authUser(req, res))) return; 
         categories.getCategoriesByShopId(req, res, id);
         return;
     }
