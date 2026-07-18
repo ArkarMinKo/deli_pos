@@ -666,6 +666,7 @@ const server = http.createServer(async (req, res) => {
 
     else if (pathName.startsWith("/menu/") && method === "DELETE") {
         const id = pathName.split("/")[2];
+        const shopId = id.split("_")[0];
         if (!(await auth.authShopId(req, res, shopId))) return;
         menu.deleteMenu(req, res, id);
         return;
@@ -689,7 +690,7 @@ const server = http.createServer(async (req, res) => {
     else if (pathName.startsWith("/off-menu/") && method === "PATCH") {
         const id = pathName.split("/")[2];
         const shopId = id.split("_")[0];
-        if (!(await auth.authShopId(req, res, ShopId))) return;
+        if (!(await auth.authShopId(req, res, shopId))) return;
         menu.offMenu(req, res, id);
         return;
     }
