@@ -447,7 +447,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     else if (pathName.startsWith("/deliverymen/") && method === "PUT") {
-        if (!(await auth.authDeliveryAdmin(req, res))) return; 
+        if (!(await auth.auth(req, res))) return; 
         const id = pathName.split("/")[2];
         deliverymen.putDeliverymen(req, res, id);
         return;
@@ -509,14 +509,14 @@ const server = http.createServer(async (req, res) => {
     }
 
     else if (pathName.startsWith("/deliverymen/") && method === "DELETE") {
-        if (!(await auth.authDeliveryAdmin(req, res))) return; 
+        if (!(await auth.auth(req, res))) return; 
         const id = pathName.split("/")[2];
         deliverymen.deleteDeliverymen(req, res, id);
         return;
     }
 
     else if (pathName.startsWith("/deliverymen/status/") && method === "PATCH") {
-        if (!(await auth.authDeliveryAdmin(req, res))) return;
+        if (!(await auth.auth(req, res))) return;
         const id = pathName.split("/")[3];
         deliverymen.changeStatus(req, res, id);
         return;
