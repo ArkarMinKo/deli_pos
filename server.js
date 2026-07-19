@@ -722,7 +722,7 @@ const server = http.createServer(async (req, res) => {
 
     else if (pathName.startsWith("/orders-by-shop-noti/") && method === "GET") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authShopId(req, res, id))) return;
+        if (!(await auth.authShop(req, res))) return;
         order.getOrdersByShopId(req, res, id);
         return;
     }
