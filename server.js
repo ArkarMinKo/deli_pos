@@ -749,7 +749,7 @@ const server = http.createServer(async (req, res) => {
 
     else if(pathName.startsWith("/pickup-order/") && method === "PATCH") {
         const id = pathName.split("/")[2];
-        if (!(await auth.authDeliverymenId(req, res, id))) return;
+        if (!(await auth.authShop(req, res))) return;
         order.pickupOrder(req, res, id);
         return;
     }
