@@ -135,10 +135,6 @@ function updateIngredients(req, res, id) {
                     return res.end(JSON.stringify({ error: "Ingredient not found" }));
                 }
 
-                console.log("=======================");
-                console.log("UPLOAD_DIR:", UPLOAD_DIR);
-                console.log("Photo Name:", newPhotoName);
-
                 let oldPhoto = result[0].photo;
                 let newPhotoName = oldPhoto;
 
@@ -152,6 +148,11 @@ function updateIngredients(req, res, id) {
                         );
 
                         newPhotoName = generatePhotoName(id, `photo.${ext}`);
+
+                        console.log("=======================");
+                        console.log("UPLOAD_DIR:", UPLOAD_DIR);
+                        console.log("Photo Name:", newPhotoName);
+                        
                         const savePath = path.join(UPLOAD_DIR, newPhotoName);
 
                         console.log("Save Path:", savePath);
