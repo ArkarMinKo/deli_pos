@@ -135,6 +135,10 @@ function updateIngredients(req, res, id) {
                     return res.end(JSON.stringify({ error: "Ingredient not found" }));
                 }
 
+                console.log("=======================");
+                console.log("UPLOAD_DIR:", UPLOAD_DIR);
+                console.log("Photo Name:", newPhotoName);
+
                 let oldPhoto = result[0].photo;
                 let newPhotoName = oldPhoto;
 
@@ -148,7 +152,9 @@ function updateIngredients(req, res, id) {
                         );
 
                         newPhotoName = generatePhotoName(id, `photo.${ext}`);
+                        const savePath = path.join(UPLOAD_DIR, newPhotoName);
 
+                        console.log("Save Path:", savePath);
                         try {
 
                             fs.writeFileSync(
@@ -163,6 +169,8 @@ function updateIngredients(req, res, id) {
                             console.log(e);
 
                         }
+                        console.log("Exists:", fs.existsSync(savePath));
+                        console.log("=======================");
 
                         // delete old photo
                         const oldPath = path.join(UPLOAD_DIR, oldPhoto);
