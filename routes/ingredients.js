@@ -118,14 +118,6 @@ function updateIngredients(req, res, id) {
                 return res.end(JSON.stringify({ error: "လိုအပ်ချက်များ မပြည့်စုံပါ" }));
             }
 
-            console.log("Method:", req.method);
-            console.log("Content-Type:", req.headers["content-type"]);
-            console.log("Body Size:", body.length);
-
-            console.log("Photo exists:", !!photo);
-            console.log("Photo length:", photo ? photo.length : 0);
-            console.log("Photo prefix:", photo ? photo.substring(0, 50) : null);
-
             // 1. Get existing ingredient
             const getSql = `SELECT photo FROM ingredients WHERE id = ?`;
 
@@ -148,14 +140,6 @@ function updateIngredients(req, res, id) {
                         );
 
                         newPhotoName = generatePhotoName(id, `photo.${ext}`);
-
-                        console.log("=======================");
-                        console.log("UPLOAD_DIR:", UPLOAD_DIR);
-                        console.log("Photo Name:", newPhotoName);
-                        
-                        const savePath = path.join(UPLOAD_DIR, newPhotoName);
-
-                        console.log("Save Path:", savePath);
                         try {
 
                             fs.writeFileSync(
@@ -163,15 +147,11 @@ function updateIngredients(req, res, id) {
                                 Buffer.from(base64Data, "base64")
                             );
 
-                            console.log("Saved OK");
-
                         } catch (e) {
 
                             console.log(e);
 
                         }
-                        console.log("Exists:", fs.existsSync(savePath));
-                        console.log("=======================");
 
                         // delete old photo
                         const oldPath = path.join(UPLOAD_DIR, oldPhoto);
