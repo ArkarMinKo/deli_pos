@@ -118,6 +118,14 @@ function updateIngredients(req, res, id) {
                 return res.end(JSON.stringify({ error: "လိုအပ်ချက်များ မပြည့်စုံပါ" }));
             }
 
+            console.log("Method:", req.method);
+            console.log("Content-Type:", req.headers["content-type"]);
+            console.log("Body Size:", body.length);
+
+            console.log("Photo exists:", !!photo);
+            console.log("Photo length:", photo ? photo.length : 0);
+            console.log("Photo prefix:", photo ? photo.substring(0, 50) : null);
+
             // 1. Get existing ingredient
             const getSql = `SELECT photo FROM ingredients WHERE id = ?`;
 
