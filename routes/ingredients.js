@@ -149,10 +149,20 @@ function updateIngredients(req, res, id) {
 
                         newPhotoName = generatePhotoName(id, `photo.${ext}`);
 
-                        fs.writeFileSync(
-                            path.join(UPLOAD_DIR, newPhotoName),
-                            Buffer.from(base64Data, "base64")
-                        );
+                        try {
+
+                            fs.writeFileSync(
+                                path.join(UPLOAD_DIR, newPhotoName),
+                                Buffer.from(base64Data, "base64")
+                            );
+
+                            console.log("Saved OK");
+
+                        } catch (e) {
+
+                            console.log(e);
+
+                        }
 
                         // delete old photo
                         const oldPath = path.join(UPLOAD_DIR, oldPhoto);
