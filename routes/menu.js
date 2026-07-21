@@ -135,132 +135,140 @@ function createMenu(req, res) {
 }
 
 function updateMenu(req, res, id) {
-    const form = new formidable.IncomingForm({
-        multiples: false,
-        maxFileSize: 50 * 1024 * 1024,
-    });
+  let body = "";
 
-    form.parse(req, (err, fields) => {
-        if (err) {
-            return res.end(JSON.stringify({ message: "Form parse failed", err }));
+  req.on("data", chunk => {
+    body += chunk.toString();
+  });
+
+  req.on("end", () => {
+    try {
+      const {
+        name,
+        prices,
+        category,
+        description,
+        relate_menu,
+        relate_ingredients,
+        get_months,
+        photo
+      } = JSON.parse(body);
+
+      if (!id) {
+        return res.end(JSON.stringify({ message: "Menu ID is required" }));
+      }
+
+      // ✅ FIX prices
+      let pricesJson;
+      try {
+        const parsed = typeof prices === "string" ? JSON.parse(prices) : prices;
+        pricesJson = JSON.stringify(parsed.map(p => ({
+          size: p.size,
+          price: Number(p.price)
+        })));
+      } catch {
+        return res.end(JSON.stringify({ message: "Invalid prices JSON" }));
+      }
+
+      db.query("SELECT photo FROM menu WHERE id = ?", [id], (err, result) => {
+        if (err || result.length === 0) {
+          return res.end(JSON.stringify({ message: "Menu not found" }));
         }
 
-        const {
-            name,
-            prices,
-            category,
-            description,
-            relate_menu,
-            relate_ingredients,
-            get_months,
-            photo
-        } = fields;
+        let oldPhoto = result[0].photo;
+        let newPhotoName = oldPhoto;
 
-        if (!id) {
-            return res.end(JSON.stringify({ message: "Menu ID is required" }));
-        }
-
-        // ✅ FIX prices
-        let pricesJson;
         try {
-            const parsed = typeof prices === "string" ? JSON.parse(prices) : prices;
-            pricesJson = JSON.stringify(parsed.map(p => ({
-                size: p.size,
-                price: Number(p.price)
-            })));
-        } catch {
-            return res.end(JSON.stringify({ message: "Invalid prices JSON" }));
+
+          if (photo && photo.startsWith("data:image")) {
+
+            const matches = photo.match(/^data:(.+);base64,(.+)$/);
+
+            if (!matches) {
+              return res.end(JSON.stringify({ message: "Invalid base64 format" }));
+            }
+
+            const mimeType = matches[1];
+            const base64Data = matches[2];
+            const ext = mimeType.split("/")[1].replace("jpeg", "jpg");
+
+            const photoName = generatePhotoName(id, `photo.${ext}`);
+
+            fs.writeFileSync(
+              path.join(UPLOAD_DIR, photoName),
+              Buffer.from(base64Data, "base64")
+            );
+
+            if (oldPhoto && fs.existsSync(path.join(UPLOAD_DIR, oldPhoto))) {
+              fs.unlinkSync(path.join(UPLOAD_DIR, oldPhoto));
+            }
+
+            newPhotoName = photoName;
+          }
+
+          // 🔥 FORCE FIX OLD DATA
+          else if (oldPhoto && !path.extname(oldPhoto)) {
+
+            const possibleExts = [".jpg", ".png", ".jpeg", ".webp"];
+            let found = false;
+
+            for (let ext of possibleExts) {
+              const testPath = path.join(UPLOAD_DIR, oldPhoto + ext);
+
+              if (fs.existsSync(testPath)) {
+                newPhotoName = oldPhoto + ext;
+                found = true;
+                break;
+              }
+            }
+
+            // 🔥 if not found → default to .jpg
+            if (!found) {
+              newPhotoName = oldPhoto + ".jpg";
+            }
+          }
+
+        } catch (e) {
+          console.log("PHOTO ERROR:", e.message);
+          return res.end(JSON.stringify({ message: "Photo processing failed" }));
         }
 
-        db.query("SELECT photo FROM menu WHERE id = ?", [id], (err, result) => {
-            if (err || result.length === 0) {
-                return res.end(JSON.stringify({ message: "Menu not found" }));
-            }
+        const sql = `
+                    UPDATE menu SET
+                        name=?, prices=?, category=?, photo=?,
+                        description=?, relate_menu=?, relate_ingredients=?, get_months=?
+                    WHERE id=?
+                `;
 
-            let oldPhoto = result[0].photo;
-            let newPhotoName = oldPhoto;
+        db.query(sql, [
+          name || null,
+          pricesJson,
+          category || null,
+          newPhotoName,
+          description || null,
+          Array.isArray(relate_menu) ? JSON.stringify(relate_menu) : null,
+          Array.isArray(relate_ingredients) ? JSON.stringify(relate_ingredients) : null,
+          Array.isArray(get_months) ? JSON.stringify(get_months) : null,
+          id
+        ], (err) => {
+          if (err) {
+            return res.end(JSON.stringify({ message: "DB update error", err }));
+          }
 
-            try {
-              if (photo && photo.startsWith("data:image")) {
-
-                  const matches = photo.match(/^data:(.+);base64,(.+)$/);
-                  if (!matches) {
-                      return res.end(JSON.stringify({ message: "Invalid base64 format" }));
-                  }
-
-                  const mimeType = matches[1];
-                  const base64Data = matches[2];
-                  const ext = mimeType.split("/")[1].replace("jpeg", "jpg");
-
-                  const photoName = generatePhotoName(id, `photo.${ext}`);
-
-                  fs.writeFileSync(
-                      path.join(UPLOAD_DIR, photoName),
-                      Buffer.from(base64Data, "base64")
-                  );
-
-                  if (oldPhoto && fs.existsSync(path.join(UPLOAD_DIR, oldPhoto))) {
-                      fs.unlinkSync(path.join(UPLOAD_DIR, oldPhoto));
-                  }
-
-                  newPhotoName = photoName;
-              }
-
-                // 🔥 FORCE FIX OLD DATA
-                else if (oldPhoto && !path.extname(oldPhoto)) {
-
-                  const possibleExts = [".jpg", ".png", ".jpeg", ".webp"];
-                  let found = false;
-
-                  for (let ext of possibleExts) {
-                      const testPath = path.join(UPLOAD_DIR, oldPhoto + ext);
-
-                      if (fs.existsSync(testPath)) {
-                          newPhotoName = oldPhoto + ext;
-                          found = true;
-                          break;
-                      }
-                  }
-
-                  // 🔥 if not found → default to .jpg
-                  if (!found) {
-                      newPhotoName = oldPhoto + ".jpg";
-                  }
-              }
-            } catch (e) {
-                console.log("PHOTO ERROR:", e.message);
-                return res.end(JSON.stringify({ message: "Photo processing failed" }));
-            }
-
-            const sql = `
-                UPDATE menu SET
-                    name=?, prices=?, category=?, photo=?,
-                    description=?, relate_menu=?, relate_ingredients=?, get_months=?
-                WHERE id=?
-            `;
-
-            db.query(sql, [
-                name || null,
-                pricesJson,
-                category || null,
-                newPhotoName,
-                description || null,
-                Array.isArray(relate_menu) ? JSON.stringify(relate_menu) : null,
-                Array.isArray(relate_ingredients) ? JSON.stringify(relate_ingredients) : null,
-                Array.isArray(get_months) ? JSON.stringify(get_months) : null,
-                id
-            ], (err) => {
-                if (err) {
-                    return res.end(JSON.stringify({ message: "DB update error", err }));
-                }
-
-                res.end(JSON.stringify({
-                    message: "Menu ကို အောင်မြင်စွာ ပြင်ဆင် ပြီးပါပြီ",
-                    photo: newPhotoName
-                }));
-            });
+          res.end(JSON.stringify({
+            message: "Menu ကို အောင်မြင်စွာ ပြင်ဆင် ပြီးပါပြီ",
+            photo: newPhotoName
+          }));
         });
-    });
+      });
+
+    } catch (err) {
+      return res.end(JSON.stringify({
+        message: "Invalid JSON",
+        error: err.message
+      }));
+    }
+  });
 }
 
 function deleteMenu(req, res, id) {
