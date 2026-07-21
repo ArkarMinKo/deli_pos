@@ -204,7 +204,7 @@ function updateIngredients(req, res, id) {
 }
 
 function updateIngredientsForWeb(req, res, id) {
-    const form = formidable({
+    const form = new formidable.IncomingForm({
         multiples: false,
         keepExtensions: true,
     });
