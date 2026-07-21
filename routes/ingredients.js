@@ -203,6 +203,135 @@ function updateIngredients(req, res, id) {
     });
 }
 
+function updateIngredientsForWeb(req, res, id) {
+    const form = formidable({
+        multiples: false,
+        keepExtensions: true,
+    });
+
+    form.parse(req, (err, fields, files) => {
+        if (err) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({
+                error: "Form parse error",
+                details: err.message
+            }));
+        }
+
+        try {
+            const name = Array.isArray(fields.name) ? fields.name[0] : fields.name;
+            const prices = Array.isArray(fields.prices) ? fields.prices[0] : fields.prices;
+
+            const photo = Array.isArray(files.photo)
+                ? files.photo[0]
+                : files.photo;
+
+            if (!id) {
+                res.writeHead(400, { "Content-Type": "application/json" });
+                return res.end(JSON.stringify({
+                    error: "Ingredient ID required"
+                }));
+            }
+
+            // Required fields
+            if (!name || !prices) {
+                res.writeHead(400, { "Content-Type": "application/json" });
+                return res.end(JSON.stringify({
+                    error: "လိုအပ်ချက်များ မပြည့်စုံပါ"
+                }));
+            }
+
+            // 1. Get existing ingredient
+            const getSql = `SELECT photo FROM ingredients WHERE id = ?`;
+
+            db.query(getSql, [id], (err, result) => {
+                if (err || result.length === 0) {
+                    res.writeHead(404, { "Content-Type": "application/json" });
+                    return res.end(JSON.stringify({
+                        error: "Ingredient not found"
+                    }));
+                }
+
+                let oldPhoto = result[0].photo;
+                let newPhotoName = oldPhoto;
+
+                // 2. Replace photo only if new photo included
+                try {
+                    if (photo) {
+                        const ext = path.extname(photo.originalFilename || photo.newFilename);
+                        newPhotoName = generatePhotoName(id, `photo${ext}`);
+
+                        try {
+                            fs.copyFileSync(
+                                photo.filepath,
+                                path.join(UPLOAD_DIR, newPhotoName)
+                            );
+                        } catch (e) {
+                            console.log(e);
+                        }
+
+                        // delete old photo
+                        const oldPath = path.join(UPLOAD_DIR, oldPhoto);
+                        if (fs.existsSync(oldPath)) {
+                            fs.unlinkSync(oldPath);
+                        }
+                    }
+                } catch (e) {
+                    res.writeHead(400, { "Content-Type": "application/json" });
+                    return res.end(JSON.stringify({
+                        error: "Invalid Photo",
+                        e
+                    }));
+                }
+
+                // 3. Update DB
+                const updateSql = `
+                    UPDATE ingredients SET
+                        name = ?, prices = ?, photo = ?
+                    WHERE id = ?
+                `;
+
+                db.query(
+                    updateSql,
+                    [
+                        name,
+                        prices,
+                        newPhotoName,
+                        id,
+                    ],
+                    (err2) => {
+                        if (err2) {
+                            res.writeHead(500, {
+                                "Content-Type": "application/json"
+                            });
+                            return res.end(JSON.stringify({
+                                error: "Update failed",
+                                details: err2
+                            }));
+                        }
+
+                        res.writeHead(200, {
+                            "Content-Type": "application/json"
+                        });
+                        return res.end(JSON.stringify({
+                            message: "Ingredient ကို အောင်မြင်စွာ ပြင်ဆင်ပြီးပါပြီ",
+                        }));
+                    }
+                );
+            });
+
+        } catch (err) {
+            res.writeHead(400, {
+                "Content-Type": "application/json"
+            });
+            return res.end(JSON.stringify({
+                error: "Invalid Form Data",
+                details: err.message
+            }));
+        }
+    });
+}
+
 function getIngredientsByShopId(req, res, id) {
     const sql = `
         SELECT 
@@ -271,6 +400,7 @@ function deleteIngredients(req, res, id) {
 module.exports = {
         createIngredients,
         updateIngredients,
+        updateIngredientsForWeb,
         getIngredientsByShopId,
         deleteIngredients
     };

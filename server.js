@@ -614,6 +614,14 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    else if (pathName.startsWith("/ingredients-Web/") && method === "PUT") {
+        const id = pathName.split("/")[2];
+        const shopId = id.split("_")[0];
+        if (!(await auth.authShopId(req, res, shopId))) return;
+        ingredients.updateIngredients(req, res, id);
+        return;
+    }
+
     else if (pathName.startsWith("/ingredients/") && method === "DELETE") {
         const id = pathName.split("/")[2];
         const shopId = id.split("_")[0];
