@@ -271,6 +271,169 @@ function updateMenu(req, res, id) {
   });
 }
 
+function updateMenuForWeb(req, res, id) {
+  const form = new formidable.IncomingForm({
+    multiples: false,
+    keepExtensions: true,
+  });
+
+  form.parse(req, (err, fields, files) => {
+    if (err) {
+      return res.end(JSON.stringify({
+        message: "Form parse error",
+        error: err.message
+      }));
+    }
+
+    try {
+      const name = Array.isArray(fields.name) ? fields.name[0] : fields.name;
+      const category = Array.isArray(fields.category) ? fields.category[0] : fields.category;
+      const description = Array.isArray(fields.description) ? fields.description[0] : fields.description;
+
+      const prices = Array.isArray(fields.prices) ? fields.prices[0] : fields.prices;
+
+      const relate_menu = fields.relate_menu
+        ? JSON.parse(Array.isArray(fields.relate_menu) ? fields.relate_menu[0] : fields.relate_menu)
+        : null;
+
+      const relate_ingredients = fields.relate_ingredients
+        ? JSON.parse(Array.isArray(fields.relate_ingredients) ? fields.relate_ingredients[0] : fields.relate_ingredients)
+        : null;
+
+      const get_months = fields.get_months
+        ? JSON.parse(Array.isArray(fields.get_months) ? fields.get_months[0] : fields.get_months)
+        : null;
+
+      const photo = Array.isArray(files.photo)
+        ? files.photo[0]
+        : files.photo;
+
+      if (!id) {
+        return res.end(JSON.stringify({ message: "Menu ID is required" }));
+      }
+
+      // ✅ FIX prices
+      let pricesJson;
+      try {
+        const parsed = typeof prices === "string" ? JSON.parse(prices) : prices;
+
+        pricesJson = JSON.stringify(
+          parsed.map(p => ({
+            size: p.size,
+            price: Number(p.price)
+          }))
+        );
+      } catch {
+        return res.end(JSON.stringify({ message: "Invalid prices JSON" }));
+      }
+
+      db.query("SELECT photo FROM menu WHERE id = ?", [id], (err, result) => {
+        if (err || result.length === 0) {
+          return res.end(JSON.stringify({ message: "Menu not found" }));
+        }
+
+        let oldPhoto = result[0].photo;
+        let newPhotoName = oldPhoto;
+
+        try {
+
+          // ✅ Upload new photo
+          if (photo) {
+
+            const ext = path
+              .extname(photo.originalFilename || photo.newFilename)
+              .replace(".jpeg", ".jpg");
+
+            const photoName = generatePhotoName(id, `photo${ext}`);
+
+            fs.copyFileSync(
+              photo.filepath,
+              path.join(UPLOAD_DIR, photoName)
+            );
+
+            if (
+              oldPhoto &&
+              fs.existsSync(path.join(UPLOAD_DIR, oldPhoto))
+            ) {
+              fs.unlinkSync(path.join(UPLOAD_DIR, oldPhoto));
+            }
+
+            newPhotoName = photoName;
+          }
+
+          // 🔥 FORCE FIX OLD DATA
+          else if (oldPhoto && !path.extname(oldPhoto)) {
+
+            const possibleExts = [".jpg", ".png", ".jpeg", ".webp"];
+            let found = false;
+
+            for (let ext of possibleExts) {
+              const testPath = path.join(UPLOAD_DIR, oldPhoto + ext);
+
+              if (fs.existsSync(testPath)) {
+                newPhotoName = oldPhoto + ext;
+                found = true;
+                break;
+              }
+            }
+
+            if (!found) {
+              newPhotoName = oldPhoto + ".jpg";
+            }
+          }
+
+        } catch (e) {
+          console.log("PHOTO ERROR:", e);
+          return res.end(JSON.stringify({
+            message: "Photo processing failed"
+          }));
+        }
+
+        const sql = `
+          UPDATE menu SET
+            name=?, prices=?, category=?, photo=?,
+            description=?, relate_menu=?, relate_ingredients=?, get_months=?
+          WHERE id=?
+        `;
+
+        db.query(
+          sql,
+          [
+            name || null,
+            pricesJson,
+            category || null,
+            newPhotoName,
+            description || null,
+            Array.isArray(relate_menu) ? JSON.stringify(relate_menu) : null,
+            Array.isArray(relate_ingredients) ? JSON.stringify(relate_ingredients) : null,
+            Array.isArray(get_months) ? JSON.stringify(get_months) : null,
+            id
+          ],
+          (err) => {
+            if (err) {
+              return res.end(JSON.stringify({
+                message: "DB update error",
+                err
+              }));
+            }
+
+            res.end(JSON.stringify({
+              message: "Menu ကို အောင်မြင်စွာ ပြင်ဆင် ပြီးပါပြီ",
+              photo: newPhotoName
+            }));
+          }
+        );
+      });
+
+    } catch (err) {
+      return res.end(JSON.stringify({
+        message: "Invalid Form Data",
+        error: err.message
+      }));
+    }
+  });
+}
+
 function deleteMenu(req, res, id) {
     if (!id) {
         res.writeHead(400, { "Content-Type": "application/json" });
@@ -1520,6 +1683,7 @@ function popularMenu(req, res) {
 module.exports = { 
     createMenu,
     updateMenu,
+    updateMenuForWeb,
     deleteMenu,
     getMenuByShopId,
     countByShopId,
