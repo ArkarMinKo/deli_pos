@@ -676,7 +676,7 @@ const server = http.createServer(async (req, res) => {
         const id = pathName.split("/")[2];
         const shopId = id.split("_")[0];
         if (!(await auth.authShopId(req, res, shopId))) return;
-        menu.updateMenu(req, res, id);
+        menu.updateMenuForWeb(req, res, id);
         return;
     }
 
