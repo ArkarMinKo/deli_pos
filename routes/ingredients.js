@@ -270,10 +270,12 @@ function updateIngredientsForWeb(req, res, id) {
                             console.log(e);
                         }
 
-                        // delete old photo
-                        const oldPath = path.join(UPLOAD_DIR, oldPhoto);
-                        if (fs.existsSync(oldPath)) {
-                            fs.unlinkSync(oldPath);
+                        // Delete old photo ONLY IF the name is different
+                        if (oldPhoto && oldPhoto !== newPhotoName) {
+                            const oldPath = path.join(UPLOAD_DIR, oldPhoto);
+                            if (fs.existsSync(oldPath)) {
+                                fs.unlinkSync(oldPath);
+                            }
                         }
                     }
                 } catch (e) {
