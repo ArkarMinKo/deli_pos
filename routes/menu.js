@@ -285,6 +285,16 @@ function updateMenuForWeb(req, res, id) {
       }));
     }
 
+    const safeJsonParse = (value) => {
+      if (!value) return null;
+      try {
+        const val = Array.isArray(value) ? value[0] : value;
+        return typeof val === "string" ? JSON.parse(val) : val;
+      } catch (e) {
+        return null;
+      }
+    };
+
     try {
       const name = Array.isArray(fields.name) ? fields.name[0] : fields.name;
       const category = Array.isArray(fields.category) ? fields.category[0] : fields.category;
@@ -292,17 +302,9 @@ function updateMenuForWeb(req, res, id) {
 
       const prices = Array.isArray(fields.prices) ? fields.prices[0] : fields.prices;
 
-      const relate_menu = fields.relate_menu
-        ? JSON.parse(Array.isArray(fields.relate_menu) ? fields.relate_menu[0] : fields.relate_menu)
-        : null;
-
-      const relate_ingredients = fields.relate_ingredients
-        ? JSON.parse(Array.isArray(fields.relate_ingredients) ? fields.relate_ingredients[0] : fields.relate_ingredients)
-        : null;
-
-      const get_months = fields.get_months
-        ? JSON.parse(Array.isArray(fields.get_months) ? fields.get_months[0] : fields.get_months)
-        : null;
+      const relate_menu = safeJsonParse(fields.relate_menu);
+      const relate_ingredients = safeJsonParse(fields.relate_ingredients);
+      const get_months = safeJsonParse(fields.get_months);
 
       const photo = Array.isArray(files.photo)
         ? files.photo[0]
