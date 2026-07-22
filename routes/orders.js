@@ -1165,8 +1165,12 @@ function getAllOrders(req, res, id) {
 
 async function connectedDeliverymen(req, res) {
   try {
+    // 🔹 Joined with 'shops' to fetch the shop_name where deliveryman work_type matches shop id
     const [deliverymen] = await db.promise().query(
-      "SELECT * FROM deliverymen WHERE current_orders IS NOT NULL"
+      `SELECT d.*, s.shop_name AS shop_name 
+       FROM deliverymen d 
+       LEFT JOIN shops s ON d.work_type = s.id 
+       WHERE d.current_orders IS NOT NULL`
     );
 
     const result = [];
@@ -1175,7 +1179,6 @@ async function connectedDeliverymen(req, res) {
 
       let orderIds = [];
 
-      // 🔹 Important Fix Here
       if (dm.current_orders) {
         if (Array.isArray(dm.current_orders)) {
           orderIds = dm.current_orders; // already parsed
@@ -1202,7 +1205,7 @@ async function connectedDeliverymen(req, res) {
         name: dm.name,
         email: dm.email,
         phone: dm.phone,
-        work_type: dm.work_type,
+        work_type: dm.shop_name || dm.work_type, // Falls back to original work_type if no shop match is found
         location: dm.location,
         status: dm.status,
         rating: dm.rating,
