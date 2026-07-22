@@ -336,10 +336,7 @@ function updateMenuForWeb(req, res, id) {
         let newPhotoName = oldPhoto;
 
         try {
-
-          // ✅ Upload new photo
           if (photo) {
-
             const ext = path
               .extname(photo.originalFilename || photo.newFilename)
               .replace(".jpeg", ".jpg");
@@ -353,6 +350,7 @@ function updateMenuForWeb(req, res, id) {
 
             if (
               oldPhoto &&
+              oldPhoto !== photoName &&
               fs.existsSync(path.join(UPLOAD_DIR, oldPhoto))
             ) {
               fs.unlinkSync(path.join(UPLOAD_DIR, oldPhoto));
@@ -363,7 +361,6 @@ function updateMenuForWeb(req, res, id) {
 
           // 🔥 FORCE FIX OLD DATA
           else if (oldPhoto && !path.extname(oldPhoto)) {
-
             const possibleExts = [".jpg", ".png", ".jpeg", ".webp"];
             let found = false;
 
