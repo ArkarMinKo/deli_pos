@@ -18,6 +18,7 @@ const mobileNoti = require('./routes/mobileNotification');
 const dashboard = require('./routes/dashboard');
 const announce = require('./routes/announcement');
 const auth = require('./middlewares/auth');
+const financeJob = require('./jobs/financeJob');
 
 // Upload folders
 const UPLOAD_DIR = path.join(__dirname, "uploads");
@@ -1011,4 +1012,5 @@ const server = http.createServer(async (req, res) => {
 const PORT = 3000;
 server.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
+  financeJob.startFinanceJobs();
 });
