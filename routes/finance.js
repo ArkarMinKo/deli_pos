@@ -124,6 +124,98 @@ async function changeMethodsAndFees(req, res, id) {
     });
 }
 
+async function financeByShops(req, res, shopId) {
+    try {
+        if (!shopId) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({
+                success: false,
+                message: "Shop ID is required"
+            }));
+        }
+
+        const [shops] = await db.execute(
+            `SELECT
+        id,
+        shop_name,
+        phone,
+        created_at,
+        platform_fees_method,
+        platform_fees,
+        commission_fees_method,
+        commission_fees
+       FROM shops
+       WHERE id = ?`,
+            [shopId]
+        );
+
+        if (shops.length === 0) {
+            res.writeHead(404, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({
+                success: false,
+                message: "Shop not found"
+            }));
+        }
+
+        const [platformFeeRecords] = await db.execute(
+            `SELECT
+        type,
+        period_start,
+        period_end,
+        amount,
+        status
+       FROM platform_fee_records
+       WHERE shop_id = ?
+       ORDER BY period_start DESC`,
+            [shopId]
+        );
+
+        const [commissionRecords] = await db.execute(
+            `SELECT
+        type,
+        period_start,
+        period_end,
+        sale_amount,
+        commission_percentages,
+        commission_fees,
+        status
+       FROM commission_records
+       WHERE shop_id = ?
+       ORDER BY period_start DESC`,
+            [shopId]
+        );
+
+        const shop = shops[0];
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+
+        res.end(JSON.stringify({
+            success: true,
+            shopsInfo: {
+                id: shop.id,
+                shop_name: shop.shop_name,
+                phone: shop.phone,
+                created_at: shop.created_at,
+                platform_fees_method: shop.platform_fees_method,
+                platform_fees: shop.platform_fees,
+                commission_fees_method: shop.commission_fees_method,
+                commission_fees: shop.commission_fees
+            },
+            platform_fee_records: platformFeeRecords,
+            commission_records: commissionRecords
+        }));
+
+    } catch (error) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+
+        res.end(JSON.stringify({
+            success: false,
+            message: "Failed to get shop finance information"
+        }));
+    }
+}
+
 module.exports = {
-    changeMethodsAndFees
+    changeMethodsAndFees,
+    financeByShops
 };

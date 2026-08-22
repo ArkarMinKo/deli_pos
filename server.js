@@ -1011,6 +1011,13 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    else if (pathName.startsWith("/finance/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        if (!(await auth.auth(req, res, id))) return;
+        finance.financeByShops(req, res, id);
+        return;
+    }
+
     // --- 404 fallback ---
     else {
         res.writeHead(404, { "Content-Type": "application/json" });
