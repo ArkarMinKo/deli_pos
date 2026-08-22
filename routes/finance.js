@@ -72,10 +72,10 @@ async function changeMethodsAndFees(req, res, id) {
 
             const commissionFee = Number(commission_fees);
 
-            if (commissionFee > 9.99) {
+            if (commissionFee > 99.99) {
                 res.writeHead(400, { "Content-Type": "application/json" });
                 return res.end(JSON.stringify({
-                    message: "commission_fees must be between 0.00 and 9.99"
+                    message: "commission_fees must be between 0.00 and 99.99"
                 }));
             }
 
