@@ -8,31 +8,42 @@ const {
     generateCommissionRecords
 } = require("../services/commissionService");
 
+
+async function runFinanceJobs() {
+
+    try {
+
+        await generatePlatformFees();
+
+        await generateCommissionRecords();
+
+    } catch (error) {
+
+        console.error(
+            "[FINANCE] Finance jobs failed:",
+            error
+        );
+    }
+}
+
+
 function startFinanceJobs() {
 
-    /**
-     * Run every day at 00:05
-     *
-     * Myanmar timezone
-     */
+    runFinanceJobs();
+
     cron.schedule(
         "5 0 * * *",
         async () => {
-            try {
-                await generatePlatformFees();
-                await generateCommissionRecords();
-            } catch (error) {
-                console.error(
-                    "[CRON] Platform fee job failed:",
-                    error
-                );
-            }
+
+            await runFinanceJobs();
+
         },
         {
             timezone: "Asia/Yangon"
         }
     );
 }
+
 
 module.exports = {
     startFinanceJobs
