@@ -1,4 +1,5 @@
-const db = require("../db");
+const promisedb = require("../db");
+const db = promisedb.promise();
 
 
 function formatDate(date) {
