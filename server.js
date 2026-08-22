@@ -19,6 +19,7 @@ const dashboard = require('./routes/dashboard');
 const announce = require('./routes/announcement');
 const auth = require('./middlewares/auth');
 const financeJob = require('./jobs/financeJob');
+const finance = require('./routes/finance');
 
 // Upload folders
 const UPLOAD_DIR = path.join(__dirname, "uploads");
@@ -999,6 +1000,14 @@ const server = http.createServer(async (req, res) => {
     }
     else if (pathName === "/announcements" && method === "GET") {
         announce.getAnnouncement(req, res);
+        return;
+    }
+
+    // --- Finance ---
+    else if (pathName.startsWith("/changeMethodsAndFees/") && method === "PATCH") {
+        const id = pathName.split("/")[2];
+        if (!(await auth.auth(req, res, id))) return;
+        finance.changeMethodsAndFees(req, res, id);
         return;
     }
 
