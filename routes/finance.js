@@ -215,7 +215,157 @@ async function financeByShops(req, res, shopId) {
     }
 }
 
+async function payPlatformFee(req, res, recordId) {
+    try {
+        if (!recordId) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({
+                success: false,
+                message: "Record ID is required"
+            }));
+        }
+
+        const [result] = await db.execute(
+            `UPDATE platform_fee_records
+       SET status = 'paid'
+       WHERE id = ?
+       AND status = 'unpaid'`,
+            [recordId]
+        );
+
+        if (result.affectedRows === 0) {
+            const [records] = await db.execute(
+                `SELECT id, status
+         FROM platform_fee_records
+         WHERE id = ?`,
+                [recordId]
+            );
+
+            if (records.length === 0) {
+                res.writeHead(404, { "Content-Type": "application/json" });
+                return res.end(JSON.stringify({
+                    success: false,
+                    message: "Platform fee record not found"
+                }));
+            }
+
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({
+                success: false,
+                message: "Platform fee record is already paid"
+            }));
+        }
+
+        const [updated] = await db.execute(
+            `SELECT
+        id,
+        shop_id,
+        period_start,
+        period_end,
+        type,
+        amount,
+        status
+       FROM platform_fee_records
+       WHERE id = ?`,
+            [recordId]
+        );
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+
+        res.end(JSON.stringify({
+            success: true,
+            message: "Platform fee marked as paid",
+            data: updated[0]
+        }));
+
+    } catch (error) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+
+        res.end(JSON.stringify({
+            success: false,
+            message: "Failed to update platform fee status"
+        }));
+    }
+}
+
+async function payCommission(req, res, recordId) {
+    try {
+        if (!recordId) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({
+                success: false,
+                message: "Record ID is required"
+            }));
+        }
+
+        const [result] = await db.execute(
+            `UPDATE commission_records
+       SET status = 'paid'
+       WHERE id = ?
+       AND status = 'unpaid'`,
+            [recordId]
+        );
+
+        if (result.affectedRows === 0) {
+            const [records] = await db.execute(
+                `SELECT id, status
+         FROM commission_records
+         WHERE id = ?`,
+                [recordId]
+            );
+
+            if (records.length === 0) {
+                res.writeHead(404, { "Content-Type": "application/json" });
+                return res.end(JSON.stringify({
+                    success: false,
+                    message: "Commission record not found"
+                }));
+            }
+
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({
+                success: false,
+                message: "Commission record is already paid"
+            }));
+        }
+
+        const [updated] = await db.execute(
+            `SELECT
+        id,
+        shop_id,
+        period_start,
+        period_end,
+        type,
+        sale_amount,
+        commission_percentages,
+        commission_fees,
+        status
+       FROM commission_records
+       WHERE id = ?`,
+            [recordId]
+        );
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+
+        res.end(JSON.stringify({
+            success: true,
+            message: "Commission marked as paid",
+            data: updated[0]
+        }));
+
+    } catch (error) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+
+        res.end(JSON.stringify({
+            success: false,
+            message: "Failed to update commission status"
+        }));
+    }
+}
+
 module.exports = {
     changeMethodsAndFees,
-    financeByShops
+    financeByShops,
+    payCommission,
+    payPlatformFee
 };
