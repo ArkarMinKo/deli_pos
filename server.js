@@ -1022,14 +1022,14 @@ const server = http.createServer(async (req, res) => {
 
     else if (pathName.startsWith("/pay-platform-fees/") && method === "PATCH") {
         const id = pathName.split("/")[2];
-        if (!(await auth.auth(req, res))) return;
+        if (!(await auth.authOwnerManager(req, res))) return;
         finance.payPlatformFee(req, res, id);
         return;
     }
 
     else if (pathName.startsWith("/pay-commission/") && method === "PATCH") {
         const id = pathName.split("/")[2];
-        if (!(await auth.auth(req, res))) return;
+        if (!(await auth.authOwnerManager(req, res))) return;
         finance.payCommission(req, res, id);
         return;
     }
