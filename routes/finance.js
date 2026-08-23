@@ -363,9 +363,47 @@ async function payCommission(req, res, recordId) {
     }
 }
 
+async function financeSummaries(req, res) {
+    try {
+        const [rows] = await db.query(`
+      SELECT
+        (SELECT COALESCE(SUM(amount), 0) FROM platform_fee_records) AS total_platform_fees,
+        (SELECT COALESCE(SUM(commission_fees), 0) FROM commission_records) AS total_commission_fees,
+        (SELECT COUNT(*) FROM shops WHERE permission = 'approved') AS total_shops
+    `);
+
+        const total_platform_fees = Number(rows[0].total_platform_fees);
+        const total_commission_fees = Number(rows[0].total_commission_fees);
+
+        const data = {
+            success: true,
+            total_finance: total_platform_fees + total_commission_fees,
+            total_platform_fees,
+            total_commission_fees,
+            total_shops: Number(rows[0].total_shops)
+        };
+
+        res.writeHead(200, {
+            "Content-Type": "application/json"
+        });
+
+        res.end(JSON.stringify(data));
+    } catch (error) {
+        res.writeHead(500, {
+            "Content-Type": "application/json"
+        });
+
+        res.end(JSON.stringify({
+            success: false,
+            message: "Failed to get finance summaries"
+        }));
+    }
+}
+
 module.exports = {
     changeMethodsAndFees,
     financeByShops,
     payCommission,
-    payPlatformFee
+    payPlatformFee,
+    financeSummaries
 };

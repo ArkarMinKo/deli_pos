@@ -995,10 +995,12 @@ const server = http.createServer(async (req, res) => {
 
     // --- Announcements ---
     else if (pathName === "/announcements" && method === "POST") {
+        if (!(await auth.authOwner(req, res))) return;
         announce.createAnnouncements(req, res);
         return;
     }
     else if (pathName === "/announcements" && method === "GET") {
+        if (!(await auth.auth(req, res))) return;
         announce.getAnnouncement(req, res);
         return;
     }
@@ -1029,6 +1031,12 @@ const server = http.createServer(async (req, res) => {
         const id = pathName.split("/")[2];
         if (!(await auth.auth(req, res))) return;
         finance.payCommission(req, res, id);
+        return;
+    }
+
+    else if (pathName === "/finance-summaries" && method === "GET") {
+        if (!(await auth.auth(req, res))) return;
+        finance.financeSummaries(req, res);
         return;
     }
 
