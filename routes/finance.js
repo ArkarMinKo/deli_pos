@@ -400,10 +400,178 @@ async function financeSummaries(req, res) {
     }
 }
 
+async function financeNotiByShop(req, res, shopId) {
+    try {
+        const [platformFeeRecords] = await db.query(
+            `
+      SELECT
+        id,
+        shop_id,
+        period_start,
+        period_end,
+        type,
+        amount,
+        status
+      FROM platform_fee_records
+      WHERE status = 'unpaid'
+        AND shop_id = ?
+      ORDER BY period_start DESC
+      `,
+            [shopId]
+        );
+
+        const [commissionRecords] = await db.query(
+            `
+      SELECT
+        id,
+        shop_id,
+        period_start,
+        period_end,
+        type,
+        sale_amount,
+        commission_percentages,
+        commission_fees,
+        status
+      FROM commission_records
+      WHERE status = 'unpaid'
+        AND shop_id = ?
+      ORDER BY period_start DESC
+      `,
+            [shopId]
+        );
+
+        res.writeHead(200, {
+            "Content-Type": "application/json"
+        });
+
+        res.end(JSON.stringify({
+            success: true,
+            platform_fee_records: platformFeeRecords,
+            commission_records: commissionRecords
+        }));
+    } catch (error) {
+        res.writeHead(500, {
+            "Content-Type": "application/json"
+        });
+
+        res.end(JSON.stringify({
+            success: false,
+            message: "Failed to get finance notification"
+        }));
+    }
+}
+
+async function financeNoti(req, res) {
+    try {
+        const [shops] = await db.query(`
+      SELECT
+        s.id,
+        s.shop_name,
+        s.shopkeeper_name,
+        s.phone,
+        s.logo,
+        s.created_at,
+        p.id AS platform_id
+      FROM shops s
+      LEFT JOIN platform_fee_records p
+        ON p.shop_id = s.id
+        AND p.status = 'unpaid'
+      LEFT JOIN commission_records c
+        ON c.shop_id = s.id
+        AND c.status = 'unpaid'
+      WHERE s.permission = 'approved'
+        AND (p.id IS NOT NULL OR c.id IS NOT NULL)
+      GROUP BY
+        s.id,
+        s.shop_name,
+        s.shopkeeper_name,
+        s.phone,
+        s.logo,
+        s.created_at
+      ORDER BY s.created_at DESC
+    `);
+
+        const result = await Promise.all(
+            shops.map(async (shop) => {
+                const [platformFeeRecords] = await db.query(
+                    `
+          SELECT
+            id,
+            shop_id,
+            period_start,
+            period_end,
+            type,
+            amount,
+            status
+          FROM platform_fee_records
+          WHERE status = 'unpaid'
+            AND shop_id = ?
+          ORDER BY period_start DESC
+          `,
+                    [shop.id]
+                );
+
+                const [commissionRecords] = await db.query(
+                    `
+          SELECT
+            id,
+            shop_id,
+            period_start,
+            period_end,
+            type,
+            sale_amount,
+            commission_percentages,
+            commission_fees,
+            status
+          FROM commission_records
+          WHERE status = 'unpaid'
+            AND shop_id = ?
+          ORDER BY period_start DESC
+          `,
+                    [shop.id]
+                );
+
+                return {
+                    shopsInfo: {
+                        id: shop.id,
+                        shop_name: shop.shop_name,
+                        shopkeeper_name: shop.shopkeeper_name,
+                        phone: shop.phone,
+                        logo: shop.logo,
+                        created_at: shop.created_at
+                    },
+                    platform_fee_records: platformFeeRecords,
+                    commission_records: commissionRecords
+                };
+            })
+        );
+
+        res.writeHead(200, {
+            "Content-Type": "application/json"
+        });
+
+        res.end(JSON.stringify({
+            success: true,
+            shops: result
+        }));
+    } catch (error) {
+        res.writeHead(500, {
+            "Content-Type": "application/json"
+        });
+
+        res.end(JSON.stringify({
+            success: false,
+            message: "Failed to get finance notifications"
+        }));
+    }
+}
+
 module.exports = {
     changeMethodsAndFees,
     financeByShops,
     payCommission,
     payPlatformFee,
-    financeSummaries
+    financeSummaries,
+    financeNotiByShop,
+    financeNoti
 };

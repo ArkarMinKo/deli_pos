@@ -1035,8 +1035,21 @@ const server = http.createServer(async (req, res) => {
     }
 
     else if (pathName === "/finance-summaries" && method === "GET") {
-        if (!(await auth.auth(req, res))) return;
+        if (!(await auth.authOwnerManager(req, res))) return;
         finance.financeSummaries(req, res);
+        return;
+    }
+
+    else if (pathName.startsWith("/finance-noti-by-shop/") && method === "GET") {
+        const id = pathName.split("/")[2];
+        if (!(await auth.authShopId(req, res, id))) return;
+        finance.financeByShops(req, res, id);
+        return;
+    }
+
+    else if (pathName === "/finance-noti" && method === "GET") {
+        if (!(await auth.authOwnerManager(req, res))) return;
+        finance.financeNoti(req, res);
         return;
     }
 
