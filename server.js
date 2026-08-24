@@ -1048,7 +1048,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     else if (pathName === "/finance-noti" && method === "GET") {
-        // if (!(await auth.authOwnerManager(req, res))) return;
+        if (!(await auth.authOwnerManager(req, res))) return;
         finance.financeNoti(req, res);
         return;
     }
