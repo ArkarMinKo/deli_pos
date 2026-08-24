@@ -1015,7 +1015,7 @@ const server = http.createServer(async (req, res) => {
 
     else if (pathName.startsWith("/finance/") && method === "GET") {
         const id = pathName.split("/")[2];
-        if (!(await auth.auth(req, res))) return;
+        // if (!(await auth.auth(req, res))) return;
         finance.financeByShops(req, res, id);
         return;
     }
