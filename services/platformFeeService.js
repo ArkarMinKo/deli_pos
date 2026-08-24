@@ -108,17 +108,6 @@ async function createPlatformFee(
     const start = formatDate(periodStart);
     const end = formatDate(periodEnd);
 
-
-    /*
-     * 0 MMK = paid/free
-     * Otherwise = unpaid
-     */
-    const status =
-        Number(amount) === 0
-            ? "paid"
-            : "unpaid";
-
-
     const sql = `
         INSERT INTO platform_fee_records
         (
@@ -142,7 +131,7 @@ async function createPlatformFee(
         end,
         type,
         amount,
-        status
+        "unpaid"
     ];
 
 
