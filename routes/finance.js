@@ -466,70 +466,71 @@ async function financeNotiByShop(req, res, shopId) {
 async function financeNoti(req, res) {
     try {
         const [shops] = await db.query(`
-      SELECT
-        s.id,
-        s.shop_name,
-        s.shopkeeper_name,
-        s.phone,
-        s.logo,
-        s.created_at,
-        p.id AS platform_id
-      FROM shops s
-      LEFT JOIN platform_fee_records p
-        ON p.shop_id = s.id
-        AND p.status = 'unpaid'
-      LEFT JOIN commission_records c
-        ON c.shop_id = s.id
-        AND c.status = 'unpaid'
-      WHERE s.permission = 'approved'
-        AND (p.id IS NOT NULL OR c.id IS NOT NULL)
-      GROUP BY
-        s.id,
-        s.shop_name,
-        s.shopkeeper_name,
-        s.phone,
-        s.logo,
-        s.created_at
-      ORDER BY s.created_at DESC
-    `);
+            SELECT
+                s.id,
+                s.shop_name,
+                s.shopkeeper_name,
+                s.phone,
+                s.logo,
+                s.created_at
+            FROM shops s
+            WHERE s.permission = 'approved'
+              AND (
+                  EXISTS (
+                      SELECT 1
+                      FROM platform_fee_records p
+                      WHERE p.shop_id = s.id
+                        AND p.status = 'unpaid'
+                  )
+                  OR
+                  EXISTS (
+                      SELECT 1
+                      FROM commission_records c
+                      WHERE c.shop_id = s.id
+                        AND c.status = 'unpaid'
+                  )
+              )
+            ORDER BY s.created_at DESC
+        `);
 
         const result = await Promise.all(
             shops.map(async (shop) => {
+
                 const [platformFeeRecords] = await db.query(
                     `
-          SELECT
-            id,
-            shop_id,
-            period_start,
-            period_end,
-            type,
-            amount,
-            status
-          FROM platform_fee_records
-          WHERE status = 'unpaid'
-            AND shop_id = ?
-          ORDER BY period_start DESC
-          `,
+                    SELECT
+                        id,
+                        shop_id,
+                        period_start,
+                        period_end,
+                        type,
+                        amount,
+                        status
+                    FROM platform_fee_records
+                    WHERE shop_id = ?
+                      AND status = 'unpaid'
+                    ORDER BY period_start DESC
+                    `,
                     [shop.id]
                 );
 
                 const [commissionRecords] = await db.query(
                     `
-          SELECT
-            id,
-            shop_id,
-            period_start,
-            period_end,
-            type,
-            sale_amount,
-            commission_percentages,
-            commission_fees,
-            status
-          FROM commission_records
-          WHERE status = 'unpaid'
-            AND shop_id = ?
-          ORDER BY period_start DESC
-          `,
+                    SELECT
+                        id,
+                        shop_id,
+                        period_start,
+                        period_end,
+                        type,
+                        sale_amount,
+                        commission_percentages,
+                        commission_fees,
+                        status
+                    FROM commission_records
+                    WHERE shop_id = ?
+                      AND status = 'unpaid'
+                    ORDER BY period_start DESC
+                    `,
                     [shop.id]
                 );
 
@@ -556,14 +557,18 @@ async function financeNoti(req, res) {
             success: true,
             shops: result
         }));
+
     } catch (error) {
+        console.error("financeNoti error:", error);
+
         res.writeHead(500, {
             "Content-Type": "application/json"
         });
 
         res.end(JSON.stringify({
             success: false,
-            message: "Failed to get finance notifications"
+            message: "Failed to get finance notifications",
+            error: error.message
         }));
     }
 }
