@@ -203,17 +203,6 @@ async function createCommissionRecord(
             percentage
         );
 
-
-    /*
-     * 0 commission = paid
-     * Otherwise unpaid
-     */
-    const status =
-        commissionFees === 0
-            ? "paid"
-            : "unpaid";
-
-
     const sql = `
         INSERT INTO commission_records
         (
@@ -241,7 +230,7 @@ async function createCommissionRecord(
         saleAmount,
         percentage,
         commissionFees,
-        status
+        "unpaid"
     ];
 
 
