@@ -159,6 +159,7 @@ async function financeByShops(req, res, shopId) {
 
         const [platformFeeRecords] = await db.execute(
             `SELECT
+        id,
         type,
         period_start,
         period_end,
@@ -172,6 +173,7 @@ async function financeByShops(req, res, shopId) {
 
         const [commissionRecords] = await db.execute(
             `SELECT
+        id,
         type,
         period_start,
         period_end,
