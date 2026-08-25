@@ -20,6 +20,7 @@ const announce = require('./routes/announcement');
 const auth = require('./middlewares/auth');
 const financeJob = require('./jobs/financeJob');
 const finance = require('./routes/finance');
+const mobileVersion = require('./routes/mobileVersion');
 
 // Upload folders
 const UPLOAD_DIR = path.join(__dirname, "uploads");
@@ -1050,6 +1051,13 @@ const server = http.createServer(async (req, res) => {
     else if (pathName === "/finance-noti" && method === "GET") {
         if (!(await auth.authOwnerManager(req, res))) return;
         finance.financeNoti(req, res);
+        return;
+    }
+
+    // --- Check Mobile Version ---
+    else if (pathName === "/mobile-version" && method === "POST") {
+        if (!(await auth.auth(req, res))) return;
+        mobileVersion.checkMobileVersionRoute(req, res);
         return;
     }
 
