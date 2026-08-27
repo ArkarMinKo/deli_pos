@@ -1056,7 +1056,6 @@ const server = http.createServer(async (req, res) => {
 
     // --- Check Mobile Version ---
     else if (pathName === "/mobile-version" && method === "POST") {
-        if (!(await auth.auth(req, res))) return;
         mobileVersion.checkMobileVersionRoute(req, res);
         return;
     }
