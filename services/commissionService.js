@@ -133,7 +133,7 @@ async function getSaleAmount(
     const [rows] = await db.query(`
         SELECT
             COALESCE(
-                SUM(grand_total),
+                SUM(grand_total - COALESCE(delivery_fees, 0)),
                 0
             ) AS sale_amount
         FROM orders
