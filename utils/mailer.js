@@ -4,8 +4,8 @@ const nodemailer = require("nodemailer");
 const transporter = nodemailer.createTransport({
   service: "Gmail",
   auth: {
-    user: "delivery.system.admin@gmail.com",
-    pass: "znic wltx apus ffnw",
+    user: "a2pple.mgy@gmail.com",
+    pass: "kjey hcqh zhon qafu",
   },
   tls: { rejectUnauthorized: false },
 });
@@ -89,7 +89,7 @@ async function sendMail(to, name, type, data = {}) {
 
   try {
     const info = await transporter.sendMail({
-      from: `"DELIVERY SYSTEM" <delivery.system.admin@gmail.com>`,
+      from: `"DELIVERY SYSTEM" <a2pple.mgy@gmail.com>`,
       to,
       subject,
       html,
