@@ -715,7 +715,7 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    else if (pathName.startsWith("/create-main-menu/") && method === "PATCH") {
+    else if (pathName === "/create-main-menu" && method === "PATCH") {
         menu.create_Main_Menu(req, res);
         return;
     }
