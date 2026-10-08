@@ -635,6 +635,7 @@ const server = http.createServer(async (req, res) => {
 
     // menu CRUD
     else if (pathName === "/menu" && method === "POST") {
+        if (!(await auth.auth(req, res))) return;
         menu.createMenu(req, res);
         return;
     }
@@ -711,6 +712,11 @@ const server = http.createServer(async (req, res) => {
         const shopId = id.split("_")[0];
         if (!(await auth.authShopId(req, res, shopId))) return;
         menu.offMenu(req, res, id);
+        return;
+    }
+
+    else if (pathName.startsWith("/create-main-menu/") && method === "PATCH") {
+        menu.create_Main_Menu(req, res);
         return;
     }
 

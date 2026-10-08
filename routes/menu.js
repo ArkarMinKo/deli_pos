@@ -1679,6 +1679,180 @@ function popularMenu(req, res) {
   })
 }
 
+async function create_Main_Menu(req, res) {
+    let connection;
+    let lockAcquired = false;
+
+    try {
+        let body = '';
+        if (req.body && typeof req.body === 'object') {
+            body = req.body;
+        } else {
+            body = await new Promise((resolve, reject) => {
+                let rawData = '';
+                req.on('data', chunk => {
+                    rawData += chunk.toString();
+                });
+                req.on('end', () => {
+                    try {
+                        resolve(rawData ? JSON.parse(rawData) : {});
+                    } catch (error) {
+                        reject(new Error('Invalid JSON body'));
+                    }
+                });
+                req.on('error', reject);
+            });
+        }
+
+        const { menu_id, main_menu } = body;
+
+        if (
+            typeof menu_id !== 'string' ||
+            !menu_id.trim()
+        ) {
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            return res.end(JSON.stringify({
+                success: false,
+                message: 'menu_id is required'
+            }));
+        }
+
+        if (
+            !Number.isInteger(main_menu) ||
+            main_menu < 1 ||
+            main_menu > 10
+        ) {
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            return res.end(JSON.stringify({
+                success: false,
+                message: 'main_menu must be an integer from 1 to 10'
+            }));
+        }
+
+        connection = await new Promise((resolve, reject) => {
+            db.getConnection((err, conn) => {
+                if (err) return reject(err);
+                resolve(conn);
+            });
+        });
+
+        const lockResult = await new Promise((resolve, reject) => {
+            connection.query('SELECT GET_LOCK(?, 5) AS lock_status', ['global_main_menu_assignment'], (err, results) => {
+                if (err) return reject(err);
+                resolve(results);
+            });
+        });
+
+        if (lockResult[0].lock_status !== 1) {
+            res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8' });
+            return res.end(JSON.stringify({
+                success: false,
+                message: 'Main Menu is busy. Please try again.'
+            }));
+        }
+
+        lockAcquired = true;
+
+        const menus = await new Promise((resolve, reject) => {
+            connection.query(
+                `SELECT id, main_menu
+                 FROM menu
+                 WHERE id = ?
+                 LIMIT 1`,
+                [menu_id.trim()],
+                (err, results) => {
+                    if (err) return reject(err);
+                    resolve(results);
+                }
+            );
+        });
+
+        if (menus.length === 0) {
+            res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+            return res.end(JSON.stringify({
+                success: false,
+                message: 'Menu not found'
+            }));
+        }
+
+        const currentMenu = menus[0];
+
+        const occupied = await new Promise((resolve, reject) => {
+            connection.query(
+                `SELECT id
+                 FROM menu
+                 WHERE main_menu = ?
+                   AND id <> ?
+                 LIMIT 1`,
+                [main_menu, menu_id.trim()],
+                (err, results) => {
+                    if (err) return reject(err);
+                    resolve(results);
+                }
+            );
+        });
+
+        if (occupied.length > 0) {
+            res.writeHead(409, { 'Content-Type': 'application/json; charset=utf-8' });
+            return res.end(JSON.stringify({
+                success: false,
+                message: `Main Menu ${main_menu} is already assigned`
+            }));
+        }
+
+        await new Promise((resolve, reject) => {
+            connection.query(
+                `UPDATE menu
+                 SET main_menu = ?
+                 WHERE id = ?`,
+                [main_menu, menu_id.trim()],
+                (err, results) => {
+                    if (err) return reject(err);
+                    resolve(results);
+                }
+            );
+        });
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        return res.end(JSON.stringify({
+            success: true,
+            message: 'Main Menu assigned successfully',
+            data: {
+                menu_id: currentMenu.id,
+                previous_main_menu: currentMenu.main_menu,
+                main_menu: main_menu
+            }
+        }));
+
+    } catch (error) {
+        console.error('create_Main_Menu error:', error);
+
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        return res.end(JSON.stringify({
+            success: false,
+            message: 'Failed to assign Main Menu'
+        }));
+
+    } finally {
+        if (connection) {
+            try {
+                if (lockAcquired) {
+                    await new Promise((resolve, reject) => {
+                        connection.query('SELECT RELEASE_LOCK(?)', ['global_main_menu_assignment'], (err, results) => {
+                            if (err) return reject(err);
+                            resolve(results);
+                        });
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to release Main Menu lock:', error);
+            } finally {
+                connection.release();
+            }
+        }
+    }
+}
+
 module.exports = { 
     createMenu,
     updateMenu,
@@ -1691,5 +1865,6 @@ module.exports = {
     openMenu,
     offMenu,
     newMenu,
-    popularMenu
+    popularMenu,
+    create_Main_Menu
 };
