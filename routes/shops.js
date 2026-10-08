@@ -159,9 +159,9 @@ function createShops(req, res) {
         // --- Insert shop ---
         db.query(
           `INSERT INTO shops
-          (id, shopkeeper_name, shop_name, email, phone, password, photo, items, categories, location, address,
+          (id, shopkeeper_name, shop_name, email, phone, password, photo, items, categories, location, address, blocks,
            payments, have_deliverymen, deli_fees_method)
-          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
           [
             id,
             fields.shopkeeper_name,
@@ -174,6 +174,7 @@ function createShops(req, res) {
             categories,
             fields.location || null,
             fields.address || null,
+            fields.blocks,
             payments,
             fields.have_deliverymen || 0,
             fields.deli_fees_method || 'km'

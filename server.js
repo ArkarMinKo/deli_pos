@@ -271,6 +271,18 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    else if (pathName === "/create-blocks" && method === "POST") {
+        if (!(await auth.authOwner(req, res))) return;
+        admin.createBlocks(req, res);
+        return;
+    }
+
+    else if (pathName === "/get-blocks" && method === "GET") {
+        if (!(await auth.auth(req, res))) return;
+        admin.getBlockLists(req, res);
+        return;
+    }
+
     // --- PATCH deli_fees
     else if (pathName === "/deli-fees" && method === "PATCH") {
         if (!(await auth.authOwner(req, res))) return;
@@ -649,6 +661,14 @@ const server = http.createServer(async (req, res) => {
         menu.newMenu(req, res);
         return;
     }
+
+    else if (pathName.startsWith("/get-nearest-menu/") && method === "GET") {
+        if (!(await auth.auth(req, res))) return;
+        const id = pathName.split("/")[2];
+        menu.getNearestMenu(req, res, id);
+        return;
+    }
+
     else if (pathName === "/popular-menu" && method === "GET") {
         if (!(await auth.auth(req, res))) return;
         menu.popularMenu(req, res);
@@ -716,7 +736,14 @@ const server = http.createServer(async (req, res) => {
     }
 
     else if (pathName === "/create-main-menu" && method === "PATCH") {
+        if (!(await auth.authOwner(req, res))) return;
         menu.create_Main_Menu(req, res);
+        return;
+    }
+
+    else if (pathName === "/get-10-main-menu" && method === "GET") {
+        if (!(await auth.auth(req, res))) return;
+        menu.get10MainMenu(req, res);
         return;
     }
 

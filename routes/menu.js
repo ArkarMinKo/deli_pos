@@ -1853,6 +1853,856 @@ async function create_Main_Menu(req, res) {
     }
 }
 
+function get10MainMenu(req, res) {
+
+  function sendJson(statusCode, data) {
+    res.writeHead(statusCode, {
+      "Content-Type": "application/json; charset=utf-8"
+    });
+    res.end(JSON.stringify(data));
+  }
+
+  function parseJson(value, fallback = null) {
+    if (value == null || value === "") return fallback;
+
+    if (typeof value !== "string") return value;
+
+    try {
+      return JSON.parse(value);
+    } catch {
+      return fallback;
+    }
+  }
+
+  // 1. Get categories
+  const categorySql = `
+    SELECT id, name
+    FROM categories
+  `;
+
+  db.query(categorySql, (err, categories) => {
+
+    if (err) {
+      console.error("Category fetch error:", err);
+
+      return sendJson(500, {
+        success: false,
+        message: "Category fetch error"
+      });
+    }
+
+    const categoryMap = {};
+
+    categories.forEach(c => {
+      categoryMap[c.id] = c.name;
+    });
+
+    // 2. Get delivery server status
+    db.query(
+      "SELECT server FROM server LIMIT 1",
+      (serverError, serverResult) => {
+
+        const openDeli =
+          !serverError && serverResult.length
+            ? serverResult[0].server
+            : 0;
+
+        // 3. Get Main Menu 1 to 10
+        const sql = `
+          SELECT
+            m.*,
+            s.shop_name,
+            s.shopkeeper_name,
+            s.photo AS shop_photo,
+            s.phone,
+            s.categories,
+            s.address,
+            s.payments,
+            s.have_deliverymen,
+            s.deli_fees_method,
+            s.total_orders,
+            s.open_shop,
+            s.location
+          FROM menu m
+          INNER JOIN shops s
+            ON s.id = m.shop_id
+          WHERE s.permission = 'approved'
+            AND m.main_menu BETWEEN 1 AND 10
+          ORDER BY m.main_menu ASC
+          LIMIT 10
+        `;
+
+        db.query(sql, (err, menus) => {
+
+          if (err) {
+            console.error("Main Menu fetch error:", err);
+
+            return sendJson(500, {
+              success: false,
+              message: "Main Menu fetch error"
+            });
+          }
+
+          if (!menus.length) {
+            return sendJson(200, {
+              shops: []
+            });
+          }
+
+          const shopMap = {};
+          let pending = menus.length;
+
+          menus.forEach(menu => {
+
+            const relateMenuIds = parseJson(
+              menu.relate_menu,
+              []
+            );
+
+            const relateIngredientsIds = parseJson(
+              menu.relate_ingredients,
+              []
+            );
+
+            // 4. Get related menus
+            const menuPromise = new Promise(resolve => {
+
+              if (
+                !Array.isArray(relateMenuIds) ||
+                !relateMenuIds.length
+              ) {
+                return resolve([]);
+              }
+
+              const placeholders = relateMenuIds
+                .map(() => "?")
+                .join(",");
+
+              db.query(
+                `SELECT id, name, prices, category, photo
+                 FROM menu
+                 WHERE id IN (${placeholders})`,
+                relateMenuIds,
+                (err, rows) => {
+
+                  if (err) {
+                    console.error("Related menu error:", err);
+                    return resolve([]);
+                  }
+
+                  // Keep the original related-menu order
+                  const rowMap = {};
+
+                  rows.forEach(row => {
+                    rowMap[row.id] = row;
+                  });
+
+                  const orderedRows = relateMenuIds
+                    .map(id => rowMap[id])
+                    .filter(Boolean);
+
+                  resolve(
+                    orderedRows.map(r => ({
+                      id: r.id,
+                      name: r.name,
+                      prices: parseJson(r.prices, null),
+                      category:
+                        categoryMap[r.category] || r.category,
+                      photo: r.photo
+                    }))
+                  );
+                }
+              );
+
+            });
+
+            // 5. Get related ingredients
+            const ingredientPromise = new Promise(resolve => {
+
+              if (
+                !Array.isArray(relateIngredientsIds) ||
+                !relateIngredientsIds.length
+              ) {
+                return resolve([]);
+              }
+
+              const placeholders = relateIngredientsIds
+                .map(() => "?")
+                .join(",");
+
+              db.query(
+                `SELECT id, name, photo, prices
+                 FROM ingredients
+                 WHERE id IN (${placeholders})`,
+                relateIngredientsIds,
+                (err, rows) => {
+
+                  if (err) {
+                    console.error(
+                      "Related ingredients error:",
+                      err
+                    );
+                    return resolve([]);
+                  }
+
+                  const rowMap = {};
+
+                  rows.forEach(row => {
+                    rowMap[row.id] = row;
+                  });
+
+                  const orderedRows = relateIngredientsIds
+                    .map(id => rowMap[id])
+                    .filter(Boolean);
+
+                  resolve(
+                    orderedRows.map(i => ({
+                      id: i.id,
+                      name: i.name,
+                      photo: i.photo,
+                      prices: parseJson(i.prices, null)
+                    }))
+                  );
+                }
+              );
+
+            });
+
+            // 6. Wait for related data
+            Promise.all([
+              menuPromise,
+              ingredientPromise
+            ]).then(([relatedMenus, relatedIngredients]) => {
+
+              // Create shop only once
+              if (!shopMap[menu.shop_id]) {
+
+                shopMap[menu.shop_id] = {
+                  shop: {
+                    id: menu.shop_id,
+                    shop_name: menu.shop_name,
+                    shopkeeper_name: menu.shopkeeper_name,
+                    photo: menu.shop_photo,
+                    phone: menu.phone,
+
+                    categories: parseJson(
+                      menu.categories,
+                      []
+                    ),
+
+                    address: menu.address,
+
+                    payments: parseJson(
+                      menu.payments,
+                      []
+                    ),
+
+                    have_deliverymen: menu.have_deliverymen,
+                    deli_fees_method: menu.deli_fees_method,
+                    open_shop: menu.open_shop,
+                    location: parseJson(menu.location, menu.location)
+                  },
+
+                  menus: []
+                };
+
+              }
+
+              // 7. Add Main Menu details
+              shopMap[menu.shop_id].menus.push({
+
+                id: menu.id,
+                shop_id: menu.shop_id,
+                shop_name: menu.shop_name,
+
+                name: menu.name,
+
+                prices: parseJson(menu.prices, null),
+
+                category_id: menu.category,
+
+                category:
+                  categoryMap[menu.category] || menu.category,
+
+                photo: menu.photo,
+                description: menu.description,
+
+                complete_order: menu.complete_order,
+                rating: menu.rating,
+                rating_count: menu.rating_count,
+
+                main_menu: menu.main_menu,
+
+                open_deli: openDeli,
+                open_shop: menu.open_shop,
+                open_menu: menu.open_menu,
+
+                shop_location: parseJson(
+                  menu.location,
+                  menu.location
+                ),
+
+                created_at: menu.created_at,
+
+                get_months: parseJson(
+                  menu.get_months,
+                  ["All months"]
+                ),
+
+                relate_menu: relatedMenus,
+
+                relate_ingredients: relatedIngredients
+
+              });
+
+              pending--;
+
+              // 8. Return response after all menus are ready
+              if (pending === 0) {
+
+                // Keep shop order based on its first Main Menu
+                const shops = Object.values(shopMap);
+
+                shops.forEach(group => {
+                  group.menus.sort(
+                    (a, b) => a.main_menu - b.main_menu
+                  );
+                });
+
+                shops.sort((a, b) => {
+                  return a.menus[0].main_menu -
+                         b.menus[0].main_menu;
+                });
+
+                return sendJson(200, {
+                  shops
+                });
+
+              }
+
+            }).catch(error => {
+              console.error("Main Menu processing error:", error);
+
+              // Avoid sending multiple responses
+              if (pending > 0) {
+                pending = 0;
+
+                sendJson(500, {
+                  success: false,
+                  message: "Main Menu processing error"
+                });
+              }
+            });
+
+          });
+
+        });
+
+      }
+    );
+
+  });
+
+}
+
+function getNearestMenu(req, res, id) {
+
+  function sendJson(statusCode, data) {
+    res.writeHead(statusCode, {
+      "Content-Type": "application/json; charset=utf-8"
+    });
+
+    res.end(JSON.stringify(data));
+  }
+
+  function parseJson(value, fallback) {
+    if (value === null || value === undefined || value === "") {
+      return fallback;
+    }
+
+    if (typeof value !== "string") {
+      return value;
+    }
+
+    try {
+      return JSON.parse(value);
+    } catch {
+      return fallback;
+    }
+  }
+
+  if (!id) {
+    return sendJson(400, {
+      success: false,
+      message: "User id is required"
+    });
+  }
+
+  // --------------------------------------------------
+  // 1. Get user's block
+  // --------------------------------------------------
+
+  const userSql = `
+    SELECT id, blocks
+    FROM users
+    WHERE id = ?
+    LIMIT 1
+  `;
+
+  db.query(userSql, [id], (err, users) => {
+
+    if (err) {
+      console.error("User fetch error:", err);
+
+      return sendJson(500, {
+        success: false,
+        message: "User fetch error"
+      });
+    }
+
+    if (!users.length) {
+      return sendJson(404, {
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    const userBlock = users[0].blocks;
+
+    // User has no block
+    if (!userBlock || !String(userBlock).trim()) {
+      return sendJson(200, {
+        shops: []
+      });
+    }
+
+    // --------------------------------------------------
+    // 2. Get categories
+    // --------------------------------------------------
+
+    const categorySql = `
+      SELECT id, name
+      FROM categories
+    `;
+
+    db.query(categorySql, (err, categories) => {
+
+      if (err) {
+        console.error("Category fetch error:", err);
+
+        return sendJson(500, {
+          success: false,
+          message: "Category fetch error"
+        });
+      }
+
+      const categoryMap = {};
+
+      categories.forEach(c => {
+        categoryMap[c.id] = c.name;
+      });
+
+      // --------------------------------------------------
+      // 3. Get delivery status
+      // --------------------------------------------------
+
+      db.query(
+        "SELECT server FROM server LIMIT 1",
+        (serverErr, serverResult) => {
+
+          const openDeli =
+            !serverErr && serverResult.length
+              ? serverResult[0].server
+              : 0;
+
+          // --------------------------------------------------
+          // 4. Get menus from shops having same block
+          // --------------------------------------------------
+
+          const sql = `
+            SELECT
+              m.*,
+              s.shop_name,
+              s.shopkeeper_name,
+              s.photo AS shop_photo,
+              s.phone,
+              s.categories,
+              s.address,
+              s.payments,
+              s.have_deliverymen,
+              s.deli_fees_method,
+              s.total_orders,
+              s.open_shop,
+              s.location,
+              s.blocks AS shop_blocks
+            FROM menu m
+            INNER JOIN shops s
+              ON s.id = m.shop_id
+            WHERE s.permission = 'approved'
+              AND s.blocks = ?
+            ORDER BY m.created_at DESC
+          `;
+
+          db.query(
+            sql,
+            [String(userBlock).trim()],
+            (err, menus) => {
+
+              if (err) {
+                console.error("Menu fetch error:", err);
+
+                return sendJson(500, {
+                  success: false,
+                  message: "Menu fetch error"
+                });
+              }
+
+              if (!menus.length) {
+                return sendJson(200, {
+                  shops: []
+                });
+              }
+
+              const shopMap = {};
+
+              let pending = menus.length;
+
+              menus.forEach(menu => {
+
+                // --------------------------------------------------
+                // Related Menu IDs
+                // --------------------------------------------------
+
+                let relateMenuIds = [];
+
+                try {
+                  relateMenuIds = Array.isArray(menu.relate_menu)
+                    ? menu.relate_menu
+                    : JSON.parse(
+                        menu.relate_menu || "[]"
+                      );
+                } catch {
+                  relateMenuIds = [];
+                }
+
+                // --------------------------------------------------
+                // Related Ingredient IDs
+                // --------------------------------------------------
+
+                let relateIngredientsIds = [];
+
+                try {
+                  relateIngredientsIds =
+                    Array.isArray(menu.relate_ingredients)
+                      ? menu.relate_ingredients
+                      : JSON.parse(
+                          menu.relate_ingredients || "[]"
+                        );
+                } catch {
+                  relateIngredientsIds = [];
+                }
+
+                // --------------------------------------------------
+                // Related menus
+                // --------------------------------------------------
+
+                const menuPromise = new Promise(resolve => {
+
+                  if (!relateMenuIds.length) {
+                    return resolve([]);
+                  }
+
+                  const placeholders = relateMenuIds
+                    .map(() => "?")
+                    .join(",");
+
+                  db.query(
+                    `
+                    SELECT
+                      id,
+                      name,
+                      prices,
+                      category,
+                      photo
+                    FROM menu
+                    WHERE id IN (${placeholders})
+                    `,
+                    relateMenuIds,
+                    (err, rows) => {
+
+                      if (err) {
+                        console.error(
+                          "Related menu error:",
+                          err
+                        );
+
+                        return resolve([]);
+                      }
+
+                      resolve(
+                        rows.map(r => ({
+                          id: r.id,
+                          name: r.name,
+                          prices: parseJson(
+                            r.prices,
+                            null
+                          ),
+                          category:
+                            categoryMap[r.category] ||
+                            r.category,
+                          photo: r.photo
+                        }))
+                      );
+
+                    }
+                  );
+
+                });
+
+                // --------------------------------------------------
+                // Related ingredients
+                // --------------------------------------------------
+
+                const ingredientPromise =
+                  new Promise(resolve => {
+
+                    if (!relateIngredientsIds.length) {
+                      return resolve([]);
+                    }
+
+                    const placeholders =
+                      relateIngredientsIds
+                        .map(() => "?")
+                        .join(",");
+
+                    db.query(
+                      `
+                      SELECT
+                        id,
+                        name,
+                        photo,
+                        prices
+                      FROM ingredients
+                      WHERE id IN (${placeholders})
+                      `,
+                      relateIngredientsIds,
+                      (err, rows) => {
+
+                        if (err) {
+                          console.error(
+                            "Related ingredients error:",
+                            err
+                          );
+
+                          return resolve([]);
+                        }
+
+                        resolve(
+                          rows.map(i => ({
+                            id: i.id,
+                            name: i.name,
+                            photo: i.photo,
+                            prices: parseJson(
+                              i.prices,
+                              null
+                            )
+                          }))
+                        );
+
+                      }
+                    );
+
+                  });
+
+                // --------------------------------------------------
+                // Wait for related data
+                // --------------------------------------------------
+
+                Promise.all([
+                  menuPromise,
+                  ingredientPromise
+                ])
+                  .then(
+                    ([
+                      relatedMenus,
+                      relatedIngredients
+                    ]) => {
+
+                      // --------------------------------------------------
+                      // Create shop group
+                      // --------------------------------------------------
+
+                      if (!shopMap[menu.shop_id]) {
+
+                        shopMap[menu.shop_id] = {
+
+                          shop: {
+                            id: menu.shop_id,
+
+                            shop_name:
+                              menu.shop_name,
+
+                            shopkeeper_name:
+                              menu.shopkeeper_name,
+
+                            photo:
+                              menu.shop_photo,
+
+                            phone:
+                              menu.phone,
+
+                            categories:
+                              parseJson(
+                                menu.categories,
+                                []
+                              ),
+
+                            address:
+                              menu.address,
+
+                            payments:
+                              parseJson(
+                                menu.payments,
+                                []
+                              ),
+
+                            have_deliverymen:
+                              menu.have_deliverymen,
+
+                            deli_fees_method:
+                              menu.deli_fees_method,
+
+                            open_shop:
+                              menu.open_shop,
+
+                            location:
+                              menu.location
+                          },
+
+                          menus: []
+
+                        };
+
+                      }
+
+                      // --------------------------------------------------
+                      // Add menu
+                      // --------------------------------------------------
+
+                      shopMap[
+                        menu.shop_id
+                      ].menus.push({
+
+                        id:
+                          menu.id,
+
+                        shop_id:
+                          menu.shop_id,
+
+                        shop_name:
+                          menu.shop_name,
+
+                        name:
+                          menu.name,
+
+                        prices:
+                          parseJson(
+                            menu.prices,
+                            null
+                          ),
+
+                        category_id:
+                          menu.category,
+
+                        category:
+                          categoryMap[
+                            menu.category
+                          ] || menu.category,
+
+                        photo:
+                          menu.photo,
+
+                        description:
+                          menu.description,
+
+                        complete_order:
+                          menu.complete_order,
+
+                        rating:
+                          menu.rating,
+
+                        rating_count:
+                          menu.rating_count,
+
+                        open_deli:
+                          openDeli,
+
+                        open_shop:
+                          menu.open_shop,
+
+                        open_menu:
+                          menu.open_menu,
+
+                        shop_location:
+                          menu.location,
+
+                        created_at:
+                          menu.created_at,
+
+                        get_months:
+                          parseJson(
+                            menu.get_months,
+                            ["All months"]
+                          ),
+
+                        relate_menu:
+                          relatedMenus,
+
+                        relate_ingredients:
+                          relatedIngredients
+
+                      });
+
+                      pending--;
+
+                      // --------------------------------------------------
+                      // All menus finished
+                      // --------------------------------------------------
+
+                      if (pending === 0) {
+
+                        return sendJson(200, {
+                          shops:
+                            Object.values(shopMap)
+                        });
+
+                      }
+
+                    }
+                  )
+                  .catch(error => {
+
+                    console.error(
+                      "Menu processing error:",
+                      error
+                    );
+
+                  });
+
+              });
+
+            }
+          );
+
+        }
+      );
+
+    });
+
+  });
+
+}
+
 module.exports = { 
     createMenu,
     updateMenu,
@@ -1866,5 +2716,7 @@ module.exports = {
     offMenu,
     newMenu,
     popularMenu,
-    create_Main_Menu
+    create_Main_Menu,
+    get10MainMenu,
+    getNearestMenu
 };

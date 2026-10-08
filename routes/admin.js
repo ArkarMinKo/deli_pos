@@ -1001,6 +1001,164 @@ function updateDeliFees(req, res) {
   });
 }
 
+async function createBlocks(req, res) {
+    function sendJson(statusCode, data) {
+        res.writeHead(statusCode, {
+            'Content-Type': 'application/json; charset=utf-8'
+        });
+        res.end(JSON.stringify(data));
+    }
+
+    function readJson() {
+        return new Promise((resolve, reject) => {
+            let body = '';
+
+            req.on('data', chunk => {
+                body += chunk.toString();
+            });
+
+            req.on('end', () => {
+                try {
+                    resolve(JSON.parse(body || '{}'));
+                } catch (error) {
+                    reject(new Error('Invalid JSON body'));
+                }
+            });
+
+            req.on('error', reject);
+        });
+    }
+
+    try {
+        const body = await readJson();
+        const { blocks } = body;
+
+        if (!Array.isArray(blocks)) {
+            return sendJson(400, {
+                success: false,
+                message: 'blocks must be an array'
+            });
+        }
+
+        const blocksJson = JSON.stringify(blocks);
+
+        db.query(
+            'SELECT id FROM server LIMIT 1',
+            (selectError, rows) => {
+                if (selectError) {
+                    console.error(selectError);
+
+                    return sendJson(500, {
+                        success: false,
+                        message: 'Failed to find server configuration'
+                    });
+                }
+
+                if (rows.length === 0) {
+                    return sendJson(404, {
+                        success: false,
+                        message: 'Server configuration not found'
+                    });
+                }
+
+                const serverId = rows[0].id;
+
+                db.query(
+                    'UPDATE server SET blocks = ? WHERE id = ?',
+                    [blocksJson, serverId],
+                    (updateError) => {
+                        if (updateError) {
+                            console.error(updateError);
+
+                            return sendJson(500, {
+                                success: false,
+                                message: 'Failed to save blocks'
+                            });
+                        }
+
+                        return sendJson(200, {
+                            success: true,
+                            message: 'Blocks saved successfully',
+                            data: {
+                                blocks
+                            }
+                        });
+                    }
+                );
+            }
+        );
+
+    } catch (error) {
+        return sendJson(400, {
+            success: false,
+            message: error.message || 'Invalid request body'
+        });
+    }
+}
+
+
+// Get all blocks
+async function getBlockLists(req, res) {
+    function sendJson(statusCode, data) {
+        res.writeHead(statusCode, {
+            'Content-Type': 'application/json; charset=utf-8'
+        });
+        res.end(JSON.stringify(data));
+    }
+
+    try {
+        db.query(
+            'SELECT blocks FROM server LIMIT 1',
+            (error, rows) => {
+                if (error) {
+                    console.error(error);
+
+                    return sendJson(500, {
+                        success: false,
+                        message: 'Failed to get block lists'
+                    });
+                }
+
+                if (rows.length === 0) {
+                    return sendJson(404, {
+                        success: false,
+                        message: 'Server configuration not found'
+                    });
+                }
+
+                let blocks = rows[0].blocks;
+
+                // MySQL drivers may return JSON as an object or a string
+                if (typeof blocks === 'string') {
+                    try {
+                        blocks = JSON.parse(blocks);
+                    } catch (parseError) {
+                        return sendJson(500, {
+                            success: false,
+                            message: 'Invalid blocks JSON in database'
+                        });
+                    }
+                }
+
+                return sendJson(200, {
+                    success: true,
+                    data: {
+                        blocks: blocks || []
+                    }
+                });
+            }
+        );
+
+    } catch (error) {
+        console.error(error);
+
+        return sendJson(500, {
+            success: false,
+            message: 'Failed to get block lists'
+        });
+    }
+}
+
 module.exports = { 
     getAdmins,
     createAdmin,
@@ -1019,5 +1177,7 @@ module.exports = {
     deleteAgent,
     openServer,
     getServer,
-    updateDeliFees
+    updateDeliFees,
+    createBlocks,
+    getBlockLists
 };
