@@ -82,9 +82,8 @@ function createUsers(req, res) {
         const email = fields.email;
         const phone = fields.phone;
         const password = fields.password;
-        const blocks = fields.blocks;
 
-        if (!name || !email || !phone || !password || !blocks) {
+        if (!name || !email || !phone || !password) {
             res.writeHead(400, { "Content-Type": "application/json" });
             return res.end(
                 JSON.stringify({ error: "ထည့်သွင်းပေးရမည့် အချက်အလက်များ မပြည့်စုံပါ" })
@@ -115,8 +114,8 @@ function createUsers(req, res) {
             }
 
             const sql = `
-                INSERT INTO users (id, name, email, phone, password, blocks)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO users (id, name, email, phone, password)
+                VALUES (?, ?, ?, ?, ?)
             `;
 
             db.query(
