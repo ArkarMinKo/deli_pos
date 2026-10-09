@@ -662,7 +662,7 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    else if (pathName.startsWith("/get-nearest-menu/") && method === "GET") {
+    else if (pathName.startsWith("/get-nearest-menu/") && method === "POST") {
         if (!(await auth.auth(req, res))) return;
         const id = pathName.split("/")[2];
         menu.getNearestMenu(req, res, id);
