@@ -278,7 +278,6 @@ const server = http.createServer(async (req, res) => {
     }
 
     else if (pathName === "/get-blocks" && method === "GET") {
-        if (!(await auth.auth(req, res))) return;
         admin.getBlockLists(req, res);
         return;
     }
