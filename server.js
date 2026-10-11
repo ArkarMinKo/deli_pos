@@ -741,7 +741,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     else if (pathName === "/get-10-main-menu" && method === "GET") {
-        if (!(await auth.auth(req, res))) return;
+        // if (!(await auth.auth(req, res))) return;
         menu.get10MainMenu(req, res);
         return;
     }
