@@ -120,7 +120,7 @@ function createUsers(req, res) {
 
             db.query(
                 sql,
-                [newId, name, email, phone, hashedPassword, blocks],
+                [newId, name, email, phone, hashedPassword],
                 (err, result) => {
                     if (err) {
                         res.statusCode = 500;
