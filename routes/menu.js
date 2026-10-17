@@ -2242,20 +2242,23 @@ function getNearestMenu(req, res, id) {
   // 1. Get blocks from req.body
   // --------------------------------------------------
 
-  let blocks = req.body && req.body.blocks;
+  let rawBody = req.body;
+  if (typeof rawBody === "string") {
+    rawBody = parseJson(rawBody, {});
+  }
+
+  let blocks = rawBody && rawBody.blocks;
 
   if (typeof blocks === "string") {
     const parsedBlocks = parseJson(blocks, null);
 
-    blocks = Array.isArray(parsedBlocks)
-      ? parsedBlocks
-      : [blocks];
+    blocks = Array.isArray(parsedBlocks) ? parsedBlocks : [blocks];
   }
 
   if (!Array.isArray(blocks)) {
     return sendJson(400, {
       success: false,
-      message: "Blocks must be an array"
+      message: "Blocks must be an array",
     });
   }
 
