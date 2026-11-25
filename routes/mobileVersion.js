@@ -1,4 +1,4 @@
-const CURRENT_VERSION = "1.0.0+11";
+const CURRENT_VERSION = "1.0.0+12";
 
 function checkMobileVersion(clientVersion) {
     if (!clientVersion) {
